@@ -1,10 +1,18 @@
-// Attachments of the message being written: adds files (read by
-// doc_extractor.py), clipboard files and images, removes them and cleans up
-// temporary clipboard/screenshot files. `chat` is the widget root (main.qml);
-// the list itself is chat.attachedFiles.
+// Attachments of the message being written: adds files, clipboard files and
+// images, removes them and cleans up temporary clipboard/screenshot files.
+// `chat` is the widget root (main.qml); the list itself is chat.attachedFiles.
+//
+// What an attached document becomes depends on the open chat's mode (never
+// switched): in direct mode doc_extractor.py reads it and the text goes in the
+// message (a very large text gets a warning); in Pi and OpenCode chats it is
+// not read at all, the message names its path and the agent reads what it
+// needs. Images are read (inline) in every mode.
 import QtQuick
 import org.kde.plasma.plasma5support as P5Support
 import "../Security.js" as Sec
+import "MessageContent.js" as MessageContent
+// i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
+// qmllint disable unqualified
 
 P5Support.DataSource {
     id: attachments
@@ -15,6 +23,23 @@ P5Support.DataSource {
     // marker -> {path, source} of extractions still running.
     property var pendingRequests: ({})
     property int requestCounter: 0
+
+    // True when the open chat is a Pi or OpenCode chat (files go as paths).
+    function agentMode() {
+        var eff = chat && typeof chat.effectiveConfig === "function" ? chat.effectiveConfig(chat.currentSessionId) : null;
+        return MessageContent.isAgentMode(eff ? eff.mode : "");
+    }
+
+    function isImagePath(path) {
+        return /\.(png|jpe?g|webp|gif|bmp)$/i.test(String(path || ""));
+    }
+
+    // Direct mode: the warning for a very large extracted text ("" otherwise).
+    function largeFileWarning(file) {
+        if (attachments.agentMode() || !MessageContent.isLargeFile(file))
+            return "";
+        return i18n("This file is very large (about %1 characters of text). Sending it may be slow or expensive, and the AI may not use all of it. Consider attaching only the part you need, or use a Pi or OpenCode chat, which read files themselves.", Math.round(String(file.content).length / 1000) * 1000);
+    }
 
     function fileIconName(filename) {
         var ext = filename.split('.').pop().toLowerCase();
@@ -105,6 +130,7 @@ P5Support.DataSource {
             "name": filename,
             "loading": true,
             "error": "",
+            "warning": "",
             "type": "",
             "content": "",
             "mimeType": "",
@@ -114,6 +140,15 @@ P5Support.DataSource {
         chat.attachedFiles = files;
         var docExtractorPath = attachments.getDocExtractorPath();
         var safePath = Sec.validateFilePath(localPath);
+        if (safePath && attachments.agentMode() && !attachments.isImagePath(safePath)) {
+            // Pi / OpenCode: no extraction; the message names the file's path.
+            newFile.loading = false;
+            newFile.type = "path";
+            newFile.path = safePath;
+            files[files.length - 1] = newFile;
+            chat.attachedFiles = files;
+            return;
+        }
         if (!docExtractorPath || !safePath) {
             files.pop();
             chat.attachedFiles = files;
@@ -152,8 +187,8 @@ P5Support.DataSource {
                         break;
                     }
                 }
-                if (!exists)
-                    currentFiles.push({
+                if (!exists) {
+                    var clipFile = {
                         "name": fInfo.filename || fInfo.name,
                         "path": fInfo.path,
                         "type": fInfo.type,
@@ -161,8 +196,16 @@ P5Support.DataSource {
                         "mimeType": fInfo.mimeType,
                         "size": fInfo.size,
                         "loading": false,
-                        "error": ""
-                    });
+                        "error": "",
+                        "warning": ""
+                    };
+                    if (clipFile.type !== "image" && attachments.agentMode()) {
+                        clipFile.type = "path";
+                        clipFile.content = "";
+                    }
+                    clipFile.warning = attachments.largeFileWarning(clipFile);
+                    currentFiles.push(clipFile);
+                }
 
             }
         } else if (res.mode === "image" && res.file && currentFiles.length < 10) {
@@ -183,7 +226,8 @@ P5Support.DataSource {
                     "mimeType": image.mimeType,
                     "size": image.size,
                     "loading": false,
-                    "error": ""
+                    "error": "",
+                    "warning": ""
                 });
 
         }
@@ -248,6 +292,7 @@ P5Support.DataSource {
                     fileObj.content = res.content;
                     fileObj.mimeType = res.mimeType;
                     fileObj.size = res.size;
+                    fileObj.warning = attachments.largeFileWarning(fileObj);
                 } else {
                     fileObj.error = res.message || "Failed to extract file contents";
                 }

@@ -49,6 +49,8 @@ TestCase {
         property bool historySidePanel: false
         property var voiceManagerRef: null
         property var attachedFiles: []
+        property string testMode: "provider"
+        function effectiveConfig(id) { return {"mode": testMode}; }
         property var msgListViewRef: null
         property bool userScrolledUp: false
         property string sessionHistoryLoadError: ""
@@ -202,6 +204,31 @@ TestCase {
         compare(att.fileIconName("x.pdf"), "document-pdf");
         verify(att.attachmentsReadyToSend());
         verify(att.getDocExtractorPath().endsWith("/contents/ui/doc_extractor.py"));
+    }
+
+    // Pi and OpenCode chats get a document as a path (no extraction); direct chats
+    // extract and warn about very large text. A chat never changes mode.
+    function test_attachments_depend_on_the_chat_mode() {
+        var big = {"type": "text", "content": new Array(100002).join("x"), "name": "big.txt"};
+        var small = {"type": "text", "content": "abc", "name": "small.txt"};
+        chat.testMode = "provider";
+        compare(att.agentMode(), false);
+        verify(att.largeFileWarning(big).indexOf("slow or expensive") >= 0);
+        compare(att.largeFileWarning(small), "");
+        chat.attachedFiles = [];
+        chat.testMode = "pi";
+        compare(att.agentMode(), true);
+        compare(att.largeFileWarning(big), "", "agent chats read files themselves");
+        att.attachFile("file:///tmp/some%20book.pdf");
+        compare(chat.attachedFiles.length, 1);
+        compare(chat.attachedFiles[0].type, "path");
+        compare(chat.attachedFiles[0].path, "/tmp/some book.pdf");
+        compare(chat.attachedFiles[0].loading, false, "nothing is extracted");
+        verify(att.attachmentsReadyToSend());
+        chat.testMode = "opencode";
+        compare(att.agentMode(), true);
+        chat.attachedFiles = [];
+        chat.testMode = "provider";
     }
 
     // A message keeps the messages it quoted when it is edited or sent again.

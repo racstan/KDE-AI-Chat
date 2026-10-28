@@ -40,9 +40,9 @@ QQC2.ScrollView {
                 radius: Kirigami.Units.cornerRadius
                 color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08)
                 border.width: 1
-                border.color: modelData.error !== "" ? Kirigami.Theme.negativeTextColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
-                QQC2.ToolTip.visible: fileMouseArea.containsMouse && modelData.error !== ""
-                QQC2.ToolTip.text: modelData.error
+                border.color: modelData.error !== "" ? Kirigami.Theme.negativeTextColor : (modelData.warning ? Kirigami.Theme.neutralTextColor : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15))
+                QQC2.ToolTip.visible: fileMouseArea.containsMouse && (modelData.error !== "" || !!modelData.warning)
+                QQC2.ToolTip.text: modelData.error !== "" ? modelData.error : (modelData.warning || "")
 
                 MouseArea {
                     id: fileMouseArea
@@ -79,7 +79,7 @@ QQC2.ScrollView {
                         Kirigami.Icon {
                             anchors.fill: parent
                             visible: !fileChip.modelData.loading && fileChip.modelData.type !== "image"
-                            source: pending.chat.fileIconName(fileChip.modelData.name)
+                            source: fileChip.modelData.warning ? "dialog-warning" : pending.chat.fileIconName(fileChip.modelData.name)
                         }
                     }
 

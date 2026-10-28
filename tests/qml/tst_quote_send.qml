@@ -56,7 +56,7 @@ TestCase {
         function pushErrorMessage(t) { errors = errors.concat([t]); }
         function getSessionProperty(id, key, fallback) { return fallback; }
         function effectiveConfig(id) { return {"provider": "p", "model": "m", "thinking": ""}; }
-        function buildMessageContent(text, attachments, apiType, quotes) { return MessageContent.build(text, attachments, apiType, quotes); }
+        function buildMessageContent(text, attachments, apiType, quotes, agent) { return MessageContent.build(text, attachments, apiType, quotes, agent); }
     }
 
     // Pi mode: a send ends in piAgentRef.send(sessionId, generation).

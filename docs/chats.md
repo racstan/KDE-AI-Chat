@@ -38,7 +38,7 @@ A project groups chats. The history starts with **All chats**, then each project
 
 ## Writing messages
 
-- **Files**: drop, paste or attach images, PDFs, CSV files, Word documents and text files. You can send a file without typing text. Reading PDFs and Word documents needs `pdftotext` and `pandoc` (see the [README](../README.md#system-dependencies)).
+- **Files**: drop, paste or attach images, PDFs, CSV files, Word documents and text files. You can send a file without typing text. In direct chats the file's text is put into your message (a very large file gets a warning, because it may be slow or expensive); in Pi and OpenCode chats only the file's path is sent and the agent reads what it needs (see [Modes](modes.md#attached-files-in-each-mode)). Images are always sent with the message. Reading PDFs and Word documents needs `pdftotext` and `pandoc` (see the [README](../README.md#system-dependencies)).
 - **Queue**: if you write while a reply is coming, your message waits and is sent after it.
 - **Quote**: each message has a **Quote** button (**Ctrl+Q** for the picked message). The quote shows as a chip above the message box and goes to the AI with your message, in every mode.
 - **Browse**: with the message box empty, **Up** and **Down** pick the previous and next message. Esc clears the pick. **Ctrl+E** edits your last message, **Ctrl+Shift+R** regenerates the last reply, **Ctrl+Shift+C** copies it.

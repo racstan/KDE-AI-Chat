@@ -342,7 +342,7 @@ PlasmoidItem {
     function removeAttachedFile(index) { attachmentList.removeAttachedFile(index); }
     function attachFile(fileUrl) { attachmentList.attachFile(fileUrl); }
     function checkClipboardForAttachments() { attachmentList.checkClipboardForAttachments(); }
-    function buildMessageContent(text, attachments, apiType, quotes) { return MessageContent.build(text, attachments, apiType, quotes); }
+    function buildMessageContent(text, attachments, apiType, quotes, agent) { return MessageContent.build(text, attachments, apiType, quotes, agent); }
     function writeExportFile(filePath, content) { helperCommands.writeExportFile(filePath, content); }
 
     // The mode, provider and model a chat really uses (chat/ModeSync.qml, rules in

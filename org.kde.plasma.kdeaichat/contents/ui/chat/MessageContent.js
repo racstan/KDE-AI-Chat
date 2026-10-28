@@ -70,13 +70,36 @@ function quoteContext(quotes) {
     return blocks.length > 0 ? blocks.join("\n\n") + "\n\n" : "";
 }
 
-// `quotes` is optional.
-function build(text, attachments, apiType, quotes) {
+// Agent modes (Pi, OpenCode) have file tools: a document is not pasted into
+// the message, it is named by its path ("Attached file: <path>") and the agent
+// reads what it needs. Images are still sent inline. Direct mode has no file
+// tools, so it pastes the extracted text.
+function isAgentMode(mode) {
+    return mode === "pi" || mode === "opencode";
+}
+
+// Extracted text above this many characters gets a warning in direct mode.
+var LARGE_FILE_CHARS = 100000;
+
+function isLargeFile(att) {
+    return !!att && att.type === "text" && String(att.content || "").length > LARGE_FILE_CHARS;
+}
+
+// The line that tells an agent where an attached file is ("" without a path).
+// Line breaks in the path are dropped so a name can't add instructions.
+function pathLine(att) {
+    var path = String((att || {}).path || "").replace(/[\r\n\u2028\u2029]+/g, " ").trim();
+    return path === "" ? "" : "Attached file: " + path + "\n";
+}
+
+// `quotes` is optional; `agent` (true in Pi and OpenCode chats) sends paths, not text.
+function build(text, attachments, apiType, quotes, agent) {
     attachments = attachments || [];
     var docs = [];
     var imgs = [];
     var skippedImageCount = 0;
     var imageChars = 0;
+    var paths = "";
     for (var i = 0; i < attachments.length; i++) {
         var att = attachments[i] || {};
         if (att.type === "image") {
@@ -87,6 +110,8 @@ function build(text, attachments, apiType, quotes) {
             } else {
                 skippedImageCount++;
             }
+        } else if (agent) {
+            paths += pathLine(att);
         } else if (att.type === "text")
             docs.push(att);
     }
@@ -105,6 +130,8 @@ function build(text, attachments, apiType, quotes) {
         compiledPrompt += docContent + "\n";
         compiledPrompt += "--- END OF FILE CONTENT ---\n\n";
     }
+    if (paths !== "")
+        compiledPrompt += paths + "\n";
     compiledPrompt += quoteContext(quotes) + text;
     if (imgs.length === 0)
         return compiledPrompt;
