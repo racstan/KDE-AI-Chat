@@ -63,6 +63,7 @@ Item {
         tour.keepToast = !!spec.keepToast;
         var begin = function() {
             if (spec.messages) app.messages = spec.messages;
+            if (spec.title) app.renameCurrentSession(spec.title);
             kit.later(spec.settle || 900, function() {
                 var done = function() {
                     kit.later(spec.after || 500, function() {
@@ -125,7 +126,7 @@ Item {
             kit.waitFor("the workspace", function() { return String(app.openCodeWorkspaceCwd) !== ""; }, 5000, done);
         }, cleanup: function() { app.chooseWorkspace(""); }}),
 
-        step("chat-opencode", {messages: [
+        step("chat-opencode", {title: "Fix the failing parser test", messages: [
             extras.m("user", "Can you fix the failing test in parser.py?"),
             extras.m("assistant", "Found it. The parser drops the last line:\n\n```python\nlines = text.split(\"\\n\")[:-1]\n```\n\nI will keep every line.",
                      {"model": "OpenCode · build", "reasoning": "The test fails because the last line is cut off.", "contextItems": ["✓ read: parser.py", "✓ edit: parser.py"],
@@ -133,14 +134,14 @@ Item {
             extras.m("permission_request", "OpenCode asks for permission: edit parser.py",
                      {"model": "OpenCode", "status": "pending", "canAlways": true, "permissionId": "p1"})]}),
 
-        step("chat-pi", {messages: [
+        step("chat-pi", {title: "TODOs in this folder", messages: [
             extras.m("user", "List the TODO comments in this folder."),
             extras.m("assistant", "There are two TODOs: one in `parser.py` and one in `cli.py`.",
                      {"model": "Pi · qwen3:8b", "contextItems": ["✓ grep: TODO", "✓ read: parser.py"], "tokens": {"input": 1204, "output": 61}}),
             extras.m("question_request", "Pi is asking", {"model": "Pi", "status": "pending", "questionId": "q1", "allowCustom": false,
                      "questions": [{"question": "Open both files?", "options": [{"label": "Yes"}, {"label": "No"}]}]})]}),
 
-        step("chat-image", {messages: [
+        step("chat-image", {title: "Lighthouse at dusk", messages: [
             extras.m("user", "Paint a lighthouse at dusk, watercolor."),
             extras.m("assistant", "Here is your picture.", {"images": [{"path": "demo-picture.png", "prompt": "A lighthouse at dusk, watercolor",
                      "service": "AI Horde", "model": "nova-demo"}]})], settle: 1500,
@@ -150,7 +151,7 @@ Item {
                 kit.later(400, done);
             }}),
 
-        step("chat-error", {messages: [
+        step("chat-error", {title: "Summarize my notes", messages: [
             extras.m("user", "Summarize my notes."),
             extras.m("error", "Nova demo (local): HTTP 429: too many requests. Wait a moment and try again.")]}),
 
@@ -190,11 +191,11 @@ Item {
             c.provider = extras.saved[1];
         }}),
 
-        step("chat-scheduled", {messages: [
-            extras.m("user", "Give me a short briefing for today.", {"scheduleName": "Morning briefing", "scheduleRunId": "run-demo-1"}),
+        step("chat-scheduled", {title: "Morning briefing", messages: [
+            extras.m("user", "Give me a short briefing for today.", {"scheduled": true, "scheduleName": "Morning briefing", "scheduleRunId": "run-demo-1"}),
             extras.m("assistant", "Good morning, Alex. It is sunny in Lisbon, 22 degrees.\n\n- Stand-up at 10:00\n- Invoice for Sam is due on the 17th\n- Rust study group tonight", {"scheduleRunId": "run-demo-1"})]}),
 
-        step("chat-long-reply", {messages: [
+        step("chat-long-reply", {title: "Three modes compared", messages: [
             extras.m("user", "Compare the three modes in a table, with an example."),
             extras.m("assistant", extras.longText, {"tokens": {"input": 310, "output": 380}})]}),
 
