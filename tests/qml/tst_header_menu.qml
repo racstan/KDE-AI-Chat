@@ -1,6 +1,6 @@
-// The header's "More actions" menu opens when the pointer rests on its button,
-// closes shortly after the pointer has left both, and still opens by click or
-// keyboard.
+// The header's "More actions" menu opens as soon as the pointer is on its
+// button, closes as soon as the pointer has left both (no delays, no fades),
+// and still opens by click or keyboard.
 import QtQuick
 import QtQuick.Layouts
 import QtTest
@@ -38,37 +38,33 @@ Item {
             chat.messages = [{role: "user", content: "Hi", time: "10:00"}];
             mouseMove(root, root.width / 2, root.height - 5);
             tryVerify(() => !menu().opened);
-            wait(350);
         }
 
-        function test_01_hovering_the_button_opens_the_menu_after_a_short_delay() {
+        function test_01_hovering_the_button_opens_the_menu_at_once() {
             var b = more();
             mouseMove(b, b.width / 2, b.height / 2);
-            wait(20);
-            verify(!menu().opened, "not yet: the delay avoids menus opening as the pointer passes by");
-            tryVerify(() => menu().opened, 600);
+            verify(menu().opened, "no delay");
+            verify(menu().visible);
+            compare(menu().enter, null, "no fade in");
             // Opened under the button, not where the pointer is.
             verify(menu().contentItem.mapToItem(root, 0, 0).y >= b.mapToItem(root, 0, 0).y + b.height - 2);
             screenshot(root, "header-more-menu");
         }
 
-        function test_02_passing_over_the_button_does_not_open_it() {
+        function test_02_passing_over_the_button_leaves_no_menu() {
             var b = more();
             mouseMove(b, b.width / 2, b.height / 2);
-            wait(20);
             mouseMove(root, root.width / 2, root.height - 5);
-            wait(400);
-            verify(!menu().opened);
+            tryVerify(() => !menu().opened, 50);
         }
 
-        function test_03_leaving_closes_it_after_a_grace_period() {
+        function test_03_leaving_closes_it_at_once() {
             var b = more();
             mouseMove(b, b.width / 2, b.height / 2);
-            tryVerify(() => menu().opened, 600);
+            verify(menu().opened);
             mouseMove(root, 20, root.height - 5);
-            wait(60);
-            verify(menu().opened, "still open right after leaving");
-            tryVerify(() => !menu().opened, 1000);
+            tryVerify(() => !menu().opened, 50, "closed straight away");
+            verify(!menu().visible, "no fade out");
         }
 
         function test_04_moving_into_the_menu_keeps_it_open() {
@@ -76,11 +72,29 @@ Item {
             mouseMove(b, b.width / 2, b.height / 2);
             tryVerify(() => menu().opened, 600);
             var c = menu().contentItem;
+            mouseMove(b, b.width / 2, b.height - 1);
+            mouseMove(c, c.width / 2, 2);
             mouseMove(c, c.width / 2, 10);
-            wait(600);
+            wait(200);
             verify(menu().opened, "the pointer is on the menu");
             mouseMove(root, 20, root.height - 5);
-            tryVerify(() => !menu().opened, 1000);
+            tryVerify(() => !menu().opened, 50);
+        }
+
+        function test_04b_the_project_submenu_opens_at_once_and_keeps_the_menu() {
+            var b = more();
+            mouseMove(b, b.width / 2, b.height / 2);
+            verify(menu().opened);
+            var item = menu().itemAt(1);
+            compare(item.subMenu, more().projectMenu);
+            mouseMove(item, item.width / 2, item.height / 2);
+            tryVerify(() => more().projectMenu.opened, 50, "no submenu delay");
+            var sub = more().projectMenu.contentItem;
+            mouseMove(sub, sub.width / 2, 10);
+            wait(200);
+            verify(menu().opened && more().projectMenu.opened, "on the submenu, both stay");
+            mouseMove(root, 20, root.height - 5);
+            tryVerify(() => !menu().opened, 50);
         }
 
         function test_05_click_still_opens_it_and_triggers_items() {
@@ -101,10 +115,9 @@ Item {
             // Opening the More menu by hover, then moving onto "+": the menu closes at once.
             var b = more();
             mouseMove(b, b.width / 2, b.height / 2);
-            tryVerify(() => menu().opened, 600);
+            verify(menu().opened);
             mouseMove(plus, plus.width / 2, plus.height / 2);
-            tryVerify(() => !menu().opened, 200, "no menu hangs under New chat");
-            tryVerify(() => !menu().visible, 1000);
+            tryVerify(() => !menu().visible, 50, "no menu hangs under New chat");
             screenshot(root.Window.window.contentItem, "header-new-chat-plain");
         }
 

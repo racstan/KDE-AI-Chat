@@ -215,66 +215,62 @@ RowLayout {
             moreMenu.forceActiveFocus();
         }
 
-        // The menu also opens when the pointer rests on the button (after a
-        // short delay) and closes once the pointer has been off both the
-        // button and the menu for a short grace period. A menu opened by
-        // hover does not take the keyboard focus from the message box; a click
-        // or key makes it an ordinary menu that stays until dismissed.
+        // The menu opens as soon as the pointer is on the button and closes as
+        // soon as the pointer is off the button and the menu (and its Move to
+        // project submenu, which also opens at once). A menu opened by hover
+        // does not take the keyboard focus from the message box; a click or
+        // key makes it an ordinary menu that stays until dismissed.
         onHoveredChanged: {
-            if (hovered && !moreMenu.opened)
-                moreHover.openTimer.restart();
-            else if (!hovered)
-                moreHover.openTimer.stop();
+            if (hovered && !moreMenu.opened) {
+                moreHover.hoverOpened = true;
+                moreMenu.focus = false;
+                moreMenu.popup(moreButton, 0, moreButton.height);
+            } else if (!hovered) {
+                Qt.callLater(moreHover.closeIfLeft);
+            }
         }
         QtObject {
             id: moreHover
 
             property bool hoverOpened: false
-            property real leftAt: 0
 
-            function pointerOnMenu() {
-                for (var i = 0; i < moreMenu.count; i++) {
-                    var item = moreMenu.itemAt(i);
-                    if (item && item.hovered === true)
-                        return true;
-                }
-                return false;
+            // Checked once the pointer event is handled, so going from the
+            // button onto the menu (or the menu onto the submenu) never closes it.
+            function closeIfLeft() {
+                if (moreHover.hoverOpened && moreMenu.opened && !moreButton.hovered
+                        && !menuHover.hovered && !(projectMenu.opened && submenuHover.hovered))
+                    moreMenu.close();
             }
 
-            // Just long enough that passing over the button doesn't open it.
-            property Timer openTimer: Timer {
-                interval: 70
-                onTriggered: {
-                    if (moreButton.hovered && !moreMenu.opened) {
-                        moreHover.hoverOpened = true;
-                        moreMenu.focus = false;
-                        moreMenu.popup(moreButton, 0, moreButton.height);
-                    }
-                }
-            }
-            // While a hover-opened menu is open: close it 300 ms after the
-            // pointer left the button and the menu.
-            property Timer watchTimer: Timer {
-                interval: 60
-                repeat: true
-                running: moreHover.hoverOpened && moreMenu.opened
-                onRunningChanged: moreHover.leftAt = 0
-                onTriggered: {
-                    // On another button of the header: close at once.
-                    if (newChatButton.hovered || infoButton.hovered)
-                        moreMenu.close();
-                    else if (moreButton.hovered || moreHover.pointerOnMenu())
-                        moreHover.leftAt = 0;
-                    else if (moreHover.leftAt === 0)
-                        moreHover.leftAt = Date.now();
-                    else if (Date.now() - moreHover.leftAt >= 300)
-                        moreMenu.close();
+            // Its item (made by the menu) opens the submenu without Qt's delay.
+            property Connections submenuItem: Connections {
+                target: moreMenu.opened ? moreMenu.itemAt(1) : null
+                function onHoveredChanged() {
+                    const item = moreMenu.itemAt(1) as QQC2.MenuItem;
+                    if (item && item.hovered && item.enabled && !projectMenu.opened)
+                        item.click();
                 }
             }
         }
 
+        // The whole menu (padding too), and the submenu. Declared in an Item:
+        // Qt crashes moving a handler out of a plain QtObject.
+        HoverHandler {
+            id: menuHover
+            parent: moreMenu.contentItem ? moreMenu.contentItem.parent : moreButton
+            onHoveredChanged: if (!hovered) Qt.callLater(moreHover.closeIfLeft)
+        }
+        HoverHandler {
+            id: submenuHover
+            parent: projectMenu.contentItem ? projectMenu.contentItem.parent : moreButton
+            onHoveredChanged: if (!hovered) Qt.callLater(moreHover.closeIfLeft)
+        }
+
         QQC2.Menu {
             id: moreMenu
+            // No fade: it is there (and gone) at once.
+            enter: null
+            exit: null
 
             QQC2.MenuItem {
                 text: i18n("Rename chat")
@@ -288,6 +284,8 @@ RowLayout {
             ProjectMenu {
                 id: projectMenu
                 objectName: "moveToProjectMenu"
+                enter: null
+                exit: null
                 chat: header.chat
                 enabled: !header.inIncognito
             }
