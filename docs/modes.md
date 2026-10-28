@@ -61,6 +61,12 @@ Every mode can have a **workspace**: a folder on your computer. It shows under t
 ![A chat with a workspace folder, shown under the header](media/chat-workspace-light.png)
 *A chat with a workspace folder, shown under the header.*
 
+## Attached files in each mode
+
+- **Direct chats** have no file tools, so an attached document (PDF, Word, CSV, text) is read by the widget and its text is put into your message. When that text is very large (over about 100,000 characters) the file shows a warning icon: sending it may be slow or expensive, and the AI may not use all of it.
+- **Pi and OpenCode chats** do not read the document. The message just names the file ("Attached file: /path/to/book.pdf") and the agent reads only what it needs with its own tools, so a long book does not go into every question. The file stays where it is, so it must still be there when the agent reads it.
+- **Images** are sent with the message in every mode.
+
 ## Per-chat model settings
 
 By default every chat uses the mode, provider and model from the main settings. Turn on **Settings → Chat → Let chats have their own model settings** to let each chat choose its own provider and model in its **Chat info** panel (the (i) button in the header). You also choose who wins when they differ: **This chat's settings win** or **Main settings win**. The Chat info panel always says what the chat is using and where that comes from.

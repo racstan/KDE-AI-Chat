@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New license: PolyForm Noncommercial 1.0.0.** From 1.4.0, KDE AI Chat may be used, changed and shared for any noncommercial purpose; commercial use needs a separate license from the author. Versions up to 1.3.1 stay under the GNU GPL v3.0 or later. A **SECURITY.md** says how to report security problems privately.
 
 ### Fixed
+- **Pi and OpenCode chats no longer paste attached documents.** The message now names the file's path ("Attached file: ...") and the agent reads what it needs, instead of every question carrying the whole extracted text (one book chat sent 352,890 input tokens per question). Images are still sent inline. Direct chats still paste the text and now warn when it is very large (over about 100,000 characters).
 - **OpenCode uses the model you chose.** With an agent such as `build` selected, the chosen model used to be dropped in favour of the model named in OpenCode's own configuration (a retired one there gave "Model not found"). The chosen model now always goes with the request; an agent's own model is used only when no model is chosen.
 - **The /model notice is readable.** When chats can't have their own model, the notice shows its title on one line and the reason below it.
 - **File names with punctuation attach correctly.** Files with ( ) & ; $ and similar characters in their names are attached as themselves instead of being refused or pointing at another file.
