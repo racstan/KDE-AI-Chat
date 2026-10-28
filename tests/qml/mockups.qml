@@ -32,7 +32,7 @@ Item {
     }
     function i18np(one, many, n) { return (n === 1 ? one : many).replace("%1", n); }
 
-    FakeChat { id: chat }
+    FakeChat { id: chat; openCodeMode: true }  // these are OpenCode replies: they keep the Context list
 
     Item {
         id: popup

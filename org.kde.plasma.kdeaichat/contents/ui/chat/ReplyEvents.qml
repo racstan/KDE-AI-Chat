@@ -4,6 +4,7 @@
 // `chat` is the widget root (main.qml).
 import QtQuick
 import "../backends/AgentEvents.js" as AgentEvents
+import "Activity.js" as Activity
 import "TimeFormat.js" as TimeFormat
 
 QtObject {
@@ -13,6 +14,18 @@ QtObject {
     property var notifierRef: null  // chat/Notifier.qml
     property alias partialSave: partial  // saves the reply while it streams
     property var _partial: PartialSave { id: partial; chat: replies.chat }
+
+    // When the current stretch of thinking started and last grew (Date.now(); 0 = none).
+    property real thinkStart: 0
+    property real thinkEnd: 0
+
+    // Adds the thinking so far to the reply's activity list (direct and Pi replies; changes `msg`).
+    function closeThinking(msg) {
+        if (Array.isArray(msg.activity))
+            msg.activity = Activity.closeThinking(msg.activity, chat.currentStreamReasoning, replies.thinkStart, replies.thinkEnd);
+        replies.thinkStart = 0;
+        replies.thinkEnd = 0;
+    }
 
     function resetProviderStreamingState() {
         chat.streamBuffer.flush();
@@ -24,6 +37,7 @@ QtObject {
                     current.content = chat.currentStreamText;
                 if (chat.currentStreamReasoning)
                     current.reasoning = chat.currentStreamReasoning;
+                replies.closeThinking(current);
                 delete current.imageJob;
                 if (!current.content && !current.reasoning && !current.tools && !chat.imageStore.hasImages(current))
                     copy.splice(chat.currentStreamIndex, 1);
@@ -43,7 +57,13 @@ QtObject {
             return;
         var ts = Date.now();
         chat.currentStreamKey = "m-stream-" + ts;
-        chat.messages = chat.messages.concat([{"id": chat.currentStreamKey, "role": "assistant", "content": "", "reasoning": "", "time": TimeFormat.nowTime(ts), "at": ts, "model": model}]);
+        var reply = {"id": chat.currentStreamKey, "role": "assistant", "content": "", "reasoning": "", "time": TimeFormat.nowTime(ts), "at": ts, "model": model};
+        // The thinking and steps in order (Activity.js); OpenCode replies keep their own display.
+        if (!chat.openCodeMode)
+            reply.activity = [];
+        replies.thinkStart = 0;
+        replies.thinkEnd = 0;
+        chat.messages = chat.messages.concat([reply]);
         chat.currentStreamIndex = chat.messages.length - 1;
         chat.streamingResponse = true;
     }
@@ -69,9 +89,15 @@ QtObject {
     // Applies one backend event (DirectBackend.js / OpenCodeBackend.js / PiBackend.js) to the chat.
     function applyBackendEvent(event, model, extra) {
         if (AgentEvents.isReplyEvent(event.type)) {
-            // Shown in the reply's Context list until Phase 4's tool cards.
             replies.ensureStreamingMessage(model);
-            replies.updateMessageAt(chat.currentStreamIndex, function(msg) { AgentEvents.applyToReply(msg, event); });
+            // The thinking so far comes before this step.
+            chat.streamBuffer.flush();
+            replies.updateMessageAt(chat.currentStreamIndex, function(msg) {
+                replies.closeThinking(msg);
+                AgentEvents.applyToReply(msg, event);
+                if (Array.isArray(msg.activity))
+                    msg.activity = Activity.record(msg.activity, event, msg);
+            });
         } else if (event.type === "permission_request" || event.type === "question_request") {
             var isPermission = event.type === "permission_request";
             if (replies.findRequestMessage(event.type, isPermission ? "permissionId" : "questionId", event.id) >= 0)
@@ -91,6 +117,11 @@ QtObject {
             });
         } else if (event.type === "text_delta" || event.type === "reasoning_delta") {
             replies.ensureStreamingMessage(model);
+            if (event.type === "reasoning_delta") {
+                replies.thinkEnd = Date.now();
+                if (replies.thinkStart === 0)
+                    replies.thinkStart = replies.thinkEnd;
+            }
             chat.streamBuffer.add(event.type === "text_delta" ? "text" : "reasoning", event.delta);
         } else if (event.type === "images") {
             // Images the model sent: saved as files, then added to this reply.
@@ -116,6 +147,7 @@ QtObject {
                 var msgs = chat.messages.slice();
                 var reply = Object.assign({}, msgs[chat.currentStreamIndex]);
                 reply.content = chat.currentStreamText || (reply.tools || chat.imageStore.hasImages(reply) ? "" : "(empty response)");
+                replies.closeThinking(reply);
                 reply.reasoning = chat.currentStreamReasoning;
                 delete reply.imageJob;
                 reply = chat.imageStore.takeInlineImages(chat.currentSessionId, reply);
