@@ -59,9 +59,7 @@ Item {
             chat.userScrolledUp = false;
             chat.chatInputText = "";
             composer.input.text = "";
-            chat.focusInput();
-            tryVerify(() => composer.input.activeFocus, 1000);
-            wait(150); // the focus timer of focusInput()
+            settleComposerFocus(composer);
         }
 
         // The text item of the message at `row` (a read-only TextEdit).

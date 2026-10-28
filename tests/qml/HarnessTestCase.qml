@@ -10,6 +10,13 @@ TestCase {
 
     when: windowShown
 
+    // Takes the focus while settleComposerFocus waits for the composer's focus timer.
+    Item {
+        id: focusSink
+        width: 1
+        height: 1
+    }
+
     // Stand-in for `plasmoid.configuration`: tests set only the keys a
     // component reads.
     property var fakeConfiguration: ({})
@@ -46,6 +53,18 @@ TestCase {
         for (var i = 0; i < kids.length; i++)
             findChildren(kids[i], objectName, into);
         return into;
+    }
+
+    // composer.focusInput() gives the input the focus and starts the composer's 120 ms focus timer,
+    // which gives the input the focus again when it fires (Composer.qml). A test that moves the focus
+    // while that timer is pending (a picked message, an edit in place) has it taken back in the middle
+    // of the test, so this moves the focus away while the timer is pending and returns once the timer
+    // has brought it back. wait(0) first runs the chat.focusInput() calls still queued from before.
+    function settleComposerFocus(composer) {
+        wait(0);
+        composer.focusInput();
+        focusSink.forceActiveFocus();
+        tryVerify(() => composer.input.activeFocus, 1000, "the composer's focus timer gives the input its focus back");
     }
 
     // Saves `item` as build/qml-screens/<fileName>.png and returns the path.

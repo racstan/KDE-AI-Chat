@@ -77,9 +77,7 @@ Item {
             infoSpy.clear();
             chat.chatInputText = "";
             composer.input.text = "";
-            chat.focusInput();
-            tryVerify(() => composer.input.activeFocus, 1000);
-            wait(150); // the focus timer of focusInput()
+            settleComposerFocus(composer);
         }
 
         function test_1_ctrl_n_starts_a_new_chat() {
@@ -220,10 +218,9 @@ Item {
 
         function test_6j_a_selected_message_shows_its_buttons_and_a_highlight() {
             keyClick(Qt.Key_Up);
-            var item = view.list.itemAtIndex(3);
-            var actions = findChild(item, "messageActions");
-            if (actions)
-                tryVerify(() => actions.shown, 1000);
+            tryVerify(() => findChild(view.list.itemAtIndex(3), "messageActions") !== null, 1000, "the selected message has its buttons");
+            var actions = findChild(view.list.itemAtIndex(3), "messageActions");
+            tryVerify(() => actions.shown, 1000);
             wait(300);
             screenshot(root.Window.window.contentItem, "shortcuts-browse-selected");
         }

@@ -119,13 +119,11 @@ Item {
         function test_3_image_avatar_and_a_bad_one() {
             chat.plasmoid = root.configWith({aiName: "Nova", aiAvatar: root.picture});
             chat.messages = conversation;
-            wait(150);
-            verify(header(1, "senderAvatar").visible, "the picture shows");
+            tryVerify(() => header(1, "senderAvatar").visible, 3000, "the picture shows");
             compare(String(header(1, "senderAvatar").source), "file://" + root.picture);
             screenshot(root, "personality-chat-image");
             chat.plasmoid = root.configWith({aiName: "Nova", aiAvatar: "/home/me/notes.txt"});
-            wait(50);
-            verify(!header(1, "senderAvatar").visible, "not an image file: no avatar");
+            tryVerify(() => !header(1, "senderAvatar").visible, 3000, "not an image file: no avatar");
             compare(header(1, "senderName").text, "Nova");
         }
 

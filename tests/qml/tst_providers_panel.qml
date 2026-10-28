@@ -237,6 +237,7 @@ Item {
             var button = tc.findChild(panel, "overrideButton");
             verify(button.visible);
             compare(button.text, "Save anyway");
+            tryVerify(function() { return button.enabled; }, 5000, "the button is enabled once the check is over");
             mouseClick(button);
             tryVerify(function() { return panel.editingIndex === -1; });
             tryVerify(function() { return walletFolder["openrouter"] === "or-new-key"; });
@@ -266,6 +267,8 @@ Item {
             verify(tc.findChild(panel, "modelWarning").visible);
             wait(150);   // let the layout settle
             screenshot(root, "providers-editor-dead-model");
+            // The button is off while a check runs (ProviderEditor: enabled: !checking): click it once it is on.
+            tryVerify(function() { return tc.findChild(panel, "overrideButton").enabled; }, 5000, "the override button is enabled");
             mouseClick(tc.findChild(panel, "overrideButton"));
             tryVerify(function() { return panel.editingIndex === -1; });
             tryVerify(function() { return walletFolder["openrouter"] === "good"; });
@@ -307,7 +310,9 @@ Item {
             panel.startEdit(indexOfProvider("nvidia"));
             compare(root.count("GET"), gets, "second open uses the cached list");
             verify(panel.listChat.length > 0);
-            mouseClick(tc.findChild(panel, "refreshButton"));
+            var refresh = tc.findChild(panel, "refreshButton");
+            tryVerify(function() { return refresh.enabled; }, 5000, "Refresh is enabled once the checks are over");
+            mouseClick(refresh);
             tryVerify(function() { return root.count("GET") === gets + 1; });
             panel.cancelEdit();
         }
