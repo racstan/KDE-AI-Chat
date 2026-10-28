@@ -131,7 +131,7 @@ for c in CHAT_LIST:
     with open(os.path.join(CHATS, "chat-%s.ini" % c["id"]), "w", encoding="utf-8") as f:
         f.write("[General]\nmessages=" + ini_string(json.dumps(c["messages"], separators=(",", ":"))) + "\n")
 
-shutil.copy(os.path.join(ROOT, ".github", "assets", "image1.png"), os.path.join(CHATS, "demo-picture.png"))   # chat-image
+shutil.copy(os.path.join(ROOT, "scripts", "media", "lighthouse.png"), os.path.join(CHATS, "demo-picture.png"))   # chat-image
 
 templates = [{"name": "summarize", "prompt": "Summarize the following in three short bullet points:"},
              {"name": "translate", "prompt": "Translate the following into Portuguese:"},
