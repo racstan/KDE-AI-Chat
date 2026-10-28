@@ -111,6 +111,12 @@ Item {
         onListLoaded: storage._migrateMemoryOnce()
     }
 
+    // A memory changed in the settings page (its own MemoryStore) reaches the chats.
+    MemoryWatch {
+        directory: storage.chatDirectory.replace(/\/chats\/applet-[^\/]+\/?$/, "")
+        onChanged: memories.load()
+    }
+
     MemoryMigration {
         id: memoryMigration
         configuration: storage.configuration

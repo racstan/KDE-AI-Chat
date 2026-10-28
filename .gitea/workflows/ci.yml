@@ -77,6 +77,7 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/store/HelperRunner.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/store/Migration.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/store/Storage.qml",
+                      "org.kde.plasma.kdeaichat/contents/ui/store/MemoryWatch.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/backends/DirectBackend.js",
                       "org.kde.plasma.kdeaichat/contents/ui/backends/DirectStream.js",
                       "org.kde.plasma.kdeaichat/contents/ui/backends/DirectTools.js",
