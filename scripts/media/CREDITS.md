@@ -9,10 +9,6 @@
 
 # Music of the video (scripts/media/add_music.py)
 
-Not kept in the repository; downloaded from Wikimedia Commons. All by **Loyalty Freak Music**, released as
-**CC0 1.0** (public domain): no credit is needed, but it is nice to give one in the video's description.
-
-- "Softly": https://commons.wikimedia.org/wiki/File:Loyalty_Freak_Music_-_06_-_Softly.ogg
-- "Love They": https://commons.wikimedia.org/wiki/File:Loyalty_Freak_Music_-_05_-_Love_They.ogg
-- "Sweet They": https://commons.wikimedia.org/wiki/File:Loyalty_Freak_Music_-_14_-_Sweet_They.ogg
-- "Hangover": https://commons.wikimedia.org/wiki/File:Loyalty_Freak_Music_-_10_-_Hangover.ogg
+Not kept in the repository. "Tutorial" by paulyudin, from Pixabay
+(file `paulyudin-tutorial-tutorial-music-574011.mp3`), under the Pixabay Content License: free to use,
+no credit required (given in the video's description anyway). The 2:45 track loops under the 13.5 min video.

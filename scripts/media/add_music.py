@@ -3,11 +3,11 @@
 
 Usage: add_music.py <video.mp4> <out.mp4> <track> [<track> ...]
 
-The tracks play one after another with a 4 s crossfade, each brought to the same low loudness (LOUDNESS LUFS:
+The tracks play one after another with a 4 s crossfade (starting over from the first as often as the video needs), each brought to the same low loudness (LOUDNESS LUFS:
 background, not a song) and softened (no highs above SOFTEN_HZ), cut to the video's length, faded in over 2 s and out over 5 s.
 The picture is copied as it is; the sound is AAC 192 kb/s. The tracks must be ones the video may use
 (the ones in scripts/media/CREDITS.md are public domain, CC0); they are not kept in the repository.
-Exits 1 if ffmpeg fails or the tracks are shorter than the video.
+Exits 1 if ffmpeg fails.
 """
 import subprocess
 import sys
@@ -29,9 +29,13 @@ def main():
         sys.exit(__doc__)
     video, out, tracks = sys.argv[1], sys.argv[2], sys.argv[3:]
     length = duration(video)
-    music = sum(duration(t) for t in tracks) - CROSSFADE * (len(tracks) - 1)
-    if music < length:
-        sys.exit("add_music: the tracks last %.0f s, the video %.0f s: add another track" % (music, length))
+    lengths = [duration(t) for t in tracks]
+    played, music = [], -CROSSFADE
+    while music < length:   # loop the tracks until they cover the video
+        i = len(played) % len(tracks)
+        played.append(tracks[i])
+        music += lengths[i] - CROSSFADE
+    tracks = played
     inputs = ["-i", video]
     chain = []
     for i, track in enumerate(tracks, start=1):
