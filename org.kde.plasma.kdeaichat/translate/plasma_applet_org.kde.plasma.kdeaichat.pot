@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-28 08:21+0530\n"
+"POT-Creation-Date: 2026-10-28 08:44+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -57,6 +57,58 @@ msgstr ""
 
 #: contents/config/config.qml:54
 msgid "Support"
+msgstr ""
+
+#: contents/ui/chat/ActivityBox.qml:42
+msgid "Running %1…"
+msgstr ""
+
+#: contents/ui/chat/ActivityBox.qml:44 contents/ui/chat/ComposerStatus.qml:26
+#: contents/ui/chat/MessageDelegate.qml:174
+#: contents/ui/chat/ReasoningBlock.qml:47
+msgid "Thinking…"
+msgstr ""
+
+#: contents/ui/chat/ActivityBox.qml:46 contents/ui/chat/ComposerStatus.qml:26
+#: contents/ui/chat/MessageDelegate.qml:174
+msgid "Writing…"
+msgstr ""
+
+#: contents/ui/chat/ActivityBox.qml:46
+msgid "Working…"
+msgstr ""
+
+#: contents/ui/chat/ActivityBox.qml:48 contents/ui/chat/ActivityBox.qml:57
+#: contents/ui/chat/ContextList.qml:64
+msgid "1 step"
+msgid_plural "%1 steps"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/chat/ActivityBox.qml:52
+msgid "Thought for %1 s"
+msgstr ""
+
+#: contents/ui/chat/ActivityBox.qml:52
+msgid "Thought for %1 min %2 s"
+msgstr ""
+
+#: contents/ui/chat/ActivityBox.qml:54
+msgid "Thought"
+msgstr ""
+
+#: contents/ui/chat/ActivityBox.qml:59 contents/ui/chat/ContextList.qml:68
+msgid "1 failed"
+msgid_plural "%1 failed"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/chat/ActivityBox.qml:85 contents/ui/chat/ContextList.qml:48
+msgid "Hide activity"
+msgstr ""
+
+#: contents/ui/chat/ActivityBox.qml:85 contents/ui/chat/ContextList.qml:48
+msgid "Show activity"
 msgstr ""
 
 #: contents/ui/chat/AskInbox.qml:81
@@ -118,94 +170,94 @@ msgstr ""
 msgid "Delete chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:75
+#: contents/ui/chat/ChatHeader.qml:76
 msgid "Available when the reply is finished"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:83
+#: contents/ui/chat/ChatHeader.qml:96
 msgid "Back to chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:84
+#: contents/ui/chat/ChatHeader.qml:97
 msgid "Hide history"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:84
+#: contents/ui/chat/ChatHeader.qml:97
 msgid "Show history"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:102
+#: contents/ui/chat/ChatHeader.qml:115
 msgid "Unpin (close when clicking away)"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:102
+#: contents/ui/chat/ChatHeader.qml:115
 #: contents/ui/config/LayoutSettings.qml:144
 msgid "Pin (keep open)"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:111
+#: contents/ui/chat/ChatHeader.qml:124
 msgid "Open Settings"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:120
+#: contents/ui/chat/ChatHeader.qml:133
 msgid "%1 History"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:120 contents/ui/chat/ChatSearchPanel.qml:190
+#: contents/ui/chat/ChatHeader.qml:133 contents/ui/chat/ChatSearchPanel.qml:190
 #: contents/ui/chat/SessionList.qml:162 contents/ui/chat/UndoNotice.qml:128
 msgid "New Chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:147
+#: contents/ui/chat/ChatHeader.qml:160
 #: contents/ui/chat/ModeMismatchBanner.qml:31
 #: contents/ui/ConfigAppearance.qml:62
 #: contents/ui/config/LayoutSettings.qml:168
 msgid "New chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:166 contents/ui/ConfigAppearance.qml:63
+#: contents/ui/chat/ChatHeader.qml:180 contents/ui/ConfigAppearance.qml:63
 msgid "New incognito chat (never saved)"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:178 contents/ui/ChatSettingsDialog.qml:109
+#: contents/ui/chat/ChatHeader.qml:192 contents/ui/ChatSettingsDialog.qml:109
 #: contents/ui/config/LayoutSettings.qml:180
 msgid "Chat info"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:193
+#: contents/ui/chat/ChatHeader.qml:207
 msgid "More actions"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:266 contents/ui/chat/ChatRowMenu.qml:25
+#: contents/ui/chat/ChatHeader.qml:280 contents/ui/chat/ChatRowMenu.qml:25
 #: contents/ui/chat/SessionList.qml:313
 msgid "Rename chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:283
+#: contents/ui/chat/ChatHeader.qml:297
 msgid "Jump to first message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:294
+#: contents/ui/chat/ChatHeader.qml:308
 msgid "Jump to previous message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:299
+#: contents/ui/chat/ChatHeader.qml:313
 msgid "Jump to next message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:304
+#: contents/ui/chat/ChatHeader.qml:318
 msgid "Jump to latest message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:315
+#: contents/ui/chat/ChatHeader.qml:329
 msgid "Schedule a message…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:321
+#: contents/ui/chat/ChatHeader.qml:335
 msgid "Export chat…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:327
+#: contents/ui/chat/ChatHeader.qml:341
 msgid "Clear chat"
 msgstr ""
 
@@ -820,17 +872,6 @@ msgid "Stop the reply (Esc)"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:26
-#: contents/ui/chat/MessageDelegate.qml:177
-msgid "Writing…"
-msgstr ""
-
-#: contents/ui/chat/ComposerStatus.qml:26
-#: contents/ui/chat/MessageDelegate.qml:177
-#: contents/ui/chat/ReasoningBlock.qml:47
-msgid "Thinking…"
-msgstr ""
-
-#: contents/ui/chat/ComposerStatus.qml:26
 msgid "Esc stops it."
 msgstr ""
 
@@ -875,29 +916,9 @@ msgstr ""
 msgid "Stop reading"
 msgstr ""
 
-#: contents/ui/chat/ContextList.qml:48
-msgid "Hide activity"
-msgstr ""
-
-#: contents/ui/chat/ContextList.qml:48
-msgid "Show activity"
-msgstr ""
-
-#: contents/ui/chat/ContextList.qml:64
-msgid "1 step"
-msgid_plural "%1 steps"
-msgstr[0] ""
-msgstr[1] ""
-
 #: contents/ui/chat/ContextList.qml:66 contents/ui/chat/ToolCard.qml:79
 msgid "running"
 msgstr ""
-
-#: contents/ui/chat/ContextList.qml:68
-msgid "1 failed"
-msgid_plural "%1 failed"
-msgstr[0] ""
-msgstr[1] ""
 
 #: contents/ui/chat/DirectToolRounds.qml:43
 msgid "Stopped: the AI asked for too many tools in a row."
@@ -1513,45 +1534,45 @@ msgstr ""
 msgid "Remember"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:82
-#: contents/ui/chat/MessageDelegate.qml:84 contents/ui/chat/QuoteBlock.qml:24
+#: contents/ui/chat/MessageDelegate.qml:79
+#: contents/ui/chat/MessageDelegate.qml:81 contents/ui/chat/QuoteBlock.qml:24
 #: contents/ui/chat/QuoteChips.qml:29 contents/ui/chat/SenderName.qml:51
 msgid "Assistant"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:82
+#: contents/ui/chat/MessageDelegate.qml:79
 msgid "%1 is writing a reply"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:83
+#: contents/ui/chat/MessageDelegate.qml:80
 msgid "You said: %1"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:84
+#: contents/ui/chat/MessageDelegate.qml:81
 msgid "%1 replied: %2"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:85
+#: contents/ui/chat/MessageDelegate.qml:82
 msgid "Error: %1"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:157
+#: contents/ui/chat/MessageDelegate.qml:154
 msgid "Scheduled message"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:177
+#: contents/ui/chat/MessageDelegate.qml:174
 msgid "Making a picture…"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:214
+#: contents/ui/chat/MessageDelegate.qml:211
 msgid "Edit message"
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:228
+#: contents/ui/chat/MessageDelegate.qml:225
 msgid "Saving removes the messages after this one."
 msgstr ""
 
-#: contents/ui/chat/MessageDelegate.qml:382
+#: contents/ui/chat/MessageDelegate.qml:379
 msgid "(interrupted)"
 msgstr ""
 

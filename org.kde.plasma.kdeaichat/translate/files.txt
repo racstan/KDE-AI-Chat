@@ -1,4 +1,5 @@
 contents/config/config.qml
+contents/ui/chat/ActivityBox.qml
 contents/ui/chat/AskInbox.qml
 contents/ui/chat/AttachmentChips.qml
 contents/ui/chat/Attachments.qml
@@ -71,6 +72,7 @@ contents/ui/ChatSettingsDialog.qml
 contents/ui/chat/ShortcutList.js
 contents/ui/chat/StarterTexts.qml
 contents/ui/chat/TemplateSuggestions.qml
+contents/ui/chat/ThinkingSlot.qml
 contents/ui/chat/ToolCard.qml
 contents/ui/chat/UndoNotice.qml
 contents/ui/chat/WorkspaceBar.qml
