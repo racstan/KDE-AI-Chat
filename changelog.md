@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **The words being read aloud glow.** While a message is read aloud, the sentence being read is softly highlighted and the highlight moves along as it reads; with System voices the word being said is highlighted too. Speech Note reports each sentence as it starts it. The glow sits behind the text, so it no longer replaces your own selection.
+- **The More actions menu opens and closes at once.** Hovering the button opens it straight away and moving off it closes it, with no wait and no fade; its Move to project submenu opens at once too.
 - **One activity box for thinking and steps.** In direct and Pi chats, a reply's thinking and the steps the AI takes (tool calls, notices, changed files) now sit in one collapsible box above the reply, in the order they happened. Collapsed it is one line: what the AI is doing right now while it works ("Running read_file…"), then "Thought for 12 s · 3 steps" once it is done. Older chats show in the same box; OpenCode chats look as before.
 - **New license: PolyForm Noncommercial 1.0.0.** From 1.4.0, KDE AI Chat may be used, changed and shared for any noncommercial purpose; commercial use needs a separate license from the author. Versions up to 1.3.1 stay under the GNU GPL v3.0 or later. A **SECURITY.md** says how to report security problems privately.
 

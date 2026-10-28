@@ -3,6 +3,8 @@
 // voice/ReadAloud.qml; voice/FileSpeech.qml is the other, with the same API:
 //   start(chunks, settings), stop(), pause(), resume()
 //   chunkStarted(text), finished(), failed(message, code); canPause
+// and, where the engine reports it, wordStarted(start): the word being said,
+// as its place in the chunk.
 //
 // Chunks are said one after another: the next one when the engine is Ready
 // after speaking the previous. (Enqueuing them all at once made Speech
@@ -19,6 +21,7 @@ Item {
     readonly property bool canPause: (tts.engineCapabilities & TextToSpeech.Capabilities.PauseResume) !== 0
 
     signal chunkStarted(string text)
+    signal wordStarted(int start)
     signal finished()
     signal failed(string message, string code)
 
@@ -97,6 +100,10 @@ Item {
                 speech._spoke = true;
             else if (state === TextToSpeech.Ready && speech._spoke)
                 speech._sayNext();
+        }
+        onSayingWord: function(word, id, start, length) {
+            if (speech._active)
+                speech.wordStarted(start);
         }
         onErrorOccurred: function(reason, message) {
             if (!speech._active)

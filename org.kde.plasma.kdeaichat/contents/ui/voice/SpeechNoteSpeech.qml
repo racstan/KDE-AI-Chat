@@ -1,8 +1,8 @@
 // Reads aloud through Speech Note (the dsnote app): the whole reply goes to
 // it in one request (its text is a private payload file, see
 // store/HelperRunner.qml) and Speech Note splits the sentences and plays
-// them itself. `speechnote_wait_spoken` returns when the speech is over, and
-// meanwhile keeps the task alive. Same API as voice/FileSpeech.qml.
+// them itself. `speechnote_wait_spoken` returns when the speech is over, or
+// when it starts a sentence (then it is called again), and keeps the task alive. Same API as voice/FileSpeech.qml.
 //
 // Pause, resume and stop are separate helper calls, so the wait runs on its
 // own runner (`waitHelper`, empty: made here); tests pass fakes for both.
@@ -60,18 +60,28 @@ Item {
                 speech._fail(result);
                 return;
             }
-            var task = result.task;
-            speech._task = task;
+            speech._task = result.task;
             speech.chunkStarted("");
-            speech._call(speech._wait, "speechnote_wait_spoken", {"task": task}, function(done) {
-                if (generation !== speech._generation)
-                    return;
-                speech._task = -1;
-                if (SpeechNote.isError(done) && done.code !== "timeout")
-                    speech._fail(done);
-                else
-                    speech.finished();
-            });
+            speech._waitSpoken(generation, result.task);
+        });
+    }
+
+    // Until the speech is over; each sentence Speech Note starts reading ends
+    // a wait early (chunkStarted with it, for the highlight) and it waits again.
+    function _waitSpoken(generation, task) {
+        _call(_wait, "speechnote_wait_spoken", {"task": task, "sentences": true}, function(done) {
+            if (generation !== speech._generation)
+                return;
+            if (done.type === "speechnote_sentence") {
+                speech.chunkStarted(String(done.text || ""));
+                speech._waitSpoken(generation, task);
+                return;
+            }
+            speech._task = -1;
+            if (SpeechNote.isError(done) && done.code !== "timeout")
+                speech._fail(done);
+            else
+                speech.finished();
         });
     }
 

@@ -30,6 +30,8 @@ Item {
     readonly property var runner: loader.item
     readonly property bool canPause: !!runner && runner.canPause === true
     property string currentChunk: ""
+    // The word being said, as its place in currentChunk (-1: not reported).
+    property int currentWordStart: -1
     property string text: ""
     property string engineId: ""
     // The status line under the chat (ComposerStatus.qml compares these strings).
@@ -74,6 +76,7 @@ Item {
         if (runner && phase !== "")
             runner.stop();
         currentChunk = "";
+        currentWordStart = -1;
         reader.text = text;
         _lastText = text;
         usedFallback = !!engineOverride;
@@ -127,6 +130,7 @@ Item {
     function _done() {
         phase = "";
         currentChunk = "";
+        currentWordStart = -1;
         reader.text = "";
         if (runner)
             idle.restart();
@@ -149,10 +153,12 @@ Item {
         target: loader.item
         ignoreUnknownSignals: true
         function onChunkStarted(text) {
+            reader.currentWordStart = -1;
             reader.currentChunk = text;
             if (reader.phase === "synthesizing")
                 reader.phase = "playing";
         }
+        function onWordStarted(start) { reader.currentWordStart = start; }
         function onFinished() { reader._done(); }
         function onFailed(message, code) {
             // Not installed yet: the system voice reads instead, with no error.

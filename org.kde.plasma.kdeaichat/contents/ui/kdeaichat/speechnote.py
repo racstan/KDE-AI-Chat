@@ -24,8 +24,10 @@ spoken text is never logged.
   speechnote_speak        {text, model?} -> {"type": "speechnote_speaking", task}; text goes in the private payload
                           file ("@..." argument), and the call to the service avoids the command line too.
   speechnote_pause / speechnote_resume / speechnote_stop {task} -> {"type": "speechnote_paused"|..., task, result}
-  speechnote_wait_spoken  {task, timeout?: 3600} -> {"type": "speechnote_spoken", task}; returns when the task is over
-                          (finished, stopped, or replaced). It keeps the task alive while it waits.
+  speechnote_wait_spoken  {task, timeout?: 3600, sentences?: bool} -> {"type": "speechnote_spoken", task}; returns when
+                          the task is over (finished, stopped, or replaced). It keeps the task alive while it waits.
+                          With sentences, it returns sooner with {"type": "speechnote_sentence", task, text} when
+                          Speech Note starts reading a sentence (TtsPartialSpeechPlaying); the caller waits again.
 """
 import json
 import re
@@ -220,10 +222,29 @@ def wait_spoken(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     Polling CurrentTask (rather than watching for TtsPlaySpeechFinished) cannot
     miss the end if the task was over before this process started, and the
-    loop doubles as the keepalive Speech Note needs while it plays.
+    loop doubles as the keepalive Speech Note needs while it plays. With
+    ``sentences``, the bus is watched meanwhile and the first sentence Speech
+    Note starts reading ends the wait (without a watch, it only polls).
     """
     task = _task(payload)
     deadline = time.monotonic() + _seconds(payload, "timeout", 3600.0)
+    monitor = None
+    if payload.get("sentences") is True:
+        try:
+            monitor = bus.Monitor()
+            monitor.ready()
+        except SpeechNoteError:
+            if monitor:
+                monitor.__exit__()
+            monitor = None
+    try:
+        return _wait_spoken(task, deadline, monitor)
+    finally:
+        if monitor:
+            monitor.__exit__()
+
+
+def _wait_spoken(task: int, deadline: float, monitor: Any) -> Dict[str, Any]:
     last_keepalive = 0.0
     failures = 0
     while time.monotonic() < deadline:
@@ -241,7 +262,13 @@ def wait_spoken(payload: Dict[str, Any]) -> Dict[str, Any]:
         if time.monotonic() - last_keepalive >= KEEPALIVE_EVERY:
             last_keepalive = time.monotonic()
             bus.call("KeepAliveTask", "i", task)
-        time.sleep(POLL)
+        if monitor is None:
+            time.sleep(POLL)
+            continue
+        for message in monitor.messages(POLL):
+            args = bus.signal_args(message, "TtsPartialSpeechPlaying")
+            if args and len(args) >= 2 and args[1] == task and isinstance(args[0], str):
+                return {"type": "speechnote_sentence", "task": task, "text": args[0]}
     raise SpeechNoteError("timeout", "Speech Note was still reading when the wait ended")
 
 

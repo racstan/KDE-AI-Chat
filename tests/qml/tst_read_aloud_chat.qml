@@ -3,7 +3,8 @@
 // right-click menu and Ctrl+Shift+S), the selection survives clicking the
 // button, the shortcut reads the composer's selection or the picked message
 // and stops when reading, the button is hidden while read aloud is off, and
-// an engine failure is reported through errorOccurred.
+// an engine failure is reported through errorOccurred. The words being read
+// glow (chat/SpokenGlow.qml) and move along, without touching the selection.
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtTest
@@ -100,7 +101,7 @@ Item {
             tryVerify(function() {
                 (function walk(item) {
                     if (block || !item) return;
-                    if (item.hasOwnProperty("highlightSpoken") && item.length > 0) { block = item; return; }
+                    if (item.objectName === "messageText" && item.length > 0) { block = item; return; }
                     for (var i = 0; i < item.children.length; i++) walk(item.children[i]);
                 })(delegate);
                 return block !== null;
@@ -218,6 +219,31 @@ Item {
             voice.playTTS("Hello");
             tryCompare(errors, "count", 1, 3000);
             verify(!voice.isPlaying);
+        }
+
+        function test_the_words_being_read_glow_and_move_along() {
+            var block = textBlockOf(1);
+            var glow = findChild(block, "spokenGlow");
+            verify(glow !== null);
+            verify(!glow.shown, "nothing glows before reading");
+            chat.playingMessageIndex = 1;
+            voice.playTTS(reply);
+            var sentences = {};
+            var words = {};
+            tryVerify(function() {
+                if (glow._sentence)
+                    sentences[block.getText(glow._sentence.start, glow._sentence.end)] = true;
+                if (glow.wordRects.length > 0)
+                    words[voice.currentPlayingWordStart] = true;
+                if (glow.shown && Object.keys(words).length === 3)
+                    screenshot(root, "read-aloud-glow");
+                return !voice.isPlaying;
+            }, 15000, "reads to the end");
+            verify(sentences["The first sentence is here."], JSON.stringify(sentences));
+            verify(sentences["The second sentence is longer and comes after it."], JSON.stringify(sentences));
+            verify(Object.keys(words).length > 5, "the word being said moves along: " + JSON.stringify(words));
+            compare(block.selectedText, "", "the glow is not a selection");
+            tryVerify(function() { return !glow.shown; }, 1000, "gone when reading ends");
         }
     }
 }

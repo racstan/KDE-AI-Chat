@@ -39,6 +39,7 @@ Speech Note starts when you dictate or read, and stops by itself when idle. The 
 
 - Switch on **Read aloud** and **Offer to read replies aloud** to get a speaker button under each reply.
 - **Ctrl+Shift+S** reads the selected text, otherwise the picked message, otherwise the last reply; press it again to stop. Right-click selected text in a message to choose Read aloud.
+- While a message is read aloud, the sentence being read glows and the glow moves along. With the system voice the word being said glows a little brighter. The glow never changes what you have selected.
 - **Read every reply aloud when it is finished** speaks each new reply by itself. Stop it with the stop button or Ctrl+Shift+S.
 - **Say Hello** plays a short greeting with your settings, so you can hear them before saving.
 

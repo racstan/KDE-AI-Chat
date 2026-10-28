@@ -1,6 +1,6 @@
 // One block of message text, rendered as Markdown (or plain while a reply
 // streams). Selectable; links open only after Security.js validates them.
-// While this message is read aloud, the words being spoken are selected.
+// While this message is read aloud, the words being spoken glow (SpokenGlow.qml).
 // Right-click opens Copy / Read aloud.
 import QtQuick
 import QtQuick.Controls as QQC2
@@ -44,42 +44,14 @@ TextEdit {
         if (safe)
             Qt.openUrlExternally(safe);
     }
-    // The selection is the user's, unless _spoken: the words being read
-    // aloud, selected by highlightSpoken(), which is not reported.
-    property bool _spoken: false
-    property bool _highlighting: false
-    onSelectedTextChanged: {
-        if (_highlighting)
-            return;
-        _spoken = false;
-        selectionMade(selectedText);
-    }
+    onSelectedTextChanged: selectionMade(selectedText)
 
-    function _selectQuietly(start, end) {
-        _highlighting = true;
-        if (end > start)
-            block.select(start, end);
-        else
-            block.deselect();
-        _highlighting = false;
-    }
-
-    // Finds the spoken words in the text as displayed (not the Markdown
-    // source, whose positions differ) and selects them. A selection of the
-    // user's stays as it is (it is what's being read).
-    function highlightSpoken(chunk) {
-        if (block.selectedText !== "" && !_spoken)
-            return;
-        var shown = block.getText(0, block.length);
-        var words = String(chunk || "").replace(/[^\w\s]/g, " ").trim().split(/\s+/).filter(function(w) { return w.length > 0; });
-        if (words.length === 0)
-            return;
-        var pattern = words.map(function(w) { return w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }).join("[^A-Za-z0-9]*?");
-        var match = new RegExp(pattern, "i").exec(shown);
-        if (match) {
-            _selectQuietly(match.index, match.index + match[0].length);
-            _spoken = true;
-        }
+    // The words being read aloud glow (under the text).
+    SpokenGlow {
+        objectName: "spokenGlow"
+        textItem: block
+        voice: block.chat ? block.chat.voiceManagerRef : null
+        reading: !!voice && voice.isPlaying === true && block.chat.playingMessageIndex === block.messageIndex
     }
 
     // Right-click: Copy and Read aloud (the selection, or the whole message).
@@ -123,23 +95,5 @@ TextEdit {
         var message = block.chat && block.chat.messages ? block.chat.messages[block.messageIndex] : null;
         ReadAloudAction.toggle(block.chat, block.messageIndex,
                                block.selectedText.trim() ? block.selectedText : (message ? message.content : block.text));
-    }
-
-    Connections {
-        target: block.chat ? block.chat.voiceManagerRef : null
-        ignoreUnknownSignals: true
-
-        function onCurrentPlayingChunkChanged() {
-            var voice = block.chat.voiceManagerRef;
-            if (voice.isPlaying && block.chat.playingMessageIndex === block.messageIndex)
-                block.highlightSpoken(voice.currentPlayingChunk);
-        }
-
-        function onIsPlayingChanged() {
-            if (!block.chat.voiceManagerRef.isPlaying && block._spoken) {
-                block._selectQuietly(0, 0);
-                block._spoken = false;
-            }
-        }
     }
 }

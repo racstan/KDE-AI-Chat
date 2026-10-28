@@ -4,7 +4,7 @@
 // voiceTtsEnabled), both off by default; while off nothing runs.
 //
 // The chat uses: isRecording, startRecording(), stopRecording(),
-// textRecognized(text); isPlaying, playingText, currentPlayingChunk,
+// textRecognized(text); isPlaying, playingText, currentPlayingChunk, currentPlayingWordStart,
 // cancelRecording(), playTTS(text), stopTTS(), pauseTTS(), resumeTTS(), ttsPaused, ttsCanPause;
 // statusText; errorOccurred(text).
 import QtQuick
@@ -23,6 +23,7 @@ Item {
     readonly property bool ttsCanPause: readAloud.canPause
     property string playingText: ""
     readonly property string currentPlayingChunk: readAloud.currentChunk
+    readonly property int currentPlayingWordStart: readAloud.currentWordStart
     property string sttStatusText: ""
     readonly property string statusText: sttStatusText || readAloud.statusText
     property string lastRecognizedText: ""

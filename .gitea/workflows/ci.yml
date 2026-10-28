@@ -272,6 +272,8 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/chat/ErrorText.js",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/PromptTemplates.js",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/Commands.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/SpokenText.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/chat/SpokenGlow.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/CommandRunner.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/Sessions.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/SessionTitles.qml",

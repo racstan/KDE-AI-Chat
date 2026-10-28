@@ -11,6 +11,7 @@ import threading
 import pytest
 
 from kdeaichat import minidbus, speechnote, speechnote_bus
+from kdeaichat.speechnote_bus import SpeechNoteError
 
 UI = os.path.join(os.path.dirname(os.path.dirname(__file__)), "org.kde.plasma.kdeaichat", "contents", "ui")
 SECRET = "my private diary entry 12345"
@@ -61,7 +62,7 @@ elif cmd == "monitor":
     wait_for("KeepAliveService")
     print(json.dumps({"type": "method_call", "interface": "org.mkiol.Speech", "member": "KeepAliveService", "payload": {"type": "", "data": []}}), flush=True)
     print(json.dumps({"type": "signal", "interface": "org.freedesktop.DBus", "member": "NameOwnerChanged", "payload": {"type": "sss", "data": ["a", "b", "c"]}}), flush=True)
-    wait_for("SttStopListen")
+    wait_for(cfg.get("signals_after", "SttStopListen"))
     for line in cfg.get("signals", []):
         print(json.dumps(line), flush=True)
     time.sleep(30)
@@ -447,6 +448,24 @@ def test_wait_spoken_keeps_alive_then_times_out(fake, capsys):
     fake.set(present=True)
     assert run("speechnote_wait_spoken", {"task": 7, "timeout": 1}, capsys)["code"] == "timeout"
     assert "KeepAliveTask i 7" in fake.calls()
+
+
+def test_wait_spoken_reports_the_sentence_being_read(fake, capsys):
+    other = {"type": "signal", "interface": "org.mkiol.Speech", "member": "TtsPartialSpeechPlaying",
+             "payload": {"type": "si", "data": ["Not ours.", 9]}}
+    ours = {"type": "signal", "interface": "org.mkiol.Speech", "member": "TtsPartialSpeechPlaying",
+            "payload": {"type": "si", "data": ["Hello there.", 7]}}
+    fake.set(present=True, signals_after="KeepAliveService", signals=[other, ours])
+    assert run("speechnote_wait_spoken", {"task": 7, "sentences": True}, capsys) == {
+        "type": "speechnote_sentence", "task": 7, "text": "Hello there."}
+
+
+def test_wait_spoken_without_a_watch_still_waits(fake, capsys, monkeypatch):
+    fake.set(present=True)
+    def broken():
+        raise SpeechNoteError("bus_error", "no monitor")
+    monkeypatch.setattr(speechnote_bus, "Monitor", broken)
+    assert run("speechnote_wait_spoken", {"task": 8, "sentences": True}, capsys)["type"] == "speechnote_spoken"
 
 
 def test_wait_spoken_service_gone_means_finished(fake, capsys):

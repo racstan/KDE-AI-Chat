@@ -299,6 +299,19 @@ Item {
             compare(errors.count, 0);
         }
 
+        function test_each_sentence_speech_note_starts_is_the_current_chunk() {
+            voice.playTTS("First sentence. Second one!");
+            verify(root.last("speechnote_wait_spoken").sentences, "asks to hear about sentences");
+            verify(root.release("speechnote_wait_spoken", {"type": "speechnote_sentence", "task": 11, "text": "First sentence."}));
+            compare(voice.currentPlayingChunk, "First sentence.");
+            verify(voice.isPlaying, "still reading: it waits again");
+            verify(root.release("speechnote_wait_spoken", {"type": "speechnote_sentence", "task": 11, "text": "Second one!"}));
+            compare(voice.currentPlayingChunk, "Second one!");
+            verify(root.release("speechnote_wait_spoken", {"type": "speechnote_spoken", "task": 11}));
+            verify(!voice.isPlaying);
+            compare(errors.count, 0);
+        }
+
         function test_stop_pause_and_resume() {
             voice.playTTS("Something to read. More of it.");
             voice.pauseTTS();
