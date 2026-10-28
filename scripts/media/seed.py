@@ -133,6 +133,12 @@ for c in CHAT_LIST:
 
 shutil.copy(os.path.join(ROOT, "scripts", "media", "lighthouse.png"), os.path.join(CHATS, "demo-picture.png"))   # chat-image
 
+# The animated avatar of the video (an owner-supplied GIF, never committed): copied into the sandbox when it exists.
+AVATAR = os.environ.get("DEV_MEDIA_AVATAR", "/home/home/Desktop/oie_14175751vZSQRLEn.gif")
+if os.path.isfile(AVATAR):
+    os.makedirs(os.path.join(SANDBOX, "data", "avatars"), exist_ok=True)
+    shutil.copy(AVATAR, os.path.join(SANDBOX, "data", "avatars", "beagle.gif"))
+
 templates = [{"name": "summarize", "prompt": "Summarize the following in three short bullet points:"},
              {"name": "translate", "prompt": "Translate the following into Portuguese:"},
              {"name": "explain", "prompt": "Explain the following like I am new to the topic:"},
@@ -141,7 +147,14 @@ providers = [{"id": "ollama", "name": "Nova demo (local)", "type": "openai-compa
               "baseUrl": "http://127.0.0.1:%s/v1" % PORT, "model": MODEL}]
 settings = {"provider": "ollama", "providersJson": json.dumps(providers), "promptTemplates": json.dumps(templates),
             "userName": "Alex", "userAvatar": "face-glasses", "aiName": "Nova", "aiAvatar": "face-smile",
-            "autoNameChats": "false", "lastSessionId": CHAT_LIST[0]["id"], "sttSettingsMigrated": "true"}
+            "autoNameChats": "false", "lastSessionId": CHAT_LIST[0]["id"], "sttSettingsMigrated": "true",
+            # The media run makes no sound and sends no desktop notification (Notifier.qml would play the reply sound).
+            "playNotificationSound": "false", "notifyOnReply": "false", "notifyOnError": "false",
+            "notifyOnScheduled": "false", "notifyOnInput": "false",
+            # The demo OpenCode server (scripts/media/demo_opencode.py) and the folder the agent modes work in; Pi is the fake `pi` on PATH.
+            "openCodeUrl": "http://127.0.0.1:%s" % os.environ.get("DEV_MEDIA_OC_PORT", "18766"), "openCodeProvider": "demo",
+            "openCodeModel": "nova-coder", "openCodeAgent": "build",
+            "openCodeWorkspaceCwd": ROOT}   # the agents work in this repository: its real files
 rc = "[Applets][4]\nimmutability=1\nplugin=org.kde.plasma.kdeaichat.dev\n\n"
 rc += "[Applets][4][Configuration]\ngeometry=2,2,460,640\n\n[Applets][4][Configuration][General]\n"
 rc += "".join("%s=%s\n" % (k, v) for k, v in settings.items())

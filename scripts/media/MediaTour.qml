@@ -66,13 +66,30 @@ Item {
         scratch: scratch
     }
 
-    // Parent of the settings pages, kept out of sight behind the chat.
+    // Parent of the settings pages, kept out of sight behind the chat. As wide as Plasma's settings
+    // window usually is, so no row is cut off.
     Item {
         id: scratch
-        width: 640
-        height: 560
+        width: 820
+        height: 640
         visible: false
         Rectangle { anchors.fill: parent; color: Kirigami.Theme.backgroundColor }
+        // The window on screen is maximized while a page shows, so it is seen whole on any screen while it
+        // is recorded (the frames are grabbed from this item, at its own size, either way); then it goes
+        // back to the widget's size.
+        onVisibleChanged: {
+            var win = tour.target ? tour.target.Window.window : null;
+            if (!win)
+                return;
+            if (visible) {
+                win.showMaximized();
+            } else {
+                win.showNormal();
+                win.minimumWidth = Math.min(win.minimumWidth, tour.width_);   // maximizing may have raised it
+                win.width = tour.width_;
+                win.height = tour.height_;
+            }
+        }
     }
     readonly property color themeBackground: Kirigami.Theme.backgroundColor
 

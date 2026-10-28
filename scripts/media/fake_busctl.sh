@@ -1,7 +1,3 @@
 #!/bin/sh
-# Stand-in for busctl in the docs media: the D-Bus is never touched. Speech Note's State is
-# "idle" (ready); every other call fails.
-case "$*" in
-    *get-property*State) echo '{"type":"u","data":3}' ;;
-    *) exit 1 ;;
-esac
+# Stand-in for busctl in the docs media (see fake_busctl.py): the D-Bus is never touched.
+exec python3 "$(dirname "$0")/fake_busctl.py" "$@"

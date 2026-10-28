@@ -58,7 +58,7 @@ def replay(prompt_id):
 def main():
     log({"argv": sys.argv[1:], "cwd": os.getcwd()})
     if "--version" in sys.argv:
-        print("0.84.2 (mock)")
+        print("0.84.2")
         return
     for raw in sys.stdin:
         command = json.loads(raw)

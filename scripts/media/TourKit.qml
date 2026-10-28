@@ -120,14 +120,26 @@ Item {
     // Then calls then().
     function record(flow, item, every, run, then) {
         var dir = kit.framesDir + "/" + flow;
-        var count = 0, recording = true;
+        var count = 0, pending = 0, lost = 0;
         var t = timerComponent.createObject(kit, {"interval": every, "repeat": true});
         var frame = function() {
-            var n = ("0000" + (++count)).slice(-4);
+            if (pending > 4)   // the saves can't keep up (a busy page): skip this tick, keep the timing
+                return;
             var size = Qt.size(Math.round(item.width * kit.frameRatio), Math.round(item.height * kit.frameRatio));
+            var back = false;
+            pending++;
             kit.saving++;
+            // A grab asked for while the window is resized (maximized for a settings page) may never come
+            // back: after 3 s it is given up, so the flow doesn't wait for it.
+            kit.later(3000, function() { if (!back) { back = true; pending--; kit.saving--; lost++; } });
             item.grabToImage(function(result) {
+                if (back)
+                    return;
+                back = true;
+                pending--;
                 kit.saving--;
+                // Numbered as they arrive, so a lost grab leaves no gap in the sequence.
+                var n = ("0000" + (++count)).slice(-4);
                 if (!result.saveToFile(dir + "/" + n + ".png"))
                     kit.fail("could not save frame " + n + " of " + flow);
             }, size);
@@ -137,8 +149,8 @@ Item {
         t.start();
         run(function() {
             t.destroy();
-            kit.waitFor("frames of " + flow + " to be written", function() { return kit.saving === 0; }, 20000, function() {
-                console.log("MEDIA_FRAMES " + dir + " " + count);
+            kit.waitFor("frames of " + flow + " to be written", function() { return pending === 0; }, 20000, function() {
+                console.log("MEDIA_FRAMES " + dir + " " + count + (lost ? " (" + lost + " grabs lost)" : ""));
                 then();
             });
         });

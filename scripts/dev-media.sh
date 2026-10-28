@@ -39,16 +39,69 @@ mkdir -p "$OUT"
 # Speech Note shows as installed (a file named dsnote), with no D-Bus: nothing is run or contacted.
 # The local-server scan sees only the fake server, never a real one on this machine.
 export KDEAICHAT_LOCAL_PORTS="$PORT"
+export QML_XHR_ALLOW_FILE_READ=1   # VideoMore.qml reads media-part.txt
 export KDEAICHAT_DSNOTE="$ROOT/scripts/media/fake_dsnote.sh" KDEAICHAT_BUSCTL="$ROOT/scripts/media/fake_busctl.sh"
+# Read aloud through Speech Note talks to the bus directly (not through busctl): pointed at nothing, so it can
+# never reach the real service and play sound. The video reads aloud with Qt's silent test voice instead.
+export KDEAICHAT_SPEECHNOTE_BUS="unix:path=$ROOT/build/dev-run/no-such-bus"
+# The fake Speech Note answers dictation with this text (scripts/media/fake_busctl.py); nothing records or plays.
+export KDEAICHAT_FAKE_DICTATION="${KDEAICHAT_FAKE_DICTATION:-Remind me what we decided about the trip budget}"
 python3 "$ROOT/scripts/media/mock_openai.py" "$PORT" &
 MOCK=$!
-trap 'kill "$MOCK" 2>/dev/null || true' EXIT
+# The agent modes: the demo OpenCode server (real files, several agents) and a fake `pi` replaying a recorded real Pi run.
+OC_PORT="${DEV_MEDIA_OC_PORT:-18766}"
+python3 "$ROOT/scripts/media/demo_opencode.py" "$OC_PORT" >/dev/null 2>&1 &
+MOCK_OC=$!
+mkdir -p "$ROOT/build/dev-run/pi-bin" "$ROOT/build/dev-run/media-work"
+ln -sf "$ROOT/scripts/dev-pi-mock.py" "$ROOT/build/dev-run/pi-bin/pi"
+export PATH="$ROOT/build/dev-run/pi-bin:$PATH" KDEAICHAT_PI_MOCK_DELAY="${KDEAICHAT_PI_MOCK_DELAY:-0.03}"
+export DEV_MEDIA_OC_PORT="$OC_PORT" DEV_MEDIA_WORK="$ROOT/build/dev-run/media-work"
+stop_all() {
+    kill "$MOCK" "$MOCK_OC" 2>/dev/null || true
+    XDG_DATA_HOME="$SANDBOX/data" python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); from kdeaichat import pi_bridge; pi_bridge.cmd_pi_bridge_stop({})' "$ROOT/org.kde.plasma.kdeaichat/contents/ui" >/dev/null 2>&1 || true
+}
+trap stop_all EXIT
+
+# The scheduler, as systemd would run it (no timer is ever made): a schedule the tour saves (VideoMoreSchedule.qml,
+# due at once) is run one time with the real job, kde_ai_helper.py run_schedule, in the sandbox. Its answer goes
+# into the chat like any scheduled run. No notification reaches the desktop; the wallet is the dev one.
+run_saved_schedules() {
+    local store="$SANDBOX/data/kdeaichat/schedules.v2.json" seen="" id
+    local ids='import json,sys; print(" ".join(s.get("id","") for s in json.load(open(sys.argv[1])).get("schedules",[])))'
+    while [ ! -f "$store" ]; do sleep 0.5; done
+    seen=" $(python3 -c "$ids" "$store" 2>/dev/null) "
+    while :; do
+        sleep 1
+        for id in $(python3 -c "$ids" "$store" 2>/dev/null); do
+            case "$seen" in *" $id "*) continue ;; esac
+            seen="$seen$id "
+            # Like its timer: tried every 2 s until it is due (at most 4 minutes), then run once.
+            for _ in $(seq 120); do
+                XDG_CONFIG_HOME="$SANDBOX/config" XDG_DATA_HOME="$SANDBOX/data" XDG_CACHE_HOME="$SANDBOX/cache" \
+                    KDEAICHAT_UNIT_DIR="$SANDBOX/units" KDEAICHAT_SYSTEMCTL=true KDEAICHAT_WALLET_FOLDER=KDEAIChat-dev \
+                    KDEAICHAT_WIDGET_RUNNING=1 KDEAICHAT_NOTIFY_SEND=true \
+                    python3 "$ROOT/org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py" run_schedule "$id" >>"$ROOT/build/dev-media-schedules.log" 2>&1
+                tail -n 1 "$ROOT/build/dev-media-schedules.log" | grep -q '"action": "run"' && break
+                sleep 2
+            done
+        done
+    done
+}
 
 # The tour files whose flows DEV_MEDIA_ONLY re-records (videoChat -> VideoChat.qml; built-in steps -> MediaTour.qml).
 only_files() {
-    local name
-    for name in ${DEV_MEDIA_ONLY//,/ }; do
-        if [ -f "$ROOT/scripts/media/${name^}.qml" ]; then echo "$ROOT/scripts/media/${name^}.qml"; else echo "$ROOT/scripts/media/MediaTour.qml"; fi
+    local name f found
+    for name in ${DEV_MEDIA_ONLY//,/ }; do   # a chapter may be split over ${Name}*.qml files (VideoMoreModes.qml, ...)
+        found=0
+        local parts="$ROOT/scripts/media/${name^}"[A-Z]*.qml part
+        if [ "$name" = videoMore ] && [ -n "${DEV_MEDIA_PART:-}" ]; then   # only the chosen chapters' files
+            parts=""
+            for part in ${DEV_MEDIA_PART//,/ }; do parts="$parts $ROOT/scripts/media/VideoMore${part^}.qml"; done
+        fi
+        for f in "$ROOT/scripts/media/${name^}".qml $parts; do
+            [ -f "$f" ] && { echo "$f"; found=1; }
+        done
+        [ "$found" = 1 ] || echo "$ROOT/scripts/media/MediaTour.qml"
     done | sort -u
 }
 
@@ -63,6 +116,7 @@ for theme in $THEMES; do
 
     rm -rf "$SANDBOX" "$ROOT/build/media-frames-$theme"
     python3 "$ROOT/scripts/media/seed.py" "$SANDBOX" "$PORT"
+    printf '%s' "${DEV_MEDIA_PART:-}" >"$SANDBOX/data/media-part.txt"   # which VideoMore chapters to run (VideoMore.qml)
     { cat "$colors"; printf '\n[Icons]\nTheme=%s\n' "$icons"; } >"$SANDBOX/config/kdeglobals"
     printf '[Theme]\nname=%s\n' "$plasma" >"$SANDBOX/config/plasmarc"
 
@@ -78,10 +132,14 @@ for theme in $THEMES; do
     fi
     [ -z "${DEV_MEDIA_ONLY:-}" ] && rm -f "$OUT"/*-"$theme".png
     echo "== $theme: running the tour"
+    rm -f "$ROOT/build/dev-media-schedules.log"
+    run_saved_schedules &
+    RUNNER=$!
     set +e
     QT_QPA_PLATFORMTHEME=kde DEV_SCREENSHOT=0 DEV_KEEP=1 DEV_MEDIA_TOUR=1 DEV_MEDIA_OUT="$OUT" DEV_MEDIA_FRAMES="$FRAMES" \
         DEV_MEDIA_THEME="$theme" DEV_MEDIA_FLOWS="$flows" DEV_MEDIA_ONLY="${DEV_MEDIA_ONLY:-}" "$ROOT/scripts/dev-run.sh" "$SECONDS_MAX" >"$ROOT/build/dev-media-$theme.txt" 2>&1
     set -e
+    kill "$RUNNER" 2>/dev/null || true
     LOG="$ROOT/build/dev-run/qml.log"
     cp "$LOG" "$ROOT/build/dev-media-$theme.log"
     grep -E "^qml: MEDIA_(START|THEME)" "$LOG" | sed 's/^qml: /   /' || true
