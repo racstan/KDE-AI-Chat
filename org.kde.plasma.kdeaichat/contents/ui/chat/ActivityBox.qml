@@ -48,7 +48,7 @@ Rectangle {
                 parts.push(i18np("1 step", "%1 steps", stats.steps));
         } else {
             if (stats.ms > 0) {
-                var secs = Activity.seconds(stats.ms);
+                const secs = Activity.seconds(stats.ms);
                 parts.push(secs < 60 ? i18n("Thought for %1 s", secs) : i18n("Thought for %1 min %2 s", Math.floor(secs / 60), secs % 60));
             } else if (list.some(function(i) { return i.kind === "thinking"; })) {
                 parts.push(i18n("Thought"));
