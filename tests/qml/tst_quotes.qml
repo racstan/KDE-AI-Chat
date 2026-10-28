@@ -66,10 +66,14 @@ Item {
         function quoteButton(index) {
             var actions = actionsOf(index);
             tryCompare(actions, "built", actions.buttonCount, 3000);
-            return findChild(actions, "quoteButton");
+            var button = findChild(actions, "quoteButton");
+            // Built is not yet laid out: a click before that misses it.
+            tryVerify(function() { return !button || (button.visible && button.width > 0); }, 2000);
+            return button;
         }
         // Over the message, so its buttons show (a hidden item gets no clicks).
         function hover(index) {
+            tryVerify(function() { return !view.list.moving; }, 2000);
             var delegate = view.list.itemAtIndex(index);
             mouseMove(delegate, delegate.width / 2, delegate.height / 2);
             tryCompare(actionsOf(index), "opacity", 1, 2000);
@@ -94,6 +98,9 @@ Item {
             composer.input.text = "";
             view.list.clearSelection();
             mouseMove(root, 5, 5);
+            // A refocus left over from the last test (addQuote → focusInput)
+            // would clear a pick made with the arrows.
+            tryVerify(function() { return !composer.refocusPending; }, 2000);
             wait(50);
         }
 
@@ -113,8 +120,10 @@ Item {
 
         function test_2_quoting_adds_a_chip_with_speaker_and_first_line_and_focuses_the_box() {
             verify(!composer.quoteChips.visible, "no chips, no row");
+            // Built first: building the buttons can move the layout under the pointer.
+            var button = quoteButton(1);
             hover(1);
-            mouseClick(quoteButton(1));
+            mouseClick(button);
             tryCompare(composer.quoteChips, "visible", true);
             compare(chipTexts(), ["Assistant · Use rsync:"]);
             compare(composer.quoteChips.quotes[0].role, "assistant");

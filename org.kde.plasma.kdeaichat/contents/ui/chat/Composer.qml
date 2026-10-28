@@ -34,6 +34,9 @@ ColumnLayout {
     readonly property alias suggestions: suggestions
     readonly property alias quoteChips: quoteChips
 
+    // focusInput() focuses again shortly after; tests wait for that to pass.
+    readonly property bool refocusPending: focusTimer.running
+
     // The quick model picker, opened by /model and /variant (CommandRunner.qml).
     readonly property alias picker: modelPicker
 

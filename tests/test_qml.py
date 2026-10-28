@@ -53,8 +53,12 @@ def test_qml_suite():
         except subprocess.TimeoutExpired:
             return "%s timed out" % os.path.basename(path)
 
+    # Timing budgets (tst_perf_*) only mean something on a quiet machine, so
+    # they run one at a time after the parallel batch.
+    timed = [f for f in files if os.path.basename(f).startswith("tst_perf_")]
     with ThreadPoolExecutor(max_workers=JOBS) as pool:
-        failures = [f for f in pool.map(one, files) if f]
+        failures = [f for f in pool.map(one, [f for f in files if f not in timed]) if f]
+    failures += [f for f in map(one, timed) if f]
     assert not failures, "\n\n".join(failures)
 
 
