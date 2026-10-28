@@ -5,6 +5,8 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtCore
+import "DisplayPath.js" as Paths
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
 import QtQuick.Layouts
@@ -72,7 +74,7 @@ RowLayout {
         objectName: "workspaceButton"
         icon.name: "folder"
         QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: bar.workspace ? i18n("Workspace: %1", bar.workspace) : i18n("Choose a workspace folder")
+        QQC2.ToolTip.text: bar.workspace ? i18n("Workspace: %1", Paths.tilde(bar.workspace, StandardPaths.writableLocation(StandardPaths.HomeLocation))) : i18n("Choose a workspace folder")
         Accessible.name: QQC2.ToolTip.text
         onClicked: {
             if (bar.workspace)

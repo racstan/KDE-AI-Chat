@@ -7,12 +7,14 @@
 // PC3 one reports "Binding loop detected for property implicitWidth/Height"
 // when created after another window already showed one (as in the tests).
 import QtQuick
+import QtCore
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "../ProviderCheck.js" as ProviderCheck
+import "DisplayPath.js" as Paths
 import "../components" as Components
 import "../config" as Config
 
@@ -30,6 +32,7 @@ ColumnLayout {
     property alias modelCombo: modelCombo
     property alias variantPicker: variantPicker
     property alias cwdField: cwdField
+    readonly property string home: StandardPaths.writableLocation(StandardPaths.HomeLocation)
     property alias systemCheck: systemCheck
     property alias systemArea: systemArea
     property alias responseLengthCombo: responseLengthCombo
@@ -68,7 +71,7 @@ ColumnLayout {
         draft.ocProvider = ocProvider;
         draft.ocModel = ocModel;
         if (withFields) {
-            cwdField.text = draft.ocCwd;
+            cwdField.text = Paths.tilde(draft.ocCwd, form.home);
             systemCheck.checked = draft.systemEnabled;
             systemArea.text = draft.system;
             responseLengthCombo.currentIndex = draft.responseLength;
@@ -86,10 +89,7 @@ ColumnLayout {
         id: folderDialog
         title: i18n("Select the chat's working folder")
         onAccepted: {
-            var path = selectedFolder.toString();
-            if (path.indexOf("file://") === 0)
-                path = decodeURIComponent(path.substring(7));
-            cwdField.text = path;
+            cwdField.text = Paths.tilde(Paths.plainPath(selectedFolder), form.home);
             form.edited();
         }
     }
@@ -306,11 +306,11 @@ ColumnLayout {
                 // qmllint disable unqualified
                 readonly property var projectFolder: form.draft.rootRef && form.draft.rootRef.projects
                     ? form.draft.rootRef.projects.workspaceFor(form.draft.sessionId) : null
-                placeholderText: projectFolder && projectFolder.from === "project" ? i18n("The project's folder: %1", projectFolder.path)
+                placeholderText: projectFolder && projectFolder.from === "project" ? i18n("The project's folder: %1", Paths.tilde(projectFolder.path, form.home))
                                                                                  : i18n("No workspace")
                 // qmllint enable unqualified
                 onTextChanged: {
-                    form.draft.ocCwd = text;
+                    form.draft.ocCwd = Paths.expand(text, form.home);
                     form.edited();
                 }
             }

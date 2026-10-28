@@ -1,5 +1,6 @@
 // Video chapters 7 to 10: commands, attachments, incognito, and the AI asking you (see VideoChat.qml).
 import QtQuick
+import QtCore
 
 Item {
     id: part
@@ -11,8 +12,8 @@ Item {
     property var plasmoidRef: null
 
     readonly property var composer: tools.composer
-    // The repository (the frames folder is <repo>/build/media-frames): the attachments are real files in it.
-    readonly property string repo: String(kit.framesDir).replace(/\/build\/media-frames$/, "")
+    // The demo project folder in the sandbox home (scripts/media/seed.py): the attachments are real files in it.
+    readonly property string repo: String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, "") + "/Projects/kdeaichat"
 
     function popupShown() { var s = composer.suggestions; return s && s.visible && s.height > 20; }
 

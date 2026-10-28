@@ -22,7 +22,11 @@ import time
 SANDBOX, PORT = os.path.abspath(sys.argv[1]), sys.argv[2]
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 HELPER = os.path.join(ROOT, "org.kde.plasma.kdeaichat", "contents", "ui", "kde_ai_helper.py")
-CHATS = os.path.join(SANDBOX, "data", "kdeaichat", "chats", "applet-4")
+# The widget runs with HOME=<sandbox>/home (dev-media.sh), so its folders read ~/.local/share/kdeaichat like a user's.
+HOME = os.path.join(SANDBOX, "home")
+DATA, CONFIG, CACHE = (os.path.join(HOME, ".local", "share"), os.path.join(HOME, ".config"), os.path.join(HOME, ".cache"))
+PROJECT = os.path.join(HOME, "Projects", "kdeaichat")   # the demo project the agents work in
+CHATS = os.path.join(DATA, "kdeaichat", "chats", "applet-4")
 MODEL = "nova-demo"
 NOW = int(time.time() * 1000)
 MIN, HOUR, DAY = 60_000, 3_600_000, 86_400_000
@@ -136,8 +140,8 @@ shutil.copy(os.path.join(ROOT, "scripts", "media", "lighthouse.png"), os.path.jo
 # The animated avatar of the video (an owner-supplied GIF, never committed): copied into the sandbox when it exists.
 AVATAR = os.environ.get("DEV_MEDIA_AVATAR", "/home/home/Desktop/oie_14175751vZSQRLEn.gif")
 if os.path.isfile(AVATAR):
-    os.makedirs(os.path.join(SANDBOX, "data", "avatars"), exist_ok=True)
-    shutil.copy(AVATAR, os.path.join(SANDBOX, "data", "avatars", "beagle.gif"))
+    os.makedirs(os.path.join(DATA, "avatars"), exist_ok=True)
+    shutil.copy(AVATAR, os.path.join(DATA, "avatars", "beagle.gif"))
 
 templates = [{"name": "summarize", "prompt": "Summarize the following in three short bullet points:"},
              {"name": "translate", "prompt": "Translate the following into Portuguese:"},
@@ -154,16 +158,22 @@ settings = {"provider": "ollama", "providersJson": json.dumps(providers), "promp
             # The demo OpenCode server (scripts/media/demo_opencode.py) and the folder the agent modes work in; Pi is the fake `pi` on PATH.
             "openCodeUrl": "http://127.0.0.1:%s" % os.environ.get("DEV_MEDIA_OC_PORT", "18766"), "openCodeProvider": "demo",
             "openCodeModel": "nova-coder", "openCodeAgent": "build",
-            "openCodeWorkspaceCwd": ROOT}   # the agents work in this repository: its real files
+            "openCodeWorkspaceCwd": PROJECT}   # the agents work in this demo project folder: copies of a few real files
+# Its files (~/Projects/kdeaichat in the sandbox home): the few files the demo OpenCode
+# server reads (scripts/check_file_sizes.py), the attach step attaches (docs/voice.md, the tram picture) and build/ it writes to.
+for rel in ("docs/voice.md", "scripts/check_file_sizes.py", "scripts/media/lisbon-tram.jpg"):
+    os.makedirs(os.path.dirname(os.path.join(PROJECT, rel)), exist_ok=True)
+    shutil.copy(os.path.join(ROOT, rel), os.path.join(PROJECT, rel))
+os.makedirs(os.path.join(PROJECT, "build"), exist_ok=True)
 rc = "[Applets][4]\nimmutability=1\nplugin=org.kde.plasma.kdeaichat.dev\n\n"
 rc += "[Applets][4][Configuration]\ngeometry=2,2,460,640\n\n[Applets][4][Configuration][General]\n"
 rc += "".join("%s=%s\n" % (k, v) for k, v in settings.items())
-os.makedirs(os.path.join(SANDBOX, "config"), exist_ok=True)
-with open(os.path.join(SANDBOX, "config", "plasmawindowedrc"), "w", encoding="utf-8") as f:
+os.makedirs(CONFIG, exist_ok=True)
+with open(os.path.join(CONFIG, "plasmawindowedrc"), "w", encoding="utf-8") as f:
     f.write(rc)
 
-env = dict(os.environ, XDG_CONFIG_HOME=os.path.join(SANDBOX, "config"), XDG_DATA_HOME=os.path.join(SANDBOX, "data"),
-           XDG_CACHE_HOME=os.path.join(SANDBOX, "cache"), KDEAICHAT_UNIT_DIR=os.path.join(SANDBOX, "units"),
+env = dict(os.environ, HOME=HOME, XDG_CONFIG_HOME=CONFIG, XDG_DATA_HOME=DATA,
+           XDG_CACHE_HOME=CACHE, KDEAICHAT_UNIT_DIR=os.path.join(SANDBOX, "units"),
            KDEAICHAT_SYSTEMCTL="true")
 
 

@@ -1,6 +1,8 @@
 // A message's attachments as small chips; clicking one opens the file.
 // Images show a thumbnail decoded at chip size, other files an icon.
 import QtQuick
+import QtCore
+import "DisplayPath.js" as Paths
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
@@ -33,7 +35,7 @@ Flow {
             hoverEnabled: true
             Accessible.name: i18n("Open %1", modelData.name || "")
             QQC2.ToolTip.visible: hovered && !!modelData.path
-            QQC2.ToolTip.text: modelData.path || ""
+            QQC2.ToolTip.text: modelData.path ? Paths.tilde(modelData.path, StandardPaths.writableLocation(StandardPaths.HomeLocation)) : ""
             onClicked: {
                 var safe = Sec.validateFilePath(modelData.path || "");
                 if (safe)

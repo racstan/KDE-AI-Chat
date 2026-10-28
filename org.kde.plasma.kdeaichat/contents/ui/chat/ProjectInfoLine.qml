@@ -3,6 +3,8 @@
 // working folder). Hidden for a chat in no project. The model's source is on
 // the EffectiveLine above ("From the project …").
 import QtQuick
+import QtCore
+import "DisplayPath.js" as Paths
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
@@ -60,7 +62,7 @@ ColumnLayout {
         wrapMode: Text.Wrap
         color: Kirigami.Theme.disabledTextColor
         font: Kirigami.Theme.smallFont
-        text: info.workspace.from === "project" ? i18n("Working folder: %1 (from the project)", info.workspace.path)
-            : i18n("Working folder: %1 (this chat's own)", info.workspace.path)
+        text: info.workspace.from === "project" ? i18n("Working folder: %1 (from the project)", Paths.tilde(info.workspace.path, StandardPaths.writableLocation(StandardPaths.HomeLocation)))
+            : i18n("Working folder: %1 (this chat's own)", Paths.tilde(info.workspace.path, StandardPaths.writableLocation(StandardPaths.HomeLocation)))
     }
 }

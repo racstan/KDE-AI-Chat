@@ -23,6 +23,9 @@ case "$THEMES" in light | dark) THEMES="$THEMES" ;; both) THEMES="light dark" ;;
 OUT="$ROOT/docs/media"
 FRAMES="$ROOT/build/media-frames"
 SANDBOX="$ROOT/build/dev-run/sandbox"
+# The widget runs with this as its home (DEV_HOME, seed.py), so folders read ~/.local/share/kdeaichat and
+# ~/Projects/kdeaichat like a user's, never the real home or this repository's path.
+SBHOME="$SANDBOX/home"
 PORT="${DEV_MEDIA_PORT:-18765}"
 SECONDS_MAX="${DEV_MEDIA_SECONDS:-240}"
 FLOWS=(send-message search incognito commands)
@@ -58,7 +61,7 @@ export PATH="$ROOT/build/dev-run/pi-bin:$PATH" KDEAICHAT_PI_MOCK_DELAY="${KDEAIC
 export DEV_MEDIA_OC_PORT="$OC_PORT" DEV_MEDIA_WORK="$ROOT/build/dev-run/media-work"
 stop_all() {
     kill "$MOCK" "$MOCK_OC" 2>/dev/null || true
-    XDG_DATA_HOME="$SANDBOX/data" python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); from kdeaichat import pi_bridge; pi_bridge.cmd_pi_bridge_stop({})' "$ROOT/org.kde.plasma.kdeaichat/contents/ui" >/dev/null 2>&1 || true
+    HOME="$SBHOME" XDG_DATA_HOME="$SBHOME/.local/share" python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); from kdeaichat import pi_bridge; pi_bridge.cmd_pi_bridge_stop({})' "$ROOT/org.kde.plasma.kdeaichat/contents/ui" >/dev/null 2>&1 || true
 }
 trap stop_all EXIT
 
@@ -66,7 +69,7 @@ trap stop_all EXIT
 # due at once) is run one time with the real job, kde_ai_helper.py run_schedule, in the sandbox. Its answer goes
 # into the chat like any scheduled run. No notification reaches the desktop; the wallet is the dev one.
 run_saved_schedules() {
-    local store="$SANDBOX/data/kdeaichat/schedules.v2.json" seen="" id
+    local store="$SBHOME/.local/share/kdeaichat/schedules.v2.json" seen="" id
     local ids='import json,sys; print(" ".join(s.get("id","") for s in json.load(open(sys.argv[1])).get("schedules",[])))'
     while [ ! -f "$store" ]; do sleep 0.5; done
     seen=" $(python3 -c "$ids" "$store" 2>/dev/null) "
@@ -77,7 +80,7 @@ run_saved_schedules() {
             seen="$seen$id "
             # Like its timer: tried every 2 s until it is due (at most 4 minutes), then run once.
             for _ in $(seq 120); do
-                XDG_CONFIG_HOME="$SANDBOX/config" XDG_DATA_HOME="$SANDBOX/data" XDG_CACHE_HOME="$SANDBOX/cache" \
+                HOME="$SBHOME" XDG_CONFIG_HOME="$SBHOME/.config" XDG_DATA_HOME="$SBHOME/.local/share" XDG_CACHE_HOME="$SBHOME/.cache" \
                     KDEAICHAT_UNIT_DIR="$SANDBOX/units" KDEAICHAT_SYSTEMCTL=true KDEAICHAT_WALLET_FOLDER=KDEAIChat-dev \
                     KDEAICHAT_WIDGET_RUNNING=1 KDEAICHAT_NOTIFY_SEND=true \
                     python3 "$ROOT/org.kde.plasma.kdeaichat/contents/ui/kde_ai_helper.py" run_schedule "$id" >>"$ROOT/build/dev-media-schedules.log" 2>&1
@@ -116,9 +119,9 @@ for theme in $THEMES; do
 
     rm -rf "$SANDBOX" "$ROOT/build/media-frames-$theme"
     python3 "$ROOT/scripts/media/seed.py" "$SANDBOX" "$PORT"
-    printf '%s' "${DEV_MEDIA_PART:-}" >"$SANDBOX/data/media-part.txt"   # which VideoMore chapters to run (VideoMore.qml)
-    { cat "$colors"; printf '\n[Icons]\nTheme=%s\n' "$icons"; } >"$SANDBOX/config/kdeglobals"
-    printf '[Theme]\nname=%s\n' "$plasma" >"$SANDBOX/config/plasmarc"
+    printf '%s' "${DEV_MEDIA_PART:-}" >"$SBHOME/.local/share/media-part.txt"   # which VideoMore chapters to run (VideoMore.qml)
+    { cat "$colors"; printf '\n[Icons]\nTheme=%s\n' "$icons"; } >"$SBHOME/.config/kdeglobals"
+    printf '[Theme]\nname=%s\n' "$plasma" >"$SBHOME/.config/plasmarc"
 
     flows=0
     if [ "$theme" = light ]; then
@@ -136,7 +139,7 @@ for theme in $THEMES; do
     run_saved_schedules &
     RUNNER=$!
     set +e
-    QT_QPA_PLATFORMTHEME=kde DEV_SCREENSHOT=0 DEV_KEEP=1 DEV_MEDIA_TOUR=1 DEV_MEDIA_OUT="$OUT" DEV_MEDIA_FRAMES="$FRAMES" \
+    DEV_HOME="$SBHOME" QT_QPA_PLATFORMTHEME=kde DEV_SCREENSHOT=0 DEV_KEEP=1 DEV_MEDIA_TOUR=1 DEV_MEDIA_OUT="$OUT" DEV_MEDIA_FRAMES="$FRAMES" \
         DEV_MEDIA_THEME="$theme" DEV_MEDIA_FLOWS="$flows" DEV_MEDIA_ONLY="${DEV_MEDIA_ONLY:-}" "$ROOT/scripts/dev-run.sh" "$SECONDS_MAX" >"$ROOT/build/dev-media-$theme.txt" 2>&1
     set -e
     kill "$RUNNER" 2>/dev/null || true
