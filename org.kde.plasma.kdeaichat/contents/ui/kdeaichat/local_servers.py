@@ -12,6 +12,7 @@ that doesn't clearly identify itself is "openai" (an OpenAI-compatible
 server). Gitea and other things on other ports are never asked. Stdlib only.
 """
 import json
+import os
 import socket
 import urllib.error
 import urllib.request
@@ -122,8 +123,17 @@ def scan_port(port: int, timeout: float = TIMEOUT) -> Optional[Dict[str, Any]]:
     return _server(_kind_of(port, data, timeout), port, _ids(items, "id"))
 
 
+def _ports_from_env() -> List[int]:
+    """KDEAICHAT_LOCAL_PORTS="18765,1234" replaces the fixed ports (tests and the docs media,
+    so a real local server never shows up there); unset means PORTS."""
+    raw = os.environ.get("KDEAICHAT_LOCAL_PORTS")
+    if raw is None:
+        return PORTS
+    return [int(p) for p in raw.split(",") if p.strip().isdigit() and 0 < int(p) < 65536]
+
+
 def scan(ports: Optional[List[int]] = None, timeout: float = TIMEOUT) -> List[Dict[str, Any]]:
-    ports = PORTS if ports is None else ports
+    ports = _ports_from_env() if ports is None else ports
     with ThreadPoolExecutor(max_workers=len(ports) or 1) as pool:
         results = list(pool.map(lambda p: _safe(p, timeout), ports))
     return [r for r in results if r]

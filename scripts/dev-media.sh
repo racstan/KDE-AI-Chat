@@ -35,6 +35,8 @@ EXTRAS=(chat-quote chat-edit chat-variants chat-more-menu chat-export chat-works
 
 mkdir -p "$OUT"
 # Speech Note shows as installed (a file named dsnote), with no D-Bus: nothing is run or contacted.
+# The local-server scan sees only the fake server, never a real one on this machine.
+export KDEAICHAT_LOCAL_PORTS="$PORT"
 export KDEAICHAT_DSNOTE="$ROOT/scripts/media/fake_dsnote.sh" KDEAICHAT_BUSCTL="$ROOT/scripts/media/fake_busctl.sh"
 python3 "$ROOT/scripts/media/mock_openai.py" "$PORT" &
 MOCK=$!

@@ -208,3 +208,12 @@ def test_command_prints_json_through_the_helper():
     out = subprocess.run([sys.executable, HELPER, "local_servers_scan", arg], capture_output=True, text=True, timeout=30)
     assert out.returncode == 0
     assert isinstance(json.loads(out.stdout)["servers"], list)
+
+
+def test_local_ports_env_replaces_the_fixed_ports(monkeypatch):
+    monkeypatch.setenv("KDEAICHAT_LOCAL_PORTS", "18765, x,70000,1234")
+    assert local_servers._ports_from_env() == [18765, 1234]
+    monkeypatch.setenv("KDEAICHAT_LOCAL_PORTS", "")
+    assert local_servers._ports_from_env() == []
+    monkeypatch.delenv("KDEAICHAT_LOCAL_PORTS")
+    assert local_servers._ports_from_env() == local_servers.PORTS
