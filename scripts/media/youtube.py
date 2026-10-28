@@ -12,6 +12,7 @@ Needs ffmpeg, Pillow and the Noto Sans fonts. Exits 1 if a part is missing or ff
 import glob
 import os
 import subprocess
+import importlib
 import sys
 import tempfile
 
@@ -26,58 +27,26 @@ STILL_SECONDS, FLOW_HOLD, CARD_SECONDS = 6, 3, 4
 FONT = "/usr/share/fonts/truetype/NotoSans-Regular.ttf"
 BOLD = "/usr/share/fonts/truetype/NotoSans-Bold.ttf"
 
-# (kind, name, title, lines): a flow plays build/media-frames/<name>/, a still shows <name>-light.png.
-PARTS = [
-    ("flow", "send-message", "Ask anything",
-     "Click the widget in your panel, type a question and press Enter.",
-     "The answer appears word by word, right on your desktop."),
-    ("still", "chat-conversation", "Answers that are easy to read",
-     "Replies are formatted: bold words, lists, and code with a copy button.",
-     "Your name and the AI's name and picture show above each message."),
-    ("still", "chat-history", "All your chats in one place",
-     "Open the history to find older chats.",
-     "Pin the ones you use most and group chats into projects."),
-    ("flow", "search", "Search every chat",
-     "Type a few words to find any message in any chat.",
-     "Click a result to jump straight to it."),
-    ("flow", "commands", "Shortcuts with /",
-     "Type / to see commands and your own saved prompts.",
-     "For example /summarize, or /image to make a picture."),
-    ("still", "chat-ask", "The AI can ask you",
-     "When it needs a choice or a missing detail, it asks you in the chat.",
-     "Answer with a click instead of letting it guess."),
-    ("flow", "incognito", "Incognito chats",
-     "An incognito chat is never saved.",
-     "When you leave it, its messages are gone."),
-    ("still", "chat-settings", "Chat info",
-     "See which AI answers this chat, how much it has used, and its own settings.",
-     "A chat keeps the mode it was started in."),
-    ("still", "schedule-editor", "Let it work on a schedule",
-     "Have the AI run a prompt at set times, like a morning summary.",
-     "Describe the schedule in plain words and check it before saving."),
-    ("still", "settings-connection", "Settings: your AI",
-     "Use online services such as OpenAI, Anthropic, Gemini or OpenRouter,",
-     "or a model on your own computer, found with one click. Keys stay in KDE Wallet."),
-    ("still", "settings-chat", "Settings: chats",
-     "Choose how much of a chat the AI sees, how chats are named,",
-     "whether the AI may ask you questions, and a folder new chats work in."),
-    ("still", "settings-personality", "Settings: personality",
-     "Tell the AI your name and a little about you,",
-     "and give it a name, a tone and a picture of its own."),
-    ("still", "settings-memory", "Settings: memory",
-     "Notes you ask the AI to keep, sent only when they fit what you ask.",
-     "Add, pin, edit or delete any of them here."),
-    ("still", "settings-voice-speechnote", "Settings: voice",
-     "Have replies read aloud and dictate instead of typing.",
-     "Speech is handled on your computer by Speech Note."),
-    ("still", "settings-appearance", "Settings: appearance",
-     "Name the widget, pick its panel icon (even an animated one),",
-     "and set the text size and spacing of the chat."),
-]
+# The parts, chapter by chapter: each scripts/media/video_*.py (in CHAPTERS order) has a PARTS list of
+# (kind, name, title, line, ...). kind "flow" plays build/media-frames/<name>/NNNN.png (a frame every
+# 80 ms; the last one is held FLOW_HOLD s), "still" shows docs/media/<name>-light.png for STILL_SECONDS,
+# "frames:<dir>" plays <dir>/NNNN.png from another recorder (the desktop chapter). A missing file is skipped.
+CHAPTERS = ["video_start", "video_chat", "video_more", "video_desktop", "video_settings"]
 INTRO = ("KDE AI Chat 1.4", "An AI chat that lives in your KDE Plasma panel.",
          "Use online AI services or models on your own computer.")
 OUTRO = ("Get KDE AI Chat", "github.com/racstan/KDE-AI-Chat",
          "Free for personal and other noncommercial use.")
+
+
+def load_parts():
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    parts = []
+    for name in CHAPTERS:
+        try:
+            parts += importlib.import_module(name).PARTS
+        except ModuleNotFoundError:
+            pass
+    return parts
 
 
 def ffmpeg(*args):
@@ -131,10 +100,11 @@ def part(tmp, i, kind, name, title, lines, media, frames):
     card(bg, title, lines)
     place = ("[1]scale=w=%d:h=%d:force_original_aspect_ratio=decrease:flags=lanczos[w];"
              "[0][w]overlay=x=%d+(%d-w)/2:y=(H-h)/2:shortest=1,format=yuv420p" % (BOX_W, BOX_H, BOX_X, BOX_W))
-    if kind == "flow":
-        if len(glob.glob(os.path.join(frames, name, "[0-9][0-9][0-9][0-9].png"))) < 10:
-            sys.exit("youtube: flow %s has too few frames" % name)
-        src = ["-framerate", str(FPS_FRAMES), "-i", os.path.join(frames, name, "%04d.png")]
+    if kind == "flow" or kind.startswith("frames:"):
+        folder = os.path.join(frames, name) if kind == "flow" else kind[len("frames:"):]
+        if len(glob.glob(os.path.join(folder, "[0-9][0-9][0-9][0-9].png"))) < 10:
+            sys.exit("youtube: %s has too few frames" % folder)
+        src = ["-framerate", str(FPS_FRAMES), "-i", os.path.join(folder, "%04d.png")]
         place = place.replace("[1]scale", "[1]tpad=stop_mode=clone:stop_duration=%d,scale" % FLOW_HOLD)
     else:
         still = os.path.join(media, name + "-light.png")
@@ -161,7 +131,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         parts = [still_card(tmp, "intro", INTRO)]
         parts += [part(tmp, i, kind, name, title, lines, media, frames)
-                  for i, (kind, name, title, *lines) in enumerate(PARTS)]
+                  for i, (kind, name, title, *lines) in enumerate(load_parts())]
         parts.append(still_card(tmp, "outro", OUTRO))
         listing = os.path.join(tmp, "list.txt")
         with open(listing, "w", encoding="utf-8") as f:
