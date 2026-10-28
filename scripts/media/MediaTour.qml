@@ -262,7 +262,13 @@ Item {
         goTo(tripChat, function() {
             scheduleOverlay.openForChat(app.currentSessionId);
             kit.waitFor("the schedule editor", function() { return scheduleOverlay.visible; }, 8000, function() {
-                kit.later(1200, function() { shot("schedule-editor", function() { scheduleOverlay.visible = false; kit.later(500, next); }); });
+                kit.later(1200, function() {
+                    // The form is taller than the widget: scrolled to the end, the When section and Save / Cancel show.
+                    var flick = pages.byPred(scheduleOverlay, function(i) { return i.contentY !== undefined && i.contentHeight !== undefined && i.visible; });
+                    if (flick)
+                        flick.contentY = Math.max(0, flick.contentHeight - flick.height);
+                    kit.later(600, function() { shot("schedule-editor", function() { scheduleOverlay.visible = false; kit.later(500, next); }); });
+                });
             });
         });
     }
@@ -280,7 +286,7 @@ Item {
                         }, 30000, function() { kit.later(1200, done); });
                     });
                 });
-            }, function() { next(); });
+            }, function() { deleteOpenChat(function() { dismissUndo(); next(); }); });   // the history stays as seeded
         });
     }
 
@@ -314,17 +320,17 @@ Item {
                                     var m = app.messages;
                                     return !app.loading && m.length >= 2 && String(m[m.length - 1].content || "").indexOf("go deeper") >= 0;
                                 }, 30000, function() {
-                                    kit.later(1200, function() {
-                                        app.messages = [];   // nothing to confirm when leaving
-                                        app.incognito.close();
-                                        kit.later(700, done);
-                                    });
+                                    kit.later(1500, done);   // the clip ends inside the incognito chat, its answer on show
                                 });
                             });
                         });
                     });
                 });
-            }, function() { next(); });
+            }, function() {
+                app.messages = [];   // nothing to confirm when leaving
+                app.incognito.close();
+                kit.waitFor("leaving incognito", function() { return !app.incognito.active; }, 8000, function() { kit.later(600, function() { dismissUndo(); next(); }); });
+            });
         });
     }
 

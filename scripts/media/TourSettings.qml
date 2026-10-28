@@ -36,7 +36,7 @@ Item {
             var button = pages.byText(page, "Find local servers");
             if (!button) { kit.fail("the Find local servers button was not found"); return; }
             button.clicked();
-            kit.later(2500, function() { pages.scrollTo(page, pages.byText(page, "Local servers")); kit.later(400, done); });
+            kit.later(2500, function() { pages.scrollTo(page, pages.byText(page, "Through OpenCode"), 0); kit.later(400, done); });   // the page ends below this: start at a whole row, not a cut line
         }},
         {"file": "ConfigPersonality.qml", "name": "settings-avatar-picker", "prep": function(page, done) {
             var button = kit.find(page, "avatarButton");
@@ -98,12 +98,12 @@ Item {
     }
 
     // Scrolls the page so `item` is at the top.
-    function scrollTo(page, item) {
+    function scrollTo(page, item, gap) {
         var flick = page.flickable;
         if (!flick || !item)
             return;
         var y = item.mapToItem(flick.contentItem, 0, 0).y;
-        flick.contentY = Math.max(0, Math.min(y - Kirigami.Units.largeSpacing, flick.contentHeight - flick.height));
+        flick.contentY = Math.max(0, Math.min(y - (gap === undefined ? Kirigami.Units.largeSpacing : gap), flick.contentHeight - flick.height));
     }
 
     function one(entry, then) {
@@ -124,14 +124,15 @@ Item {
             });
         };
         var settled = function() {
+            if (page.flickable && !entry.prep)
+                page.flickable.contentY = 0;   // every page starts at its first heading
             if (entry.prep) { entry.prep(page, finish); return; }
             if (!entry.check) { finish(); return; }
             var button = kit.find(page, "setupCheckButton");
             if (!button) { kit.fail("the Check setup button was not found"); return; }
-            scrollTo(page, button);
             button.clicked();
             kit.waitFor("the setup check result", function() { return pages.shown(page, "setupCheckSummary"); }, 30000, function() {
-                kit.later(500, function() { scrollTo(page, kit.find(page, "setupCheckButton")); finish(); });
+                kit.later(500, function() { scrollTo(page, byText(page, "Through OpenCode"), 0); finish(); });
             });
         };
         kit.later(800, function() {
