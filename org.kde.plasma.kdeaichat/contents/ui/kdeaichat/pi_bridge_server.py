@@ -18,6 +18,7 @@ Routes:
                                  (no directory: the chat's own folder under
                                  ~/.local/share/kdeaichat/pi-workspaces/<id>;
                                  instructions: added to Pi's system prompt)
+  GET  /chats/<id>/status        {running, alive}: running only while Pi's process is alive and mid-run
   POST /chats/<id>/abort
   POST /chats/<id>/ui-response   {id, value | confirmed | cancelled}
   POST /chats/<id>/close         stops that chat's Pi process
@@ -50,7 +51,7 @@ SERVER_IDLE = float(os.environ.get("KDEAICHAT_PI_SERVER_IDLE", 10 * 60))
 MAX_BODY = 40 * 1024 * 1024
 CHAT_ID = re.compile(r"[A-Za-z0-9._:-]{1,128}")
 THINKING = ("", "off", "minimal", "low", "medium", "high", "xhigh", "max")
-ROUTE = re.compile(r"^/chats/([^/]+)/(events|prompt|abort|ui-response|close)$")
+ROUTE = re.compile(r"^/chats/([^/]+)/(events|status|prompt|abort|ui-response|close)$")
 
 lock = threading.Lock()
 agents = {}          # chat id -> Agent
@@ -88,6 +89,7 @@ class Agent:
         self.chat_id = chat_id
         self.key = (directory, provider, model, thinking, instructions, ephemeral)
         self.running = False
+        self.quiet = False   # stopped on purpose for a newer Pi: its exit is not news for the stream
         self.last_active = time.monotonic()
         self.stderr_tail = collections.deque(maxlen=40)
         self.write_lock = threading.Lock()
@@ -118,6 +120,8 @@ class Agent:
         with lock:
             if agents.get(self.chat_id) is self:
                 del agents[self.chat_id]
+        if self.quiet:
+            return
         broadcast(self.chat_id, {"type": "bridge_exit", "code": code, "stderr": "\n".join(self.stderr_tail)[-4000:]})
 
     def _handle_line(self, line):
@@ -139,7 +143,11 @@ class Agent:
         for raw in self.proc.stderr:
             self.stderr_tail.append(raw.decode("utf-8", "replace").rstrip())
 
-    def stop(self):
+    def alive(self):
+        return self.proc.poll() is None
+
+    def stop(self, quiet=False):
+        self.quiet = quiet
         try:
             os.killpg(self.proc.pid, signal.SIGTERM)
             self.proc.wait(timeout=3)
@@ -182,9 +190,14 @@ def prompt(chat_id, payload):
     with lock:
         replaced = agents.pop(chat_id) if chat_id in agents and agents[chat_id].key != key and not agents[chat_id].running else None
     if replaced:
-        replaced.stop()  # before starting another Pi on the same session
+        # Quiet: its exit must not reach the stream the new prompt is about to use.
+        replaced.stop(quiet=True)  # before starting another Pi on the same session
     with lock:
         agent = agents.get(chat_id)
+        if agent and not agent.alive():
+            # Pi died just now and its reader hasn't removed it yet: a message written to it would be lost.
+            agents.pop(chat_id, None)
+            agent = None
         if agent and agent.running:
             return 409, {"error": "Pi is still working on this chat."}
         if agent is None:
@@ -197,6 +210,10 @@ def prompt(chat_id, payload):
         agent.send(command)
     except OSError:
         agent.running = False
+        with lock:
+            if agents.get(chat_id) is agent:
+                del agents[chat_id]
+        agent.stop(quiet=True)
         raise OSError("Pi stopped before it got the message.")
     return 202, {"ok": True}
 
@@ -236,6 +253,11 @@ class Handler(BaseHTTPRequestHandler):
         if not self._authorised():
             return
         chat_id, action = self._route()
+        if action == "status":
+            with lock:
+                agent = agents.get(chat_id)
+            alive = bool(agent and agent.alive())
+            return self._reply(200, {"running": alive and agent.running, "alive": alive})
         if action != "events":
             return chat_id and self._reply(405, {"error": "use POST"})
         q = queue.Queue()
@@ -312,13 +334,16 @@ class Handler(BaseHTTPRequestHandler):
 server = None
 
 
-def shutdown():
+def shutdown(only_if_idle=False):
     with lock:
+        if only_if_idle and (agents or any(subscribers.values()) or time.monotonic() - last_activity <= SERVER_IDLE):
+            return False  # a prompt or a stream arrived since the janitor looked
         running = list(agents.values())
         agents.clear()
     for agent in running:
         agent.stop()
     server.shutdown()
+    return True
 
 
 def janitor():
@@ -333,8 +358,7 @@ def janitor():
             empty = not agents and not any(subscribers.values()) and now - last_activity > SERVER_IDLE
         for agent in idle:
             agent.stop()
-        if empty:
-            shutdown()
+        if empty and shutdown(only_if_idle=True):
             return
 
 

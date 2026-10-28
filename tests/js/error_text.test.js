@@ -37,6 +37,7 @@ const cases = [
     ["OpenCode isn't reachable at http://127.0.0.1:4096.", "agent-offline", true],
     ["OpenCode isn't running at http://127.0.0.1:4096 and couldn't be started: x.", "agent-offline", true],
     ["Pi: the Pi bridge couldn't be started.", "agent-offline", true],
+    ["Pi stopped responding (it never started on your message).", "agent-stalled", false],
     ["Something odd happened", "other", false],
 ];
 for (const [raw, k, settings] of cases) {
