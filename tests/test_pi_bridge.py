@@ -46,6 +46,11 @@ class Bridge:
         except urllib.error.HTTPError as e:
             return e.code, json.loads(e.read())
 
+    def get(self, path):
+        req = urllib.request.Request(self.base + path, headers={"Authorization": "Bearer " + self.token})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return r.status, json.loads(r.read())
+
     def events(self, chat):
         """Opens the chat's event stream; returns a queue of parsed events."""
         q = queue.Queue()
@@ -257,3 +262,32 @@ def test_incognito_chat_runs_pi_without_a_session_file(bridge):
     _until(q, "agent_settled")
     argv = _log(bridge)[0]["argv"]
     assert "--no-session" in argv and "--session-id" not in argv
+
+
+@pytest.mark.parametrize("bridge", ["pi-0.84-ollama-permission-denied.jsonl"], indirect=True)
+def test_status_says_whether_pi_is_working_on_the_chat(bridge):
+    assert bridge.get("/chats/chat-6/status") == (200, {"running": False, "alive": False})
+    q = bridge.events("chat-6")
+    assert bridge.post("/chats/chat-6/prompt", {"directory": bridge.tmp, "message": "rm"})[0] == 202
+    _until(q, "extension_ui_request")
+    assert bridge.get("/chats/chat-6/status") == (200, {"running": True, "alive": True})
+    assert bridge.post("/chats/chat-6/close")[0] == 200
+    assert bridge.get("/chats/chat-6/status") == (200, {"running": False, "alive": False})
+    with pytest.raises(urllib.error.HTTPError) as err:
+        urllib.request.urlopen(bridge.base + "/chats/chat-6/status", timeout=5)
+    assert err.value.code == 401
+
+
+def test_replaced_pi_exit_is_not_reported_to_the_new_run(bridge):
+    """Changing a setting restarts Pi; the old process's exit must not end the new run with an error."""
+    q = bridge.events("chat-7")
+    other = os.path.join(bridge.tmp, "other2")
+    os.makedirs(other)
+    for folder in (bridge.tmp, other):
+        assert bridge.post("/chats/chat-7/prompt", {"directory": folder, "message": "hi"})[0] == 202
+        _until(q, "agent_settled")
+    time.sleep(0.5)
+    seen = []
+    while not q.empty():
+        seen.append(q.get_nowait()["type"])
+    assert "bridge_exit" not in seen, seen

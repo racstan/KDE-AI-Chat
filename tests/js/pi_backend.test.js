@@ -174,8 +174,92 @@ const tests = {
     },
 };
 
+function watchdogRig(statusAnswer) {
+    const calls = [];   // [method, path] of the requests that aren't the event stream
+    const timers = [];  // {fn, ms, live}
+    let stream = null;
+    const xhrFactory = () => {
+        const x = {open(m, u) { this.m = m; this.u = u; }, setRequestHeader() {},
+            send() {
+                if (this.m === "GET" && this.u.endsWith("/events")) { stream = this; return; }
+                calls.push([this.m, this.u.replace("http://b", "")]);
+                this.readyState = 4;
+                const a = this.u.endsWith("/status") ? statusAnswer() : [202, "{}"];
+                this.status = a[0]; this.responseText = a[1];
+                this.onreadystatechange();
+            }};
+        return x;
+    };
+    const events = [];
+    PI.send({baseUrl: "http://b", token: "t", chatId: "c", body: {}, xhrFactory, parserFactory: DB.createSseParser, stallMs: 60000,
+             onEvent: e => events.push(plain(e)),
+             timers: {start(ms, fn) { const t = {fn, ms, live: true}; timers.push(t); return t; }, clear(t) { t.live = false; }}});
+    let text = "";
+    const push = obj => { text += "data: " + JSON.stringify(obj) + "\n\n"; stream.readyState = 3; stream.responseText = text; stream.onreadystatechange(); };
+    const live = () => timers.filter(t => t.live);
+    const fire = () => { const t = live()[0]; t.live = false; t.fn(); };
+    return {calls, events, push, live, fire, timers};
+}
+
+const WATCHDOG = {
+    watchdog_ends_a_prompt_pi_never_answers() {
+        const r = watchdogRig(() => [200, '{"running":true}']);
+        assert.strictEqual(r.live().length, 0, "no timer before the bridge accepts the prompt");
+        r.push({type: "bridge_connected", running: false});
+        assert.strictEqual(r.live().length, 1);
+        assert.strictEqual(r.live()[0].ms, 60000);
+        r.fire();
+        const last = r.events.slice(-2);
+        assert.ok(/^Pi stopped responding/.test(last[0].message), last[0].message);
+        assert.deepStrictEqual(last[1], {type: "done", reason: "error"});
+        assert.ok(!/bridge/.test(last[0].message), "must not trigger the bridge-restart retry");
+        assert.deepStrictEqual(r.calls.pop(), ["POST", "/chats/c/close"]);
+        assert.strictEqual(r.live().length, 0);
+    },
+
+    watchdog_never_cuts_off_a_model_that_keeps_sending() {
+        const r = watchdogRig(() => [200, '{"running":true}']);
+        r.push({type: "bridge_connected"});
+        r.push({type: "response", command: "prompt", success: true});
+        const first = r.live()[0];
+        r.push({type: "message_update", assistantMessageEvent: {type: "thinking_delta", contentIndex: 0, delta: "hm"}});
+        assert.strictEqual(first.live, false, "each event restarts the timer");
+        assert.strictEqual(r.live().length, 1);
+        assert.ok(!r.events.some(e => e.type === "error"));
+        // Quiet for a minute but the bridge says Pi is still running (a long tool): keep waiting.
+        r.fire();
+        assert.deepStrictEqual(r.calls.pop(), ["GET", "/chats/c/status"]);
+        assert.ok(!r.events.some(e => e.type === "error"));
+        assert.strictEqual(r.live().length, 1, "re-armed");
+    },
+
+    watchdog_ends_when_the_bridge_says_pi_is_not_running() {
+        for (const answer of [[200, '{"running":false,"alive":false}'], [0, ""], [500, "x"]]) {
+            const r = watchdogRig(() => answer);
+            r.push({type: "bridge_connected"});
+            r.push({type: "agent_start"});
+            r.fire();
+            assert.ok(r.events.some(e => e.type === "error" && /^Pi stopped responding/.test(e.message)), JSON.stringify(answer));
+            assert.deepStrictEqual(r.events[r.events.length - 1], {type: "done", reason: "error"});
+        }
+    },
+
+    watchdog_is_cleared_on_completion_and_on_failure() {
+        const r = watchdogRig(() => [200, '{"running":true}']);
+        r.push({type: "bridge_connected"});
+        r.push({type: "agent_start"});
+        r.push({type: "agent_settled"});
+        assert.strictEqual(r.live().length, 0);
+        assert.deepStrictEqual(r.events[r.events.length - 1], {type: "done", reason: "complete"});
+        const r2 = watchdogRig(() => [200, '{"running":true}']);
+        r2.push({type: "bridge_connected"});
+        r2.push({type: "response", command: "prompt", success: false, error: "nope"});
+        assert.strictEqual(r2.live().length, 0);
+    },
+};
+
 let failed = 0;
-for (const [name, fn] of Object.entries(tests)) {
+for (const [name, fn] of Object.entries(Object.assign({}, tests, WATCHDOG))) {
     try { fn(); console.log("PASS " + name); }
     catch (e) { failed++; console.log("FAIL " + name + "\n  " + String(e.stack || e).split("\n").slice(0, 4).join("\n  ")); }
 }

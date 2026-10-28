@@ -162,10 +162,26 @@ function _errorFrom(text) {
 // Runs one prompt. options:
 //   baseUrl, token, chatId, body ({directory, provider, model, thinking, message, images}),
 //   xhrFactory(), parserFactory(onMessage) (DirectBackend.createSseParser),
-//   onEvent(event)
+//   onEvent(event),
+//   timers ({start(ms, fn) -> handle, clear(handle)}; QML has no setTimeout) and stallMs
+//   (default STALL_MS): the watchdog, see below. Without timers there is none.
 // Returns {abort()}.
+//
+// Watchdog: once the bridge has accepted the prompt, every Pi event restarts a
+// stallMs timer, so a slow model that keeps sending (thinking deltas, tool
+// output) is never cut off. When it fires with no event at all since the
+// prompt, Pi never started on it; when events came but stopped, the bridge's
+// /status is asked, and Pi still running there means a long tool or a dialog
+// the user hasn't answered yet (keep waiting), anything else ends the reply
+// with an error. The timer is cleared on done, error and abort.
+var STALL_MS = 60000;
+
 function send(options) {
     var stream = null;
+    var timer = null;
+    var accepted = false;   // the bridge took the prompt
+    var gotEvent = false;   // Pi sent something since then
+    var stamp = 0;          // counts events, so a late status answer can tell it is stale
     var mapper = null;
     var started = false;
     var closed = false;
@@ -177,7 +193,36 @@ function send(options) {
     function close() {
         if (closed) return;
         closed = true;
+        stopTimer();
         if (stream) { try { stream.abort(); } catch (e) {} }
+    }
+    function stopTimer() {
+        if (timer !== null && options.timers) options.timers.clear(timer);
+        timer = null;
+    }
+    function arm() {
+        stopTimer();
+        if (closed || !accepted || !options.timers) return;
+        timer = options.timers.start(options.stallMs || STALL_MS, onStall);
+    }
+    function stalled(why) {
+        if (closed) return;
+        // Free the chat for Try again: a Pi that never answered may still hold it as busy.
+        _request(options, "POST", chatPath(options.chatId, "close"), {}, 10000, function() {});
+        fail("Pi stopped responding (" + why + ").");
+    }
+    function onStall() {
+        timer = null;
+        if (closed) return;
+        if (!gotEvent) { stalled("it never started on your message"); return; }
+        var seen = stamp;
+        _request(options, "GET", chatPath(options.chatId, "status"), null, 10000, function(status, text) {
+            if (closed || seen !== stamp) return;
+            var info = {};
+            try { info = JSON.parse(text); } catch (e) {}
+            if (status === 200 && info.running === true) arm();
+            else stalled("it is no longer working on your message");
+        });
     }
     function fail(message) {
         if (closed) return;
@@ -192,6 +237,7 @@ function send(options) {
             if (status < 200 || status >= 300)
                 fail(status === 0 ? "Pi: lost the connection to the Pi bridge."
                      : "Pi: " + (_errorFrom(text) || "the bridge refused the message (HTTP " + status + ")."));
+            else if (!closed) { accepted = true; arm(); }
         });
     }
 
@@ -202,7 +248,12 @@ function send(options) {
         var obj;
         try { obj = JSON.parse(message.data); } catch (e) { return; }
         if (obj.type === "bridge_connected") prompt();
-        else mapper.handle(obj);
+        else {
+            gotEvent = true;
+            stamp++;
+            arm();
+            mapper.handle(obj);
+        }
     });
     stream = options.xhrFactory();
     stream.onreadystatechange = function() {

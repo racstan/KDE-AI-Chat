@@ -15,6 +15,23 @@ QtObject {
     // {baseUrl, token} of the running bridge, once known.
     property var bridge: null
 
+    // Timers for PiBackend's watchdog (QML has no setTimeout).
+    readonly property var timers: ({
+        "start": function(ms, fn) {
+            var t = Qt.createQmlObject("import QtQuick; Timer { repeat: false }", mode);
+            t.interval = ms;
+            t.triggered.connect(function() { t.destroy(); fn(); });
+            t.running = true;
+            return t;
+        },
+        "clear": function(t) {
+            if (t) {
+                t.running = false;
+                t.destroy();
+            }
+        }
+    })
+
     function target() {
         return {"baseUrl": mode.bridge.baseUrl, "token": mode.bridge.token, "xhrFactory": function() { return new XMLHttpRequest(); }};
     }
@@ -153,6 +170,7 @@ QtObject {
         var retrying = false;
         var progressed = false;
         var options = mode.target();
+        options.timers = mode.timers;
         options.chatId = sessionId;
         options.body = body;
         options.parserFactory = DirectBackend.createSseParser;

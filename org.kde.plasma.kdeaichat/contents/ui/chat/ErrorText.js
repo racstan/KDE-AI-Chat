@@ -6,7 +6,7 @@
 // https://... failed (HTTP 429): ...") into
 //   {kind, text, detail, settings, checkSetup, template, args, extra}
 // kind      auth | missing-key | setup | credit | rate | timeout | network |
-//           model | server | empty | agent-missing | agent-offline | image | other
+//           model | server | empty | agent-missing | agent-offline | agent-stalled | image | other
 // text      one or two plain sentences
 // detail    the original message (without a leading warning sign), "" if it
 //           says nothing more than `text`
@@ -75,6 +75,8 @@ function describe(raw, providerName_) {
         return _result("image", "", [], "", /Settings/.test(msg), "", msg);
     if (/isn't installed|is not installed|no `?(opencode|pi)`? command/.test(low))
         return _result("agent-missing", I18N_NOOP("%1 isn't installed on this computer. Install it, then try again."), [_agentName(msg)], msg, true);
+    if (/^pi stopped responding/.test(low))
+        return _result("agent-stalled", I18N_NOOP("Pi stopped responding to your message. Try again."), [], msg, false);
     if (/isn't reachable|isn't running|couldn't be started|could not be started|bridge/.test(low) && /opencode|\bpi\b/.test(low))
         return _result("agent-offline", I18N_NOOP("%1 isn't running and couldn't be started. Check that it is installed and that its address in Settings is right."), [_agentName(msg)], msg, true);
 
