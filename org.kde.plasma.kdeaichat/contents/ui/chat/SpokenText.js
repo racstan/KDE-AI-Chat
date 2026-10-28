@@ -97,3 +97,29 @@ function sentenceAround(shown, range, at) {
         start++;
     return {"start": start, "end": end};
 }
+
+// When the whole chunk is not in `shown` (it spans several blocks of the message): the longest run of
+// words around the one at `at` (its place in the chunk), within its sentence, that `shown` has.
+// {range, text, offset}: where it is in `shown`, its text in the chunk and the word's place in that text;
+// null when `shown` doesn't have the word's part of the sentence.
+function phraseAround(shown, chunk, at, from) {
+    var sentence = sentenceAround(chunk, {"start": 0, "end": chunk.length}, at);
+    var list = words(chunk.slice(sentence.start, sentence.end));
+    var k = -1;
+    for (var n = 0; n < list.length; n++) {
+        if (sentence.start + list[n].start <= at)
+            k = n;
+    }
+    if (k < 0)
+        return null;
+    var text = function(i, j) { return chunk.slice(sentence.start + list[i].start, sentence.start + list[j].end); };
+    if (!find(shown, text(k, k), from))
+        return null;
+    var i = k, j = k;
+    while (j + 1 < list.length && find(shown, text(i, j + 1), from))
+        j++;
+    while (i > 0 && find(shown, text(i - 1, j), from))
+        i--;
+    var phrase = text(i, j);
+    return {"range": find(shown, phrase, from), "text": phrase, "offset": at - (sentence.start + list[i].start)};
+}

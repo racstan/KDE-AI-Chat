@@ -245,5 +245,34 @@ Item {
             compare(block.selectedText, "", "the glow is not a selection");
             tryVerify(function() { return !glow.shown; }, 1000, "gone when reading ends");
         }
+
+        function test_a_reply_with_code_glows_sentence_by_sentence() {
+            // A code block splits the message into several text blocks, and System voices get the whole
+            // reply at once: the sentence being said still glows, in the block that shows it.
+            var withCode = "First comes this sentence. Then the example:\n\n```\nlet x = 1;\n```\n\nThe last sentence comes after the code.";
+            chat.messages = [{role: "user", content: "Read this?", time: "10:00"},
+                             {role: "assistant", model: "m", content: withCode, time: "10:00"}];
+            wait(200);
+            var blocks = [];
+            (function walk(item) {
+                if (!item) return;
+                if (item.objectName === "messageText" && item.length > 0) blocks.push(item);
+                for (var i = 0; i < item.children.length; i++) walk(item.children[i]);
+            })(view.list.itemAtIndex(1));
+            verify(blocks.length >= 2, "a block before and after the code: " + blocks.length);
+            chat.playingMessageIndex = 1;
+            voice.playTTS(withCode);
+            var seen = {};
+            tryVerify(function() {
+                blocks.forEach(function(b) {
+                    var g = findChild(b, "spokenGlow");
+                    if (g && g._sentence)
+                        seen[b.getText(g._sentence.start, g._sentence.end)] = true;
+                });
+                return !voice.isPlaying;
+            }, 15000, "reads to the end");
+            verify(seen["First comes this sentence."], JSON.stringify(seen));
+            verify(seen["The last sentence comes after the code."], JSON.stringify(seen));
+        }
     }
 }

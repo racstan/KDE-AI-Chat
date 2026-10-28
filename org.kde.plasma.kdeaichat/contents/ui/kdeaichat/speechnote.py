@@ -30,6 +30,7 @@ spoken text is never logged.
                           Speech Note starts reading a sentence (TtsPartialSpeechPlaying); the caller waits again.
 """
 import json
+import os
 import re
 import time
 from typing import Any, Callable, Dict, Tuple
@@ -200,8 +201,9 @@ def speak(payload: Dict[str, Any]) -> Dict[str, Any]:
 def _call_privately(member: str, sig: str, args: Tuple[Any, ...]) -> Any:
     """A call whose arguments must not show up in a process list (busctl puts them
     on its command line): straight over the session bus socket. Returns the first
-    reply value."""
-    conn = minidbus.Connection()
+    reply value. ``KDEAICHAT_SPEECHNOTE_BUS`` overrides the bus address (the docs media
+    point it at nothing, so the demo can never read aloud through the real service)."""
+    conn = minidbus.Connection(os.environ.get("KDEAICHAT_SPEECHNOTE_BUS") or None)
     try:
         reply = conn.call(bus.NAME, bus.PATH, bus.IFACE, member, sig, args, timeout=15.0)
         return reply.body[0] if reply.body else None

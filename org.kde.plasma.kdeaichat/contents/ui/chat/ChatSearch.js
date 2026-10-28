@@ -50,7 +50,10 @@ function isIncognito(session) {
 function snippet(text, index, length) {
     var start = Math.max(0, index - BEFORE);
     var end = Math.min(text.length, index + length + AFTER);
-    var one = function(t) { return t.replace(/\s+/g, " "); };
+    // On one line, without Markdown's marks (code fences and their language, `, **, __, # headings).
+    var one = function(t) {
+        return t.replace(/```[\w+#.-]*/g, " ").replace(/`|\*\*|__/g, "").replace(/(^|\n)#+ /g, "$1").replace(/\s+/g, " ");
+    };
     var before = one(text.substring(start, index));
     var after = one(text.substring(index + length, end));
     // Start at a word when the context was cut.

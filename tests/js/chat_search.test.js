@@ -56,6 +56,16 @@ const tests = {
         assert.strictEqual(S.search(chats, "  ").results.length, 0);
         assert.strictEqual(S.patternFor(" x "), null);
     },
+    snippets_show_no_markdown_marks() {
+        const text = "Use `sort` and **uniq**:\n\n```bash\nsort names.txt | uniq -c\n```\nThat counts.";
+        const sn = S.snippet(text, text.indexOf("uniq -c"), 7);
+        assert.strictEqual(sn.before.indexOf("`"), -1, sn.before);
+        assert.strictEqual(sn.before.indexOf("**"), -1, sn.before);
+        assert.strictEqual(sn.before.indexOf("bash"), -1, "the fence's language is not text: " + sn.before);
+        assert.ok(sn.before.indexOf("sort names.txt |") >= 0, sn.before);
+        assert.strictEqual(sn.after.trim().indexOf("`"), -1, sn.after);
+    },
+
     snippets_cut_the_context_at_words() {
         const text = "one two three four five six seven eight nine ten eleven twelve NEEDLE thirteen " + "x ".repeat(80);
         const sn = S.snippet(text, text.indexOf("NEEDLE"), 6);

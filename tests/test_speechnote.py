@@ -431,6 +431,14 @@ def test_speak_without_session_bus_is_bus_error(fake, capsys, monkeypatch, tmp_p
     assert run("speechnote_speak", {"text": "hi"}, capsys)["code"] == "bus_error"
 
 
+def test_speak_bus_override_never_reaches_the_session_bus(fake, session_bus, capsys, monkeypatch, tmp_path):
+    # The docs media set it to nothing: the real service (here the session bus) is never called.
+    monkeypatch.setenv("KDEAICHAT_SPEECHNOTE_BUS", "unix:path=" + str(tmp_path / "none"))
+    fake.set(present=True)
+    assert run("speechnote_speak", {"text": "hi"}, capsys)["code"] == "bus_error"
+    assert session_bus.seen == []
+
+
 def test_pause_resume_stop(fake, capsys):
     fake.set(present=True)
     assert run("speechnote_pause", {"task": 3}, capsys) == {"type": "speechnote_paused", "task": 3, "result": 0}

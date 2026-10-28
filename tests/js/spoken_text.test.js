@@ -8,7 +8,7 @@ const path = require("path");
 const src = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/chat/SpokenText.js"), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const ctx = {};
-vm.runInNewContext(src + "\nthis.exports = {words, find, wordAt, sentenceAround};", ctx);
+vm.runInNewContext(src + "\nthis.exports = {words, find, wordAt, sentenceAround, phraseAround};", ctx);
 const S = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 const at = (text, r) => r ? text.slice(r.start, r.end) : null;
@@ -45,4 +45,14 @@ const all = S.find(para, para, 0);
 assert.strictEqual(at(para, S.sentenceAround(para, all, para.indexOf("four"))), "Three four five?");
 assert.strictEqual(at(para, S.sentenceAround(para, all, 0)), "One two.");
 assert.strictEqual(at(para, S.sentenceAround(para, all, para.indexOf("Six"))), "Six.");
+// A chunk spanning blocks (a code block between; line breaks became spaces): what this block has.
+const chunk2 = "First comes this sentence. Then the example: (code block) The last sentence comes after the code.";
+const after = "The last sentence comes after the code.";
+const p = S.phraseAround(after, chunk2, chunk2.indexOf("sentence comes"), 0);
+assert.strictEqual(at(after, p.range), "The last sentence comes after the code.");
+assert.strictEqual(at(after, S.wordAt(after, p.range, p.text, p.offset)), "sentence");
+const before = "First comes this sentence. Then the example:";
+const q = S.phraseAround(before, chunk2, chunk2.indexOf("example"), 0);
+assert.strictEqual(at(before, q.range), "Then the example");
+assert.strictEqual(S.phraseAround(after, chunk2, chunk2.indexOf("First"), 0), null, "not in this block");
 console.log("ok");

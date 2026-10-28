@@ -50,23 +50,38 @@ Item {
         }
         var shownText = textItem.getText(0, textItem.length);
         var range = SpokenText.find(shownText, voice.currentPlayingChunk, _from);
-        if (!range) {
-            _clear();
-            return;
-        }
         _chunkRange = range;
-        _from = range.end;
         _sentence = null;
+        if (range)
+            _from = range.end;
+        else
+            sentenceRects = wordRects = [];
         updateWord();
     }
 
     // The word moved on (or the chunk changed): the word, and the sentence around it.
     function updateWord() {
-        if (!_chunkRange)
-            return;
         var shownText = textItem.getText(0, textItem.length);
-        var word = SpokenText.wordAt(shownText, _chunkRange, voice.currentPlayingChunk, voice.currentPlayingWordStart);
-        var sentence = word ? SpokenText.sentenceAround(shownText, _chunkRange, word.start) : _chunkRange;
+        var chunk = voice ? voice.currentPlayingChunk : "";
+        var at = voice ? voice.currentPlayingWordStart : -1;
+        var word = null, sentence = null;
+        if (_chunkRange) {
+            word = SpokenText.wordAt(shownText, _chunkRange, chunk, at);
+            sentence = word ? SpokenText.sentenceAround(shownText, _chunkRange, word.start) : _chunkRange;
+        } else if (reading && chunk && at >= 0) {
+            // The chunk is not all in this block (a reply with a code block is several blocks, and
+            // System voices get the whole reply): its sentence being said, where this block has it.
+            var phrase = SpokenText.phraseAround(shownText, chunk, at, _from);
+            sentence = phrase ? phrase.range : null;
+            word = phrase ? SpokenText.wordAt(shownText, sentence, phrase.text, phrase.offset) : null;
+            if (sentence)
+                _from = sentence.start;   // the next words are in it too; the next sentence comes after
+        }
+        if (!sentence) {
+            _sentence = null;
+            sentenceRects = wordRects = [];
+            return;
+        }
         if (!_sentence || _sentence.start !== sentence.start || _sentence.end !== sentence.end) {
             _sentence = sentence;
             sentenceRects = rectsFor(sentence.start, sentence.end);
