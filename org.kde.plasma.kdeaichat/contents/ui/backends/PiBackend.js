@@ -167,10 +167,11 @@ function _errorFrom(text) {
 //   (default STALL_MS): the watchdog, see below. Without timers there is none.
 // Returns {abort()}.
 //
-// Watchdog: once the bridge has accepted the prompt, every Pi event restarts a
-// stallMs timer, so a slow model that keeps sending (thinking deltas, tool
-// output) is never cut off. When it fires with no event at all since the
-// prompt, Pi never started on it; when events came but stopped, the bridge's
+// Watchdog: once the bridge has accepted the prompt, a stallMs timer runs; when
+// it fires and Pi sent events meanwhile it simply starts again (one timer per
+// stallMs, not one per streamed delta), so a slow model that keeps sending
+// (thinking deltas, tool output) is never cut off. When it fires with no event
+// at all since the prompt, Pi never started on it; when events came but stopped, the bridge's
 // /status is asked, and Pi still running there means a long tool or a dialog
 // the user hasn't answered yet (keep waiting), anything else ends the reply
 // with an error. The timer is cleared on done, error and abort.
@@ -182,6 +183,7 @@ function send(options) {
     var accepted = false;   // the bridge took the prompt
     var gotEvent = false;   // Pi sent something since then
     var stamp = 0;          // counts events, so a late status answer can tell it is stale
+    var armedAt = 0;        // stamp when the timer was started
     var mapper = null;
     var started = false;
     var closed = false;
@@ -203,6 +205,7 @@ function send(options) {
     function arm() {
         stopTimer();
         if (closed || !accepted || !options.timers) return;
+        armedAt = stamp;
         timer = options.timers.start(options.stallMs || STALL_MS, onStall);
     }
     function stalled(why) {
@@ -215,6 +218,7 @@ function send(options) {
         timer = null;
         if (closed) return;
         if (!gotEvent) { stalled("it never started on your message"); return; }
+        if (stamp !== armedAt) { arm(); return; }   // Pi is still sending
         var seen = stamp;
         _request(options, "GET", chatPath(options.chatId, "status"), null, 10000, function(status, text) {
             if (closed || seen !== stamp) return;
@@ -251,7 +255,7 @@ function send(options) {
         else {
             gotEvent = true;
             stamp++;
-            arm();
+            if (timer === null) arm();   // the timer is off only while /status is being asked
             mapper.handle(obj);
         }
     });

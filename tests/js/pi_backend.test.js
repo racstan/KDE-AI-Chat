@@ -223,8 +223,12 @@ const WATCHDOG = {
         r.push({type: "response", command: "prompt", success: true});
         const first = r.live()[0];
         r.push({type: "message_update", assistantMessageEvent: {type: "thinking_delta", contentIndex: 0, delta: "hm"}});
-        assert.strictEqual(first.live, false, "each event restarts the timer");
+        assert.strictEqual(first.live, true, "an event doesn't make a new timer");
         assert.strictEqual(r.live().length, 1);
+        // Events came since it started: it starts again without asking the bridge.
+        r.fire();
+        assert.ok(!r.calls.some(c => c[1] === "/chats/c/status"));
+        assert.strictEqual(r.live().length, 1, "re-armed");
         assert.ok(!r.events.some(e => e.type === "error"));
         // Quiet for a minute but the bridge says Pi is still running (a long tool): keep waiting.
         r.fire();
@@ -238,7 +242,8 @@ const WATCHDOG = {
             const r = watchdogRig(() => answer);
             r.push({type: "bridge_connected"});
             r.push({type: "agent_start"});
-            r.fire();
+            r.fire();   // events came since it started: it starts again
+            r.fire();   // a quiet minute: the bridge is asked
             assert.ok(r.events.some(e => e.type === "error" && /^Pi stopped responding/.test(e.message)), JSON.stringify(answer));
             assert.deepStrictEqual(r.events[r.events.length - 1], {type: "done", reason: "error"});
         }
