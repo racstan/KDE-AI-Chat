@@ -30,6 +30,36 @@ println!("{greeting}");
 
 Want me to go deeper on any of them?"""
 
+DECLINE = """Of course. Here is a short, polite way to say no:
+
+> Hi Sam, thank you for the invitation. I can't make this one, as my calendar is full that day. Please share the notes afterwards, and count me in next time.
+
+Want me to go deeper on a warmer or a more formal version?"""
+
+LIGHTHOUSE = """A lighthouse stands on a rock at dusk, its lamp just lit.
+
+- **Sky**: a soft wash of violet fading into orange at the horizon.
+- **Sea**: calm, deep blue, with a pale path of light on the water.
+
+Want me to try a stormier version?"""
+
+# (keyword in the last user message, reply); the first match wins, ANSWER is the default.
+CANNED = [("polite no", DECLINE), ("meeting invite", DECLINE), ("decline", DECLINE), ("lighthouse", LIGHTHOUSE)]
+
+
+def answer_for(request):
+    last = ""
+    for message in request.get("messages") or []:
+        if message.get("role") == "user":
+            content = message.get("content")
+            if isinstance(content, list):
+                content = " ".join(str(p.get("text", "")) for p in content if isinstance(p, dict))
+            last = str(content or "")
+    for keyword, reply in CANNED:
+        if keyword in last.lower():
+            return reply
+    return ANSWER
+
 
 def pieces(text, size=3):
     words = text.split(" ")
@@ -65,7 +95,7 @@ class Handler(BaseHTTPRequestHandler):
         if not request.get("stream"):
             return self._json(200, {"id": "mock", "object": "chat.completion", "model": MODEL,
                                     "choices": [{"index": 0, "finish_reason": "stop",
-                                                 "message": {"role": "assistant", "content": ANSWER}}],
+                                                 "message": {"role": "assistant", "content": answer_for(request)}}],
                                     "usage": {"prompt_tokens": 80, "completion_tokens": 120, "total_tokens": 200}})
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
@@ -85,7 +115,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             event({"role": "assistant", "content": ""})
             time.sleep(0.4)
-            for chunk in pieces(ANSWER):
+            for chunk in pieces(answer_for(request)):
                 event({"content": chunk})
                 time.sleep(0.04)
             event({}, "stop", {"prompt_tokens": 80, "completion_tokens": 120, "total_tokens": 200})

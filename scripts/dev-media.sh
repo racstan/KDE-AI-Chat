@@ -34,6 +34,8 @@ EXTRAS=(chat-quote chat-edit chat-variants chat-more-menu chat-export chat-works
         settings-voice-speechnote settings-schedule-dialog)
 
 mkdir -p "$OUT"
+# Speech Note shows as installed (a file named dsnote), with no D-Bus: nothing is run or contacted.
+export KDEAICHAT_DSNOTE="$ROOT/scripts/media/fake_dsnote.sh" KDEAICHAT_BUSCTL="$ROOT/scripts/media/fake_busctl.sh"
 python3 "$ROOT/scripts/media/mock_openai.py" "$PORT" &
 MOCK=$!
 trap 'kill "$MOCK" 2>/dev/null || true' EXIT

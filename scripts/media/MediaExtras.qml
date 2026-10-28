@@ -89,10 +89,13 @@ Item {
 
         step("chat-edit", {chat: tour.demoChat, setup: function(done) {
             var list = tour.body.chatView.list;
-            if (list && typeof list.positionViewAtBeginning === "function") list.positionViewAtBeginning();
             app.editingDraft = String(app.messages[0].content);
             app.editingMessageIndex = 0;
-            done();
+            // The view jumps to the end when the editor opens: scroll back to Alex's question.
+            kit.later(800, function() {
+                if (list && typeof list.positionViewAtBeginning === "function") list.positionViewAtBeginning();
+                kit.later(300, done);
+            });
         }}),
 
         step("chat-variants", {chat: tour.demoChat, setup: function(done) {
@@ -127,7 +130,7 @@ Item {
             extras.m("assistant", "Found it. The parser drops the last line:\n\n```python\nlines = text.split(\"\\n\")[:-1]\n```\n\nI will keep every line.",
                      {"model": "OpenCode · build", "reasoning": "The test fails because the last line is cut off.", "contextItems": ["✓ read: parser.py", "✓ edit: parser.py"],
                       "tokens": {"input": 2087, "output": 95}}),
-            extras.m("permission_request", "OpenCode asks for permission: **edit** parser.py",
+            extras.m("permission_request", "OpenCode asks for permission: edit parser.py",
                      {"model": "OpenCode", "status": "pending", "canAlways": true, "permissionId": "p1"})]}),
 
         step("chat-pi", {messages: [
@@ -140,22 +143,34 @@ Item {
         step("chat-image", {messages: [
             extras.m("user", "Paint a lighthouse at dusk, watercolor."),
             extras.m("assistant", "Here is your picture.", {"images": [{"path": "demo-picture.png", "prompt": "A lighthouse at dusk, watercolor",
-                     "service": "AI Horde", "model": "nova-demo"}]})], settle: 1500}),
+                     "service": "AI Horde", "model": "nova-demo"}]})], settle: 1500,
+            setup: function(done) {
+                var list = tour.body.chatView.list;
+                if (list && typeof list.positionViewAtBeginning === "function") list.positionViewAtBeginning();
+                kit.later(400, done);
+            }}),
 
         step("chat-error", {messages: [
             extras.m("user", "Summarize my notes."),
             extras.m("error", "Nova demo (local): HTTP 429: too many requests. Wait a moment and try again.")]}),
 
+        // The real banner (chat/ModeMismatchBanner.qml): Settings select Pi for new chats, this chat is Direct.
         step("chat-mode-notice", {chat: tour.demoChat, setup: function(done) {
-            app.modeNotice = "This chat uses Direct mode. Your default is now Pi. Start a new chat to use it.";
-            done();
-        }}),
+            tour.plasmoidRef.configuration.usePi = true;
+            kit.waitFor("the mode banner", function() {
+                var b = kit.find(tour.target, "modeMismatchBanner");
+                return b !== null && b.visible && b.text !== "";
+            }, 8000, function() { kit.later(600, done); });
+        }, cleanup: function() { tour.plasmoidRef.configuration.usePi = false; }}),
 
+        // "/model" with per-chat model settings off: the suggestions popup shows the notice entry.
         step("chat-model-notice", {chat: tour.demoChat, setup: function(done) {
-            if (!extras.runner) { kit.fail("the command runner was not found"); return; }
-            extras.runner.run("/model nova-demo");
-            done();
-        }}),
+            app.chatInputText = "/model ";
+            kit.waitFor("the model notice popup", function() {
+                var s = composer.suggestions;
+                return s && s.visible && s.height > 20;
+            }, 8000, function() { kit.later(600, done); });
+        }, cleanup: function() { app.chatInputText = ""; }}),
 
         step("chat-remember", {keepToast: true, chat: tour.demoChat, setup: function(done) {
             if (!extras.runner) { kit.fail("the command runner was not found"); return; }
