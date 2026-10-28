@@ -6,7 +6,9 @@ A chat assistant that lives on your **KDE Plasma 6** desktop. Talk to the AI ser
 
 ![Sending a message in KDE AI Chat](docs/media/send-message.gif)
 
-[Watch the demo (video)](docs/media/demo.webm)
+[![Watch the full tour on YouTube (13 min)](https://img.youtube.com/vi/SnkKFCN_Jkg/maxresdefault.jpg)](https://youtu.be/SnkKFCN_Jkg)
+
+[Watch the full tour on YouTube](https://youtu.be/SnkKFCN_Jkg) (13 min)
 
 ---
 
