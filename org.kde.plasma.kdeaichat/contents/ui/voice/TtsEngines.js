@@ -35,7 +35,7 @@ function I18N_NOOP(text) {
 var engines = [
     {id: "speechnote", kind: "speechnote", setup: "speechnote", keys: {"voiceTtsSpeechNoteModel": ""},
      label: I18N_NOOP("Speech Note (any language, recommended)"),
-     note: I18N_NOOP("Speech Note, a separate app, reads replies in any language with the voices you download in it, using your graphics card when it can. Until it is set up, the system voice reads."),
+     note: I18N_NOOP("Speech Note, a separate app, reads replies in any language with the voices you download in it, using your graphics card when it can. Until it is installed, the system voice reads."),
      options: []},
     {id: "system", kind: "qt", plugin: "speechd", label: I18N_NOOP("System voices"),
      note: I18N_NOOP("Speech Dispatcher: espeak-ng and any voice installed for it. Nothing to set up, but espeak-ng sounds robotic."),

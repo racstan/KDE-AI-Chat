@@ -91,7 +91,7 @@ var MESSAGES = {
                                I18N_NOOP("Install Speech Note (see Settings → Voice), then download a voice in it.")],
     "speechnote-no-model-stt": [I18N_NOOP("Speech Note has no speech-to-text model yet."),
                                 I18N_NOOP("Open Speech Note and download a speech-to-text model in your language.")],
-    "speechnote-no-model-tts": [I18N_NOOP("Speech Note has no voice yet, so replies are read with the robotic system voice."),
+    "speechnote-no-model-tts": [I18N_NOOP("Speech Note has no voice yet, so it can't read replies aloud."),
                                 I18N_NOOP("Open Speech Note and download a voice in your language.")],
     "speechnote-service": [I18N_NOOP("Speech Note could not be started: %1"), I18N_NOOP("Open Speech Note once by hand to see what it says.")],
     "speechnote-ready-stt": [I18N_NOOP("Dictation with Speech Note is ready."), ""],
