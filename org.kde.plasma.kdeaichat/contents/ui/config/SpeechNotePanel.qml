@@ -79,9 +79,11 @@ ColumnLayout {
             }
         }
 
+        // The install steps, only while Speech Note is missing. Once it is installed,
+        // the line about the missing models (below) says what is still needed.
         QQC2.Label {
             objectName: "speechNoteSetup"
-            visible: !!panel.status && panel.status.loaded && (!panel.status.installed || (panel.status.errorCode === "" && panel.models.length === 0))
+            visible: !!panel.status && panel.status.loaded && !panel.status.installed
             Kirigami.FormData.label: i18n("Set up:")
             Layout.maximumWidth: Kirigami.Units.gridUnit * 24
             wrapMode: Text.Wrap
@@ -121,12 +123,13 @@ ColumnLayout {
         }
 
         QQC2.Label {
+            objectName: "speechNoteNoModels"
             visible: modelCombo.visible && panel.models.length === 0
             Layout.maximumWidth: Kirigami.Units.gridUnit * 24
             wrapMode: Text.Wrap
             font: Kirigami.Theme.smallFont
-            text: panel.isStt ? i18n("Speech Note has no speech-to-text model yet: download one in Speech Note.")
-                              : i18n("Speech Note has no voice yet: download one in Speech Note.")
+            text: panel.isStt ? i18n("Speech Note has no speech-to-text model yet: download one in your language inside Speech Note.")
+                              : i18n("Speech Note has no voice yet: download one in your language inside Speech Note.")
         }
 
         SettingHelp {

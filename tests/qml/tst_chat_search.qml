@@ -7,6 +7,7 @@ import QtQuick.Layouts
 import QtTest
 import org.kde.kirigami as Kirigami
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
+import "../../org.kde.plasma.kdeaichat/contents/ui/chat/ChatSearch.js" as ChatSearch
 
 Item {
     id: root
@@ -114,8 +115,14 @@ Item {
             var places = findChildren(p.resultList, "resultPlace").map(function(l) { return l.visible ? l.text : ""; });
             verify(places.indexOf("Work") >= 0, places);
             verify(places.indexOf("Archived") >= 0, places);
+            // The match is bold and underlined, in the text colour, so it reads in light and dark.
             var snippets = findChildren(p.resultList, "resultSnippet").filter(function(l) { return l.visible; });
-            verify(snippets[0].text.indexOf("<b><font color=") >= 0 && snippets[0].text.indexOf(">Lisbon</font>") >= 0, snippets[0].text);
+            compare(snippets[0].text, ChatSearch.highlighted(p.found.results[0]));
+            verify(snippets[0].text.indexOf("<b><u>Lisbon</u></b>") >= 0, snippets[0].text);
+            // The chat's name that matches is marked the same way.
+            var titles = findChildren(p.resultList, "resultTitle").map(function(l) { return l.text; })
+                .filter(function(t) { return t.indexOf("<u>") >= 0; });
+            compare(titles, ["<b><u>Lisbon</u></b> trip"]);
             compare(findChild(p, "searchStatus").text, "4 matches");
             screenshot(root, "chat-search-results");
             // Clearing the field brings the history back.

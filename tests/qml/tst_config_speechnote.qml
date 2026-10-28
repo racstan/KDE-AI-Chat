@@ -96,6 +96,18 @@ Item {
                 out.push(combo.model[i].value);
             return out;
         }
+        // The text of every visible label under `item`.
+        function visibleTexts(item, into) {
+            into = into || [];
+            if (!item || !item.visible)
+                return into;
+            if (typeof item.text === "string" && item.text !== "")
+                into.push(item.text);
+            var kids = item.children || [];
+            for (var i = 0; i < kids.length; i++)
+                visibleTexts(kids[i], into);
+            return into;
+        }
 
         function test_defaults_are_speech_note_for_both() {
             open("installed");
@@ -115,7 +127,9 @@ Item {
             tryCompare(field(tts, "speechNoteStatus"), "text", "Installed (Flatpak).", 5000);
             compare(field(stt, "speechNoteStatus").text, "Installed (Flatpak).");
             verify(!field(tts, "speechNoteLinks").visible, "no install links when it is installed");
-            verify(!field(tts, "speechNoteSetup").visible);
+            verify(!field(tts, "speechNoteSetup").visible, "installed: no install steps");
+            verify(!field(stt, "speechNoteSetup").visible, "installed: no install steps");
+            verify(!field(stt, "speechNoteNoModels").visible && !field(tts, "speechNoteNoModels").visible, "with models nothing is missing");
             var sttCombo = field(stt, "speechNoteSttModel");
             var ttsCombo = field(tts, "speechNoteTtsModel");
             verify(sttCombo.visible && ttsCombo.visible);
@@ -167,8 +181,10 @@ Item {
             verify(links.text.indexOf("https://flathub.org/apps/net.mkiol.SpeechNote") >= 0);
             verify(links.text.indexOf("https://github.com/mkiol/dsnote") >= 0);
             verify(!field(stt, "speechNoteSttModel").visible, "no model list without Speech Note");
+            verify(!field(stt, "speechNoteNoModels").visible, "no models line without Speech Note: the install steps say it");
             verify(field(stt, "speechNoteCredit").visible);
-            verify(field("speechNoteReadAloud", "speechNoteSetup").text.indexOf("Until then the system voice reads.") > 0);
+            verify(field("speechNoteReadAloud", "speechNoteSetup").visible);
+            compare(field("speechNoteReadAloud", "speechNoteSetup").text, "Install Speech Note, then download a voice in your language inside Speech Note. Until then the system voice reads.");
             settled();
             screenshot(page, "config-speechnote-missing");
         }
@@ -207,12 +223,21 @@ Item {
         function test_installed_without_models_says_to_add_one() {
             open("nomodels");
             var tts = "speechNoteReadAloud";
+            var stt = "speechNoteDictation";
             tryCompare(field(tts, "speechNoteStatus"), "text", "Installed (Flatpak).", 5000);
-            verify(field(tts, "speechNoteSetup").visible);
-            verify(field(tts, "speechNoteSetup").text.indexOf("download a voice") > 0);
+            // Installed: no install steps, and one line on what is missing (not two that say the same).
+            verify(!field(tts, "speechNoteSetup").visible, "no install steps once it is installed");
+            verify(!field(stt, "speechNoteSetup").visible, "no install steps once it is installed");
+            compare(field(tts, "speechNoteNoModels").text, "Speech Note has no voice yet: download one in your language inside Speech Note.");
+            compare(field(stt, "speechNoteNoModels").text, "Speech Note has no speech-to-text model yet: download one in your language inside Speech Note.");
             verify(field(tts, "speechNoteTtsModel").visible, "the default entry is still offered");
             compare(modelValues(field(tts, "speechNoteTtsModel")), [""]);
             verify(!field(tts, "speechNoteLinks").visible);
+            verify(!field(stt, "speechNoteLinks").visible);
+            // Nothing on either part tells them to install Speech Note.
+            var install = visibleTexts(panel(tts)).concat(visibleTexts(panel(stt)))
+                .filter(function(t) { return t.indexOf("Install Speech Note") >= 0; });
+            verify(install.length === 0, install.join(" | "));
             settled();
             screenshot(page, "config-speechnote-nomodels");
         }

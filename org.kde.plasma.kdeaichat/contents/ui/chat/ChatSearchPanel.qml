@@ -241,7 +241,7 @@ ColumnLayout {
                         Layout.minimumWidth: 0
                         textFormat: Text.StyledText
                         text: row.modelData.kind === "title"
-                            ? ChatSearch.highlighted(row.modelData, Kirigami.Theme.highlightColor.toString())
+                            ? ChatSearch.highlighted(row.modelData)
                             : ChatSearch.escapeHtml(row.title)
                         font.bold: true
                         elide: Text.ElideRight
@@ -275,7 +275,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     textFormat: Text.StyledText
                     text: (row.modelData.role === "user" ? "<i>" + ChatSearch.escapeHtml(i18n("You:")) + "</i> " : "")
-                        + ChatSearch.highlighted(row.modelData, Kirigami.Theme.highlightColor.toString())
+                        + ChatSearch.highlighted(row.modelData)
                     wrapMode: Text.Wrap
                     maximumLineCount: 2
                     elide: Text.ElideRight

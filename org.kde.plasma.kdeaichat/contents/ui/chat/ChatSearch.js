@@ -137,8 +137,10 @@ function escapeHtml(text) {
     return _s(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-// The snippet as styled text (Text.StyledText) with the match marked: bold, in `color`.
-function highlighted(result, color) {
-    return escapeHtml(result.before) + "<b><font color=\"" + escapeHtml(color) + "\">"
-        + escapeHtml(result.match) + "</font></b>" + escapeHtml(result.after);
+// The snippet as styled text (Text.StyledText) with the match marked: bold and
+// underlined, in the text colour, so it reads in light and dark colour schemes
+// alike. (Text.StyledText did not draw a span's background or colour style when
+// checked, so the match is marked with what it does draw.) Every part is escaped.
+function highlighted(result) {
+    return escapeHtml(result.before) + "<b><u>" + escapeHtml(result.match) + "</u></b>" + escapeHtml(result.after);
 }

@@ -88,10 +88,22 @@ const tests = {
         assert.strictEqual(all.more, true);
     },
     highlight_escapes_markup() {
-        const html = S.highlighted({before: "<b>a&", match: "x<y", after: "\"z\""}, "#3daee9");
-        assert.ok(html.startsWith("&lt;b&gt;a&amp;"));
-        assert.ok(html.includes("<b><font color=\"#3daee9\">x&lt;y</font></b>&quot;z&quot;"));
+        const html = S.highlighted({before: "<b>a&", match: "x<y", after: "\"z\""});
+        assert.strictEqual(html, "&lt;b&gt;a&amp;<b><u>x&lt;y</u></b>&quot;z&quot;");
         assert.strictEqual(html.split("<b>").length, 2, "only the match is bold");
+    },
+    highlight_marks_the_match_as_found() {
+        const r = S.search(chats, "time out").results[0];
+        const html = S.highlighted(r);
+        assert.ok(html.includes("<b><u>TIME OUT</u></b>"), html);
+    },
+    highlight_text_cannot_become_markup() {
+        const hostile = {before: "<i>&", match: "\"><u>", after: "</span><img src=x onerror=1>"};
+        const html = S.highlighted(hostile);
+        assert.strictEqual(html, "&lt;i&gt;&amp;<b><u>&quot;&gt;&lt;u&gt;</u></b>&lt;/span&gt;&lt;img src=x onerror=1&gt;");
+        assert.strictEqual(html.split("<u>").length, 2, "one underline: the match's");
+        assert.strictEqual(html.indexOf("\""), -1, "no raw quotes: they are all entities");
+        assert.strictEqual(html.indexOf("<img"), -1, html);
     },
     fast_with_hundreds_of_chats() {
         const words = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor".split(" ");
