@@ -76,6 +76,7 @@ class StdioClient(Client):
         self.pending = {}
         self.stderr_tail = collections.deque(maxlen=20)
         self.start_lock = threading.Lock()
+        self.write_lock = threading.Lock()  # concurrent calls must not interleave their lines
 
     def alive(self):
         return self.proc is not None and self.proc.poll() is None
@@ -105,15 +106,30 @@ class StdioClient(Client):
         except OSError as e:
             raise McpError(f"Couldn't start {d['command']}: {e.strerror or e}")
         self.pending = {}
-        threading.Thread(target=self._read_stdout, args=(self.proc, self.pending), daemon=True).start()
+        threading.Thread(target=self._read_stdout, args=(self.proc, self.pending, self._answer_request), daemon=True).start()
         threading.Thread(target=self._read_stderr, args=(self.proc,), daemon=True).start()
 
+    def _answer_request(self, message):
+        """A request from the server: `ping` gets an empty result, anything else "method not found"."""
+        if message.get("method") == "ping":
+            reply = {"jsonrpc": "2.0", "id": message["id"], "result": {}}
+        else:
+            reply = {"jsonrpc": "2.0", "id": message["id"], "error": {"code": -32601, "message": "Method not found"}}
+        try:
+            self._write(reply)
+        except McpError:
+            pass
+
     @staticmethod
-    def _read_stdout(proc, pending):
+    def _read_stdout(proc, pending, on_request=None):
         for raw in proc.stdout:
             try:
                 message = json.loads(raw)
             except ValueError:
+                continue
+            if isinstance(message, dict) and message.get("id") is not None and "method" in message:
+                if on_request:
+                    on_request(message)
                 continue
             if isinstance(message, dict) and "id" in message and "method" not in message:
                 slot = pending.get(message["id"])
@@ -130,8 +146,9 @@ class StdioClient(Client):
     def _write(self, message):
         data = (json.dumps(message, separators=(",", ":")) + "\n").encode("utf-8")
         try:
-            self.proc.stdin.write(data)
-            self.proc.stdin.flush()
+            with self.write_lock:
+                self.proc.stdin.write(data)
+                self.proc.stdin.flush()
         except (OSError, ValueError, AttributeError):
             raise McpError("The MCP server's process ended.")
 

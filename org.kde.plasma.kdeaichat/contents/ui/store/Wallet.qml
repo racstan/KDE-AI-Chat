@@ -132,7 +132,8 @@ QtObject {
                 for (var i = 0; i < names.length; i++) {
                     var id = wallet.providerIdFromEntry(names[i]);
                     var value = String(map[names[i]] || "").trim();
-                    if (id && value)
+                    // mcp-<id> entries hold an MCP server's secrets (readEntry), not an API key.
+                    if (id && value && !wallet.isEntryName(id))
                         next[id] = value;
                 }
                 keys = next;
@@ -173,6 +174,55 @@ QtObject {
                 }
             }
             next();
+        }, callback);
+    }
+
+    // MCP servers' secrets: entry `mcp-<server id>` holds one JSON object, {FIELD: value}, which a server's
+    // {"secret": FIELD} placeholders in mcp.json point into. Never in `keys`.
+    function isEntryName(name) {
+        return /^mcp-[a-z0-9][a-z0-9_-]{0,39}$/.test(String(name));
+    }
+
+    // callback(ok, {FIELD: value}); a missing entry is ok and empty.
+    function readEntry(name, callback) {
+        var result = {};
+        if (!isEntryName(name)) {
+            callback(false, result);
+            return;
+        }
+        _withWallet(false, function(h, done, hasFolder) {
+            if (!hasFolder) {
+                done(true);
+                return;
+            }
+            call("readPassword", [h, folder, String(name), appId], function(text) {
+                try {
+                    var parsed = JSON.parse(String(text || "") || "{}");
+                    for (var field in parsed)
+                        if (typeof parsed[field] === "string")
+                            result[field] = parsed[field];
+                } catch (e) {
+                    result = {};
+                }
+                done(true);
+            }, function() { done(false); });
+        }, function(ok) { callback(ok, ok ? result : {}); });
+    }
+
+    // Writes (replaces) the entry; an empty map removes it. callback(ok).
+    function writeEntry(name, fields, callback) {
+        if (!isEntryName(name)) {
+            if (callback) callback(false);
+            return;
+        }
+        var empty = Object.keys(fields || {}).length === 0;
+        _withWallet(true, function(h, done) {
+            if (empty) {
+                call("removeEntry", [h, folder, String(name), appId], function() { done(true); }, function() { done(false); });
+                return;
+            }
+            call("writePassword", [h, folder, String(name), JSON.stringify(fields), appId],
+                 function(code) { done(Number(code) === 0); }, function() { done(false); });
         }, callback);
     }
 

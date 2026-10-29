@@ -26,6 +26,11 @@ ConfigModel {
         source: "ConfigMemory.qml"
     }
     ConfigCategory {
+        name: i18n("Tools")
+        icon: "tools"
+        source: "ConfigTools.qml"
+    }
+    ConfigCategory {
         name: i18n("Schedules")
         icon: "view-calendar"
         source: "ConfigSchedules.qml"
