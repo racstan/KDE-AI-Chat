@@ -290,6 +290,64 @@ Item {
             compare(Object.keys(inputNotifier.openInputs).length, 0);
         }
 
+        function permissionWith(args) {
+            var p = JSON.parse(JSON.stringify(permission));
+            p.arguments = args;
+            return p;
+        }
+
+        function test_allow_only_when_the_whole_request_shows_as_written() {
+            initInput();
+            var command = "echo **a** `b` [x](y) <i>&";
+            var spec = inputNotifier.inputSpec("c1", "T", permissionWith([command]));
+            compare(spec.actions.map(function(a) { return a.label; }).join(","), "Allow,Deny");
+            compare(spec.text, "OpenCode asks to use bash: echo **a** `b` [x](y) &lt;i&gt;&amp;", "shown literally: no Markdown stripped, markup escaped");
+            var cases = {"long": [new Array(60).join("rm -rf ")], "several lines": ["ls\nrm -rf ~"], "hidden characters": ["ls ‮~ fr- mr"],
+                         "too many": ["a", "b", "c", "d"], "padded": ["ls   "]};
+            for (var name in cases) {
+                spec = inputNotifier.inputSpec("c1", "T", permissionWith(cases[name]));
+                compare(spec.actions.map(function(a) { return a.label; }).join(","), "Open chat", name);
+                verify(spec.text.indexOf("Open the chat") >= 0, name + ": " + spec.text);
+            }
+        }
+
+        function test_an_allow_the_notification_did_not_offer_is_refused() {
+            initInput();
+            var opened = [];
+            var connection = function(id) { opened.push(id); };
+            inputNotifier.openChat.connect(connection);
+            inputNotifier.inputNeeded("c1", "T", permissionWith([new Array(60).join("rm -rf ")]));
+            verify(!inputNotifier.answerInput(root.inputs[0], true));
+            compare(fakeChat.answers.length, 0, "nothing approved");
+            compare(opened, ["c1"]);
+            inputNotifier.openChat.disconnect(connection);
+        }
+
+        function test_incognito_input_hides_the_question_and_the_request() {
+            initInput();
+            var q = inputNotifier.inputSpec("s-incognito-1", "Secret", question);
+            compare(q.title, "Incognito chat: input needed");
+            verify(q.text.indexOf("colour") < 0 && q.text.indexOf("Red") < 0, q.text);
+            compare(q.actions.map(function(a) { return a.label; }).join(","), "Open chat");
+            compare(q.typed, false);
+            var p = inputNotifier.inputSpec("s-incognito-1", "Secret", permission);
+            verify(p.text.indexOf("rm -rf") < 0 && p.text.indexOf("bash") < 0, p.text);
+            compare(p.actions.map(function(a) { return a.label; }).join(","), "Open chat");
+        }
+
+        function test_notification_text_is_escaped() {
+            notifier.replyFinished("c1", "T", "<b>bold</b> & <img src=\"http://127.0.0.1:9/x\">");
+            compare(root.sent[0].text, "&lt;b&gt;bold&lt;/b&gt; &amp; &lt;img src=\"http://127.0.0.1:9/x\"&gt;");
+            notifier.failed("c1", "T", "HTTP 500: <html>");
+            compare(root.sent[1].text, "HTTP 500: &lt;html&gt;");
+            notifier.scheduledRan("c1", "News", "a < b");
+            compare(root.sent[2].text, "a &lt; b");
+            initInput();
+            var q = JSON.parse(JSON.stringify(question));
+            q.questions[0].question = "Use <b>this</b>?";
+            verify(inputNotifier.inputSpec("c1", "T", q).text.indexOf("Use &lt;b&gt;this&lt;/b&gt;?") === 0);
+        }
+
         function test_preview_strips_markup_and_trims() {
             compare(notifier.preview("# Title\n\n- one\n- two"), "Title one two");
             compare(notifier.preview("See [docs](http://x.y) and `code`"), "See docs and code");

@@ -73,6 +73,7 @@ ColumnLayout {
         contentItem: ColumnLayout {
             spacing: Kirigami.Units.smallSpacing
             QQC2.Label {
+                textFormat: Text.PlainText
                 objectName: "describeQuestionText"
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
@@ -124,6 +125,7 @@ ColumnLayout {
     }
 
     QQC2.Label {
+        textFormat: Text.PlainText
         objectName: "describeError"
         Layout.fillWidth: true
         visible: box.describer.phase === "error"
@@ -133,6 +135,7 @@ ColumnLayout {
     }
 
     QQC2.Label {
+        textFormat: Text.PlainText
         objectName: "describeFilled"
         Layout.fillWidth: true
         visible: box.filledText !== "" && box.describer.phase === "idle"

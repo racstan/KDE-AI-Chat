@@ -26,6 +26,7 @@ ColumnLayout {
     }
 
     QQC2.Label {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         wrapMode: Text.Wrap
         text: keyStep.ctl.choice && keyStep.ctl.choice.server
@@ -74,6 +75,7 @@ ColumnLayout {
     }
 
     QQC2.Label {
+        textFormat: Text.PlainText
         objectName: "firstRunStatus"
         visible: keyStep.ctl.status !== ""
         Layout.fillWidth: true

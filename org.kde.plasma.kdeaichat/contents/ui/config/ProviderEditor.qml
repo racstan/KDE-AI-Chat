@@ -122,6 +122,7 @@ Kirigami.FormLayout {
         text: i18n("Some models can think longer before answering. More thinking gives better answers to hard questions, but is slower and costs more.")
     }
     QQC2.Label {
+        textFormat: Text.PlainText
         objectName: "modelWarning"
         visible: editor.modelWarning !== ""
         text: editor.modelWarning
@@ -156,6 +157,7 @@ Kirigami.FormLayout {
         }
     }
     QQC2.Label {
+        textFormat: Text.PlainText
         objectName: "statusLabel"
         visible: editor.message !== ""
         text: editor.message

@@ -84,6 +84,7 @@ RowLayout {
     }
 
     PC3.Label {
+        textFormat: Text.PlainText
         objectName: "workspaceLabel"
         text: {
             var folder = "";

@@ -189,6 +189,7 @@ ColumnLayout {
                 spacing: 0
 
                 QQC2.Label {
+                    textFormat: Text.PlainText
                     objectName: "setupCheckText"
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
@@ -196,6 +197,7 @@ ColumnLayout {
                 }
 
                 QQC2.Label {
+                    textFormat: Text.PlainText
                     objectName: "setupCheckFix"
                     visible: text !== "" && line.modelData.status !== "ok"
                     Layout.fillWidth: true

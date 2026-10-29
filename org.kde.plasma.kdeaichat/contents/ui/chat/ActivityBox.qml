@@ -98,6 +98,7 @@ Rectangle {
                 }
 
                 PC3.Label {
+                    textFormat: Text.PlainText
                     objectName: "activityText"
                     Layout.fillWidth: true
                     text: box.summaryText

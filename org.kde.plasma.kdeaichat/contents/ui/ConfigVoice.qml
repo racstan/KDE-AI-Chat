@@ -272,6 +272,7 @@ KCM.SimpleKCM {
                     onClicked: page.testSpeech()
                 }
                 QQC2.Label {
+                    textFormat: Text.PlainText
                     objectName: "ttsTestResult"
                     text: tester.isPlaying ? (tester.phase === "synthesizing" ? i18n("Making speech…") : i18n("Speaking…")) : page.testResult
                     wrapMode: Text.Wrap

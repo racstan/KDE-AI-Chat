@@ -177,7 +177,7 @@ ColumnLayout {
     }
 
     // A model the provider was found to have retired (see the provider settings).
-    PC3.Label {
+    PC3.Label { textFormat: Text.PlainText
         objectName: "deadModelNote"
         readonly property string reason: ProviderCheck.deadReason(form.draft.effectiveProvider(), form.draft.model)
         visible: form.draft.modelEditable && form.draft.mode === "provider" && reason !== ""
@@ -324,7 +324,7 @@ ColumnLayout {
         }
     }
 
-    PC3.Label {
+    PC3.Label { textFormat: Text.PlainText
         visible: form.draft.modelEditable && form.draft.status.length > 0
         Layout.fillWidth: true
         text: form.draft.status

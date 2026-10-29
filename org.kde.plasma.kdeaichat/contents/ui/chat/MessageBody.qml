@@ -52,9 +52,9 @@ Column {
                     chat: body.chat
                     messageIndex: body.messageIndex
                     alignRight: body.alignRight
-                    // Markdown image links are never rendered (Qt would fetch them by itself):
+                    // Markdown images and HTML are never rendered (Qt would fetch them by itself):
                     // a placeholder shows, and MessageImages.qml offers to load the picture.
-                    text: ImageExtract.extractMarkdown(modelData.text).text
+                    text: ImageExtract.safeMarkdown(modelData.text)
                     onSelectionMade: (text) => body.selectionMade(text)
                 }
             }

@@ -134,6 +134,7 @@ Kirigami.FormLayout {
     }
 
     QQC2.Label {
+        textFormat: Text.PlainText
         Kirigami.FormData.label: i18n("Status:")
         Layout.fillWidth: true
         visible: pi.status !== ""

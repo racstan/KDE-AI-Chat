@@ -57,6 +57,7 @@ ColumnLayout {
             visible: !row.editing
 
             QQC2.Label {
+                textFormat: Text.PlainText
                 objectName: "memoryText"
                 Layout.fillWidth: true
                 text: row.memory.text || ""

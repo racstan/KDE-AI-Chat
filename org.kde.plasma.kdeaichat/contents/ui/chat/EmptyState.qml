@@ -72,6 +72,7 @@ Item {
         }
 
         Kirigami.Heading {
+            textFormat: Text.PlainText
             objectName: "emptyTitle"
             level: 2
             Layout.fillWidth: true
@@ -92,6 +93,7 @@ Item {
             }
 
             PC3.Label {
+                textFormat: Text.PlainText
                 objectName: "emptyProvider"
                 text: empty.privacy.place === "agent" ? i18n("%1 agent · runs here, sends your messages to its model", empty.providerName)
                     : empty.privacy.place === "here" ? i18n("%1 · runs on this computer", empty.providerName)

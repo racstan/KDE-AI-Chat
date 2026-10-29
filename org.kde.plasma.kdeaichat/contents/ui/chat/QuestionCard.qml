@@ -36,6 +36,7 @@ ColumnLayout {
             spacing: Kirigami.Units.smallSpacing
 
             PC3.Label {
+                textFormat: Text.PlainText
                 objectName: "questionHeader"
                 visible: (question.modelData.header || "") !== "" && question.modelData.header !== question.modelData.question
                 text: question.modelData.header || ""
@@ -44,6 +45,7 @@ ColumnLayout {
             }
 
             PC3.Label {
+                textFormat: Text.PlainText
                 objectName: "questionText"
                 visible: text !== ""
                 Layout.fillWidth: true
@@ -123,6 +125,7 @@ ColumnLayout {
         }
 
         PC3.Label {
+            textFormat: Text.PlainText
             Layout.fillWidth: true
             wrapMode: Text.Wrap
             text: card.status === "answered" ? i18n("Answered: %1", String(card.message.submittedAnswer || ""))

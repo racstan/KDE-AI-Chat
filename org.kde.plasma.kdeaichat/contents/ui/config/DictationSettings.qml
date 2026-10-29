@@ -142,6 +142,7 @@ ColumnLayout {
                 Layout.preferredHeight: Kirigami.Units.iconSizes.medium
             }
             QQC2.Label {
+                textFormat: Text.PlainText
                 objectName: "sttTestResult"
                 text: sttSetup.testResult
                 wrapMode: Text.Wrap

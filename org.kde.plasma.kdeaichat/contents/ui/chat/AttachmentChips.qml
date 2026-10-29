@@ -74,6 +74,7 @@ Flow {
                 }
 
                 PC3.Label {
+                    textFormat: Text.PlainText
                     Layout.fillWidth: true
                     text: chip.modelData.name || ""
                     elide: Text.ElideMiddle

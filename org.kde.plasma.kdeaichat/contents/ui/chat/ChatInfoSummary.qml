@@ -40,6 +40,7 @@ ColumnLayout {
         spacing: Kirigami.Units.largeSpacing
 
         PC3.Label {
+            textFormat: Text.PlainText
             Layout.preferredWidth: Kirigami.Units.gridUnit * 7
             Layout.alignment: Qt.AlignTop
             text: label
@@ -47,6 +48,7 @@ ColumnLayout {
             color: Kirigami.Theme.disabledTextColor
         }
         PC3.Label {
+            textFormat: Text.PlainText
             objectName: valueName
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignTop

@@ -231,6 +231,7 @@ ColumnLayout {
     }
 
     QQC2.Label {
+        textFormat: Text.PlainText
         objectName: "imageNote"
         Layout.fillWidth: true
         visible: gallery.note !== ""

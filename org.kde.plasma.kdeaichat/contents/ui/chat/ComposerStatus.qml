@@ -85,6 +85,7 @@ RowLayout {
     }
 
     PC3.Label {
+        textFormat: Text.PlainText
         objectName: "statusText"
         Layout.fillWidth: true
         text: status.text

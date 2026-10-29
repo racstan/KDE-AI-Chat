@@ -84,6 +84,7 @@ QQC2.ScrollView {
                     }
 
                     PC3.Label {
+                        textFormat: Text.PlainText
                         id: filenameLabel
 
                         Layout.fillWidth: true
