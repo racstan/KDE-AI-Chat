@@ -164,6 +164,30 @@ TestCase {
         compare(config.chatSessionsJson, JSON.stringify(sessions));
     }
 
+    function test_failed_chat_migration_is_tried_again_next_start() {
+        var sessions = [{value: "s-1", text: "One", updatedAt: 2, messages: [{role: "user", content: "hi"}]}];
+        var config = makeConfig({customProvidersJson: "[]", chatSessionsJson: JSON.stringify(sessions)});
+        var env = setup(config, {});
+        var real = env.store;
+        // A store whose read-back does not match what was written.
+        env.migration.chatStore = {ready: true, directory: real.directory, hasIndex: function() { return real.hasIndex(); },
+            save: function(s, now) { real.save(s, now); }, loadAll: function() { return []; },
+            writeBackup: function(n, j) { real.writeBackup(n, j); }, discardIndex: function() { real.discardIndex(); }};
+        var ok = null;
+        env.migration.migrateChats(sessions, function(result) { ok = result; });
+        verify(!ok);
+        verify(env.migration.chatMigrationFailed);
+        compare(config.chatSessionsJson, JSON.stringify(sessions), "the old history is kept");
+        verify(!real.hasIndex(), "no index is left, so the next start migrates again");
+
+        // Next start: a working store.
+        env.migration.chatStore = real;
+        env.migration.migrateChats(sessions, function(result) { ok = result; });
+        verify(ok);
+        compare(config.chatSessionsJson, "");
+        compare(real.loadAll().length, 1);
+    }
+
     function test_provider_list_is_built_once_from_old_settings() {
         var config = makeConfig({providersJson: "", provider: "nvidia", nvidiaModel: "meta/llama", openRouterModel: "", mistralModel: "",
                                  customProvidersJson: JSON.stringify([{id: "custom_9", name: "Mine", type: "anthropic", baseUrl: "https://a/v1", model: "c"}])});

@@ -49,6 +49,9 @@ QtObject {
 
     // What happened, for a one-line notice. Empty when nothing was moved.
     property string notice: ""
+    // True when moving the old chat history failed; it stays in the config and
+    // the chat store is emptied again, so the next start tries again.
+    property bool chatMigrationFailed: false
 
     function _say(text) {
         notice = notice ? notice + " " + text : text;
@@ -177,7 +180,9 @@ QtObject {
             ok = check[i].value === sessions[i].value
                 && (check[i].messages || []).length === (sessions[i].messages || []).length;
         if (!ok) {
-            console.warn("KDE AI Chat: chat migration could not be verified; the old history was kept.");
+            console.warn("KDE AI Chat: chat migration could not be verified; the old history was kept and will be tried again next start.");
+            chatStore.discardIndex();
+            chatMigrationFailed = true;
             if (callback) callback(false);
             return;
         }
