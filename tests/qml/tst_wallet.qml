@@ -34,6 +34,7 @@ TestCase {
                 onReply(listed);
                 break;
             }
+            case "readPassword": onReply(new String((fake.folders[args[1]] || {})[args[2]] || "")); break;
             case "writePassword": fake.folders[args[1]][args[2]] = args[3]; onReply(0); break;
             case "removeEntry": delete fake.folders[args[1]][args[2]]; onReply(0); break;
             case "removeFolder": delete fake.folders[args[1]]; onReply(true); break;
@@ -160,5 +161,42 @@ TestCase {
         w.migrateLegacyFolder(function(n) { moved = n; });
         tryVerify(function() { return moved !== null; });
         compare(moved, 0);
+    }
+
+    // MCP servers' secrets: entry mcp-<id>, one JSON object of fields; never one of `keys`.
+    function test_mcp_entries_hold_a_json_map_and_are_not_provider_keys() {
+        var fake = makeFake({folders: {"KDEAIChat": {"openai": "sk-1"}}});
+        var w = makeWallet(fake);
+        var wrote = null;
+        w.writeEntry("mcp-files", {"TOKEN": "t-1", "OTHER": "o"}, function(ok) { wrote = ok; });
+        tryVerify(function() { return wrote !== null; });
+        verify(wrote);
+        compare(JSON.parse(fake.folders["KDEAIChat"]["mcp-files"]).TOKEN, "t-1");
+        var read = null;
+        w.readEntry("mcp-files", function(ok, fields) { read = {ok: ok, fields: fields}; });
+        tryVerify(function() { return read !== null; });
+        verify(read.ok);
+        compare(JSON.stringify(read.fields), JSON.stringify({"TOKEN": "t-1", "OTHER": "o"}));
+        var loaded = null;
+        w.load(function(ok, keys) { loaded = keys; });
+        tryVerify(function() { return loaded !== null; });
+        compare(JSON.stringify(loaded), JSON.stringify({"openai": "sk-1"}));
+        var gone = null;
+        w.writeEntry("mcp-files", {}, function(ok) { gone = ok; });
+        tryVerify(function() { return gone !== null; });
+        verify(!fake.folders["KDEAIChat"].hasOwnProperty("mcp-files"));
+        compare(fake.opened, fake.closed);
+    }
+
+    function test_mcp_entry_names_are_checked_and_a_missing_entry_reads_empty() {
+        var w = makeWallet(makeFake({}));
+        var result = null;
+        w.readEntry("openai", function(ok, fields) { result = ok; });
+        verify(result === false, "only mcp-<id> names");
+        result = null;
+        w.readEntry("mcp-none", function(ok, fields) { result = {ok: ok, n: Object.keys(fields).length}; });
+        tryVerify(function() { return result !== null; });
+        compare(result.ok, true);
+        compare(result.n, 0);
     }
 }

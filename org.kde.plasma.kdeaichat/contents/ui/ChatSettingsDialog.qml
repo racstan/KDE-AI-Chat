@@ -60,6 +60,7 @@ Rectangle {
 
     function _save() {
         settingsDraft.save();
+        mcpChoice.save();
         close();
     }
 
@@ -214,6 +215,16 @@ Rectangle {
 
                 Chat.ChatOverridesForm {
                     id: form
+                    draft: settingsDraft
+                    Layout.fillWidth: true
+                    Layout.leftMargin: Kirigami.Units.largeSpacing
+                    Layout.rightMargin: Kirigami.Units.largeSpacing
+                    Layout.bottomMargin: mcpChoice.visible ? 0 : Kirigami.Units.largeSpacing
+                }
+
+                // Direct chats: which MCP servers it may use.
+                Chat.ChatMcpChoice {
+                    id: mcpChoice
                     draft: settingsDraft
                     Layout.fillWidth: true
                     Layout.leftMargin: Kirigami.Units.largeSpacing
