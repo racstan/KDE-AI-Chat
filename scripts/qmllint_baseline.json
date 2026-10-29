@@ -32,6 +32,7 @@
   "org.kde.plasma.kdeaichat/contents/ui/chat/DeferredBuilder.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/DirectRequest.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/DirectToolRounds.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/chat/DirectToolRunner.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/DirectVariant.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/EffectiveLine.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/EmptyState.qml": 0,

@@ -67,7 +67,8 @@ function applyToReply(reply, event) {
     return reply;
 }
 
-// extra: {harness: "opencode"|"pi"|"direct", directory (OpenCode), chatId (Pi), name (who asks; default the agent)}.
+// extra: {harness: "opencode"|"pi"|"direct", directory (OpenCode), chatId (Pi), name (who asks; default the agent),
+// canAlways (permission cards: false hides "Always allow")}.
 function _request(role, idField, event, extra, now) {
     extra = extra || {};
     var harness = extra.harness || "opencode";
@@ -83,8 +84,9 @@ function permissionMessage(event, extra, now) {
     msg.id = "perm-" + event.id;
     msg.tool = event.permission;
     msg.arguments = event.patterns;
-    // Pi's dialogs are yes/no; OpenCode can also remember the answer.
-    msg.canAlways = msg.harness !== "pi";
+    // Pi's dialogs are yes/no; OpenCode can also remember the answer, and so can direct mode
+    // unless the caller says it can't (an incognito chat remembers nothing).
+    msg.canAlways = msg.harness !== "pi" && !(extra && extra.canAlways === false);
     msg.content = msg.model + " asks for permission: **" + event.permission + "**" + (detail ? "\n\n```\n" + detail + "\n```" : "");
     return msg;
 }

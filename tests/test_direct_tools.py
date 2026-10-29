@@ -7,3 +7,9 @@ def test_direct_tools():
     script = os.path.join(os.path.dirname(__file__), "js", "direct_tools.test.js")
     result = subprocess.run(["node", script], capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_direct_tool_runner_logic():
+    script = os.path.join(os.path.dirname(__file__), "js", "direct_tool_runner.test.js")
+    result = subprocess.run(["node", script], capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stdout + result.stderr

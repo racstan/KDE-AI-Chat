@@ -17,11 +17,76 @@ var NO_RESULT = "No result: the request was stopped before the tool finished.";
 var ASK_USER_DESCRIPTION = "Ask the user a question and wait for the answer. Use it when you need a decision or a missing detail "
     + "that you can't work out yourself. The answer is returned as the result. Give short options when the answers are few.";
 
-// options: {askUser: bool}. [] when no tool is offered.
+// --- Tools from other places (MCP servers, skills, workspace) -------------------
+
+// The round limit of a request: the directToolMaxRounds setting, 1 to 50, else the default.
+function maxRounds(value) {
+    var n = Math.floor(Number(value));
+    return n >= 1 && n <= 50 ? n : MAX_ROUNDS;
+}
+
+function _safeName(text) {
+    return String(text === undefined || text === null ? "" : text).replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
+// A name a provider accepts (^[a-zA-Z0-9_-]{1,64}$): MCP tools become mcp__<server>__<tool>; cut to 64
+// characters; a name already taken (by ask_user or an earlier tool) gets a _2, _3, ... suffix.
+function _providerName(entry, taken) {
+    var source = String(entry.source || "");
+    var real = _safeName(entry.name);
+    var base = source.indexOf("mcp:") === 0 ? "mcp__" + _safeName(source.substring(4)) + "__" + real : real;
+    if (base === "")
+        base = "tool";
+    var name = base.substring(0, 64);
+    for (var n = 2; taken[name]; n++) {
+        var suffix = "_" + n;
+        name = base.substring(0, 64 - suffix.length) + suffix;
+    }
+    taken[name] = true;
+    return name;
+}
+
+// extra: [{name, description, schema, source, risk}] (source "mcp:<server>", "skill" or "workspace"; risk "read"
+// or "change", anything else counts as "change"). Returns {list, byName}: the tools as they are sent to the model,
+// each {name (sent), realName, source, kind ("mcp", "skill", "workspace"), server (MCP only), description, schema, risk,
+// ...the other fields the provider gave}, and the same by sent name, to map a call back to its tool.
+function toolRegistry(extra) {
+    var list = [], byName = {}, taken = {};
+    taken[ASK_USER] = true;
+    var given = Array.isArray(extra) ? extra : [];
+    for (var i = 0; i < given.length; i++) {
+        var e = given[i];
+        if (!e || typeof e !== "object" || String(e.name || "") === "")
+            continue;
+        var source = String(e.source || "");
+        var schema = e.schema && typeof e.schema === "object" && !Array.isArray(e.schema) ? e.schema : {"type": "object", "properties": {}};
+        var entry = Object.assign({}, e, {
+            "name": _providerName(e, taken), "realName": String(e.name), "source": source,
+            "kind": source.indexOf(":") >= 0 ? source.substring(0, source.indexOf(":")) : source,
+            "server": source.indexOf("mcp:") === 0 ? source.substring(4) : "",
+            "description": String(e.description || "").substring(0, 2000), "schema": schema,
+            "risk": e.risk === "read" ? "read" : "change"});
+        list.push(entry);
+        byName[entry.name] = entry;
+    }
+    return {"list": list, "byName": byName};
+}
+
+// The tool a sent name stands for, or null.
+function lookupTool(registry, sentName) {
+    var byName = registry && registry.byName ? registry.byName : {};
+    return Object.prototype.hasOwnProperty.call(byName, sentName) ? byName[sentName] : null;
+}
+
+// options: {askUser: bool, extra: [{name, description, schema, source, risk}]}. [] when no tool is offered.
 function toolDefinitions(type, options) {
     var defs = [];
+    function add(name, description, schema) {
+        defs.push(type === "anthropic" ? {"name": name, "description": description, "input_schema": schema}
+                                       : {"type": "function", "function": {"name": name, "description": description, "parameters": schema}});
+    }
     if (options && options.askUser) {
-        var schema = {
+        add(ASK_USER, ASK_USER_DESCRIPTION, {
             "type": "object",
             "properties": {
                 "question": {"type": "string", "description": "The question to show the user."},
@@ -29,10 +94,11 @@ function toolDefinitions(type, options) {
                 "allow_typed": {"type": "boolean", "description": "Let the user type their own answer. Default true."}
             },
             "required": ["question"]
-        };
-        defs.push(type === "anthropic" ? {"name": ASK_USER, "description": ASK_USER_DESCRIPTION, "input_schema": schema}
-                                       : {"type": "function", "function": {"name": ASK_USER, "description": ASK_USER_DESCRIPTION, "parameters": schema}});
+        });
     }
+    var tools = toolRegistry(options && options.extra).list;
+    for (var i = 0; i < tools.length; i++)
+        add(tools[i].name, tools[i].description, tools[i].schema);
     return defs;
 }
 
