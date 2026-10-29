@@ -14,7 +14,7 @@ Press the history button in the header (or **Ctrl+H**) to open your chats. In a 
 
 ## Search all chats
 
-Type in the search field at the top of the history, or press **Ctrl+Shift+F**. It finds text in chat names and messages in every chat, including archived chats and chats in projects. A result shows the chat, the date and the text around the match. Click it (or press Enter) to open that chat at the message. Up and Down move through the results, Esc clears the field. At most 5 matches per chat and 100 in all are listed.
+Type in the search field at the top of the history, or press **Ctrl+Shift+F**. It finds text in chat names and messages in every chat, including archived chats and chats in projects. A result shows the chat, the date and the text around the match, with the match in bold and underlined. Click it (or press Enter) to open that chat at the message. Up and Down move through the results, Esc clears the field. At most 5 matches per chat and 100 in all are listed.
 
 ![Searching all chats](media/search.gif)
 *Searching all chats.*

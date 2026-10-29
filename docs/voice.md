@@ -50,7 +50,7 @@ Speech Note starts when you dictate or read, and stops by itself when idle. The 
 
 ## Coming from an earlier build
 
-The widget's own speech models and engines are gone: faster-whisper, whisper.cpp, Parakeet, Kokoro, Flite, Piper and the custom-command engine. A saved choice of one of them becomes Speech Note, and read aloud uses the system voice until Speech Note is installed. Their old background services are removed at the first start. Their programs and models stay on disk until you delete them in **Settings → Storage → Old voice engines** (it asks first and shows how much space it frees).
+The widget's own speech models and engines are gone: faster-whisper, whisper.cpp, Parakeet, Kokoro, Flite, Piper and the custom-command engine. A saved choice of one of them becomes Speech Note, and read aloud uses the system voice until Speech Note is installed and has a voice. Their old background services are removed at the first start. Their programs and models stay on disk until you delete them in **Settings → Storage → Old voice engines** (it asks first and shows how much space it frees).
 
 ## Credit
 

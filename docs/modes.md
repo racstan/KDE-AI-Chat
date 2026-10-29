@@ -56,7 +56,7 @@ The widget starts a small helper that runs one Pi per chat, in the chat's own fo
 
 ## Folders (workspaces)
 
-Every mode can have a **workspace**: a folder on your computer. It shows under the header as "No workspace" until you choose one, and a button clears it. In Settings → Chat you can set a **Default workspace for new chats**. The agent modes read and change files in this folder.
+Every mode can have a **workspace**: a folder on your computer. It shows under the header as "No workspace" until you choose one, and a button clears it. In Settings → Chat you can set a **Default workspace for new chats**. The agent modes read and change files in this folder. A folder in your home is shown as `~/...`.
 
 ![A chat with a workspace folder, shown under the header](media/chat-workspace-light.png)
 *A chat with a workspace folder, shown under the header.*
