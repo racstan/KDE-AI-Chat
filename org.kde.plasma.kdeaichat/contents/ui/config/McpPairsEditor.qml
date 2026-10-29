@@ -52,7 +52,8 @@ ColumnLayout {
 
             QQC2.TextField {
                 objectName: editor.prefix + "Name" + row.index
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 8
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 7
+                Layout.minimumWidth: 0
                 placeholderText: editor.nameHint
                 text: row.name
                 onTextEdited: {
@@ -64,6 +65,7 @@ ColumnLayout {
             QQC2.TextField {
                 objectName: editor.prefix + "Value" + row.index
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 placeholderText: i18n("Value")
                 echoMode: row.secret ? TextInput.Password : TextInput.Normal
                 text: row.value

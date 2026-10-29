@@ -46,6 +46,8 @@ ColumnLayout {
 
     Kirigami.FormLayout {
         Layout.fillWidth: true
+        Layout.preferredWidth: Kirigami.Units.gridUnit * 26
+        Layout.maximumWidth: Kirigami.Units.gridUnit * 26
 
         QQC2.TextField {
             id: nameField
@@ -136,7 +138,9 @@ ColumnLayout {
             prefix: "mcpEnv"
             visible: !form.isUrl
             Kirigami.FormData.label: i18n("Environment:")
+            Kirigami.FormData.labelAlignment: Qt.AlignTop
             Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 22
             addText: i18n("Add a variable")
             nameHint: i18n("Name")
         }
@@ -150,7 +154,9 @@ ColumnLayout {
             prefix: "mcpHeader"
             visible: form.isUrl
             Kirigami.FormData.label: i18n("Headers:")
+            Kirigami.FormData.labelAlignment: Qt.AlignTop
             Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 22
             addText: i18n("Add a header")
             nameHint: i18n("Header")
         }

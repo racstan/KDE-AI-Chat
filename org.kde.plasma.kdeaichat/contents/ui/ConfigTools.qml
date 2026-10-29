@@ -133,6 +133,7 @@ KCM.SimpleKCM {
         Config.McpAddForm {
             id: addForm
             Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 36
             visible: page.view === "add"
             onCancelled: page.view = "list"
             onSaveRequested: function(values) {
