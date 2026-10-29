@@ -21,25 +21,25 @@ ColumnLayout {
 
     function rows() {
         const out = [];
-        for (let i = 0; i < model.count; i++)
-            out.push({"name": model.get(i).name, "value": model.get(i).value, "secret": model.get(i).secret});
+        for (let i = 0; i < pairs.count; i++)
+            out.push({"name": pairs.get(i).name, "value": pairs.get(i).value, "secret": pairs.get(i).secret});
         return out;
     }
 
     function clear() {
-        model.clear();
+        pairs.clear();
     }
 
     function addRow(name, value, secret) {
-        model.append({"name": name || "", "value": value || "", "secret": secret === true});
+        pairs.append({"name": name || "", "value": value || "", "secret": secret === true});
     }
 
     ListModel {
-        id: model
+        id: pairs
     }
 
     Repeater {
-        model: model
+        model: pairs
 
         delegate: RowLayout {
             id: row
@@ -58,9 +58,9 @@ ColumnLayout {
                 placeholderText: editor.nameHint
                 text: row.name
                 onTextEdited: {
-                    model.setProperty(row.index, "name", text);
+                    pairs.setProperty(row.index, "name", text);
                     if (!row.secret && editor.secretish.test(text))
-                        model.setProperty(row.index, "secret", true);
+                        pairs.setProperty(row.index, "secret", true);
                 }
             }
             QQC2.TextField {
@@ -71,20 +71,20 @@ ColumnLayout {
                 placeholderText: i18n("Value")
                 echoMode: row.secret ? TextInput.Password : TextInput.Normal
                 text: row.value
-                onTextEdited: model.setProperty(row.index, "value", text)
+                onTextEdited: pairs.setProperty(row.index, "value", text)
             }
             QQC2.CheckBox {
                 objectName: editor.prefix + "Secret" + row.index
                 text: i18n("Secret")
                 checked: row.secret
-                onToggled: model.setProperty(row.index, "secret", checked)
+                onToggled: pairs.setProperty(row.index, "secret", checked)
                 QQC2.ToolTip.visible: hovered
                 QQC2.ToolTip.text: i18n("Keep the value in KWallet instead of the settings file.")
             }
             QQC2.ToolButton {
                 icon.name: "list-remove"
                 Accessible.name: i18n("Remove")
-                onClicked: model.remove(row.index)
+                onClicked: pairs.remove(row.index)
             }
         }
     }
