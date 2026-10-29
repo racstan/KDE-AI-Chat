@@ -13,7 +13,7 @@ The first time you open the chat, you see a short setup card instead of an empty
 - the AI programs it finds on your own computer, such as Ollama or LM Studio (no key needed);
 - well-known online services, with a link to the page where you make a key.
 
-Pick one. For an online service, paste your key (the **Get a key** link opens the service's key page) and press **Check key**. The widget asks the service before it keeps the key. Then pick a model and press **Save and continue**. A last screen offers **Send a test message** or **Start chatting**. If you would rather do this later, press **Skip - I'll set it up in Settings**. You can always open the settings later: right-click the widget and choose **Configure KDE AI Chat...**, then the **Connection** page. More in [Providers](providers.md).
+Pick one. For an online service, paste your key (the **Get a key** link opens the service's key page) and press **Check key**. The widget asks the service before it keeps the key. Then pick a model and press **Save and continue**. A last screen offers **Send a test message** or **Start chatting**. If you would rather do this later, press **Skip — I'll set it up in Settings**. You can always open the settings later: right-click the widget and choose **Configure KDE AI Chat...**, then the **Connection** page. More in [Providers](providers.md).
 
 ![An empty chat with starting points](media/chat-empty-light.png)
 *An empty chat. The chips are starting points; type `/` to see commands and your templates.*

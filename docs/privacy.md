@@ -13,7 +13,7 @@ The widget itself collects nothing: no analytics, no telemetry, no account. It s
 | **Pictures** | In the chat's own folder, next to the chat. |
 | **Settings** | Plasma's normal widget settings. They hold no keys and no chat text. |
 
-**Settings → Storage** shows the data folder (with an **Open folder** button) and what uses the space: chats, pictures, memories, schedules, temporary files and old voice engines. You can remove some of it there; it asks first.
+**Settings → Storage** shows the data folder (with an **Open folder** button) and what uses the space: chats, pictures, memories, schedules, backups of old settings, temporary files and old voice engines. You can remove some of it there; it asks first.
 
 If KWallet is off, locked or refuses access, the widget cannot read your keys and tells you why in the chat. Turn KWallet on in System Settings → KDE Wallet.
 

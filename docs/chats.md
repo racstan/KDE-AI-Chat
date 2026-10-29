@@ -6,7 +6,7 @@ Press the history button in the header (or **Ctrl+H**) to open your chats. In a 
 
 - **Rename**: type your own title. By default the AI names a new chat after your first message (turn this off in Settings → Chat, **Let the model name new chats**).
 - **Archive**: archived chats leave the main list and live under **Archived**, where you can **Restore** or delete them.
-- **Delete**: asks first (you can turn that off in Settings → Chat). **Undo** brings a deleted chat back for a few seconds.
+- **Delete**: deletes at once, and **Undo** brings the chat back for a few seconds. To be asked first, turn on **Ask before deleting a chat** in Settings → Chat.
 - The history side (left or right) can be changed in Settings → Appearance.
 
 ![The chat history](media/chat-history-light.png)
@@ -38,7 +38,8 @@ A project groups chats. The history starts with **All chats**, then each project
 
 ## Writing messages
 
-- **Files**: drop, paste or attach images, PDFs, CSV files, Word documents and text files. You can send a file without typing text. In direct chats the file's text is put into your message (a very large file gets a warning, because it may be slow or expensive); in Pi and OpenCode chats only the file's path is sent and the agent reads what it needs (see [Modes](modes.md#attached-files-in-each-mode)). Images are always sent with the message. Reading PDFs and Word documents needs `pdftotext` and `pandoc` (see the [README](../README.md#system-dependencies)).
+- **Files**: drop, paste or attach images, PDFs, CSV files, Word documents and text files. You can send a file without typing text. In direct chats the file's text is put into your message (a very large file gets a warning, because it may be slow or expensive); in Pi and OpenCode chats only the file's path is sent and the agent reads what it needs (see [Modes](modes.md#attached-files-in-each-mode)). Images are always sent with the message. Reading PDFs needs `pdftotext`. Word documents are read better with `pandoc`; without it a simpler built-in reader is used (see the [README](../README.md#system-dependencies)).
+- **How much of the chat is sent**: **Settings → Chat → Earlier messages sent** sets how many earlier messages go with each request ("All (up to 100)" by default). Fewer is faster and cheaper; more lets the AI remember more.
 - **Queue**: if you write while a reply is coming, your message waits and is sent after it.
 - **Quote**: each message has a **Quote** button (**Ctrl+Q** for the picked message). The quote shows as a chip above the message box and goes to the AI with your message, in every mode.
 - **Browse**: with the message box empty, **Up** and **Down** pick the previous and next message. Esc clears the pick. **Ctrl+E** edits your last message, **Ctrl+Shift+R** regenerates the last reply, **Ctrl+Shift+C** copies it.
@@ -72,6 +73,7 @@ Type `/` in the message box to see the list. Up and Down move, Tab completes, En
 | `/mode <direct\|opencode\|pi>` | Set the mode for **new** chats only. The open chat keeps its mode. |
 | `/image <prompt>` | Make a picture with your default image service (see [Pictures](pictures.md)). |
 | `/remember <text>` | Save a memory for every chat (see [Memory and personality](memory-and-personality.md)). |
+| `/memories [question]` | Send all your memories with this question. |
 
 `/model` and `/variant` work when per-chat model settings are on in Settings → Chat; when they are off, the command says how to turn them on. Your **prompt templates** are listed after the commands: a template is a message you use often, saved under a short name in Settings → Chat. Type `/name` to use it. Text that starts with `/` but is no command or template (like `/etc/hosts?`) is sent as a normal message.
 

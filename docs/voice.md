@@ -15,7 +15,7 @@ The widget does not install or run speech models itself. The speech is done by a
 2. **Open Speech Note once** and download a **speech-to-text** model (for dictation) and a **voice** (for read aloud) in your language. The languages and models are chosen in Speech Note, not in the widget.
 3. In the widget's **Settings → Voice**, switch on **Dictation** and/or **Read aloud**. Speech Note is the default engine. If you don't want Speech Note's own default model or voice, pick one in the **Speech model** and **Voice** lists. Each name shows its language.
 
-Settings → Voice shows whether Speech Note is installed and has a **Test** to try your settings. It says "Speech Note has no speech-to-text model yet" or "no voice yet" if you still need to download one. Until you have a voice in Speech Note (or while it isn't installed), replies are read with the system voice.
+Settings → Voice shows whether Speech Note is installed. **Say Hello** (read aloud) and **Test** (dictation) try your settings. It says "Speech Note has no speech-to-text model yet" or "no voice yet" if you still need to download one. Until you have a voice in Speech Note (or while it isn't installed), replies are read with the system voice.
 
 ![Settings → Voice with Speech Note as the engine](media/settings-voice-speechnote-light.png)
 *Settings → Voice with Speech Note as the engine.*
@@ -45,7 +45,7 @@ Speech Note starts when you dictate or read, and stops by itself when idle. The 
 
 ## Other engines
 
-- **System voice** (read aloud only): Qt's text-to-speech through Speech Dispatcher (`speech-dispatcher` and, for a voice, `espeak-ng`). It reads when Speech Note is not installed. Nothing to set up, but it sounds robotic.
+- **System voices** (read aloud only): Qt's text-to-speech through Speech Dispatcher (`speech-dispatcher` and, for a voice, `espeak-ng`). It reads until Speech Note is installed and has a voice. Nothing to set up, but it sounds robotic.
 - **Speech server** (OpenAI-compatible): any server with `/audio/transcriptions` (dictation) or `/audio/speech` (read aloud), such as a Whisper or Kokoro server on your computer, Groq or OpenAI. Enter its address in Settings → Voice. Its key is kept in KWallet (**Save key** / **Remove key**). **Test** sends a short recording that comes with the widget; no microphone needed. For dictation with a server, the microphone is recorded with `pw-record` (PipeWire), `parecord` or `arecord`, and the recording is sent to that server. Read-aloud text is sent to the server too. Use a server you trust (see [Privacy](privacy.md)).
 
 ## Coming from an earlier build

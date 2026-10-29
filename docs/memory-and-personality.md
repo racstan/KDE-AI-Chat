@@ -22,7 +22,7 @@ Open **Settings → Personality**.
 - **Personality**: None, Friendly, Professional, Witty, Mentor, Concise, or **Custom** in your own words.
 - **Avatar**: a small picture next to its replies.
 
-**Extra instructions**: anything else the AI should know or do in every chat. This is sometimes called the system prompt.
+**Extra instructions**: anything else the AI should know or do in every chat. This is sometimes called the system prompt. It starts with a short default text. **Send these instructions before every chat** is on by default; turn it off to keep the text without sending it.
 
 What you fill in is sent at the start of every chat: Direct, OpenCode and Pi alike. Nothing is sent for fields you leave empty. A chat can turn it off with **Use my Personality settings** in its own settings.
 
@@ -45,7 +45,7 @@ Both confirm with "Saved to memory" and an **Undo**.
 - **Use memories in chats** switches memory on or off for every chat.
 - With each message, the pinned notes and the notes that best fit what you ask go along, up to a size you choose in **Send per message** (2000 characters by default; a lower number keeps requests small, or choose no limit). They are picked by the words you use, so "plans on Saturday" finds a note about Saturday, but "this weekend" may not.
 - To send **all** your notes with one question, start it with `/memories`, like `/memories what am I doing this weekend?`. Typing `/memories` alone does the same for your next message.
-- Notes go along with the message you send, not with the AI's standing instructions, so the rest of the conversation stays the same from message to message: replies don't slow down and the provider's discount for repeated text keeps working. Changes in **Settings → Memory** are used from your next message on.
+- Notes go along with the message you send, not with the AI's standing instructions, so the rest of the conversation stays the same from message to message: replies don't slow down and the provider's discount for repeated text keeps working. Changes in **Settings → Memory** are used from your next message on. Memories brought over from an older version start turned off; **Turn on all** switches them on.
 - In **Chat info**, a Memory section shows the notes the latest message was sent with, and **Use memories in this chat** turns memory off for just that chat.
 - Memories work in all modes.
 - In an [incognito chat](chats.md#incognito-chats), memories are neither used nor saved.

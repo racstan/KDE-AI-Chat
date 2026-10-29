@@ -51,7 +51,7 @@ KWallet is off, locked or refused access. Turn it on in System Settings → KDE 
 
 ## Voice does not work
 
-Open Settings → Voice. It says whether Speech Note is installed and whether it has a model or a voice. Press **Test**. See [Voice](voice.md).
+Open Settings → Voice. It says whether Speech Note is installed and whether it has a model or a voice. Press **Say Hello** (read aloud) or **Test** (dictation). See [Voice](voice.md).
 
 ## KRunner does not offer "ai"
 
