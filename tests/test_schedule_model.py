@@ -105,3 +105,14 @@ def test_timing_changed():
     assert timing_changed(old, dict(old, rules=[{"kind": "daily", "times": ["09:00"], "everyDays": 1}]))
     assert timing_changed(old, dict(old, enabled=False))
     assert timing_changed(None, old)
+
+
+def test_trailing_newline_is_not_accepted_by_any_validator():
+    """`$` matches before a final newline; that would put a broken line into a systemd unit."""
+    from kdeaichat import chats, memory, schedule_chat, schedule_model as m, schedule_units
+    for rx, good in ((m.ID_RE, "abc-1"), (m.CHAT_ID_RE, "s-1"), (m.TIME_RE, "09:30"), (m.DATE_RE, "2026-01-02"),
+                     (m.DATETIME_RE, "2026-01-02T09:30"), (memory._MEMORY_ID, "m-0123456789abcdef"),
+                     (memory._PROJECT_ID, "p-1"), (memory._CHAT_ID, "c1"), (chats._FILE_NAME, "chat-a.ini"),
+                     (schedule_chat._APPLET_DIR, "applet-1"), (schedule_units._TIMER_FILE, schedule_units.TIMER_PREFIX + "a.timer")):
+        assert rx.match(good), good
+        assert not rx.match(good + "\n"), good

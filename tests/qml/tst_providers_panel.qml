@@ -183,6 +183,22 @@ Item {
             panel.cancelEdit();
         }
 
+        function test_04b_plain_http_to_another_computer_with_a_key_is_warned_about() {
+            panel.addFromPreset("custom");
+            var warning = tc.findChild(panel, "plainHttpWarning");
+            verify(warning);
+            panel.onFieldEdited("baseUrl", "http://192.168.1.5:8000/v1");
+            panel.onFieldEdited("key", "");
+            verify(!warning.visible, "no key, nothing to protect");
+            panel.onFieldEdited("key", "k");
+            verify(warning.visible);
+            panel.onFieldEdited("baseUrl", "https://192.168.1.5:8000/v1");
+            verify(!warning.visible);
+            panel.onFieldEdited("baseUrl", "http://localhost:8000/v1");
+            verify(!warning.visible, "local http stays fine");
+            panel.cancelEdit();
+        }
+
         function test_05_saving_without_changes_sends_nothing_and_keeps_the_revision() {
             panel.startEdit(indexOfProvider("nvidia"));
             tryVerify(function() { return !panel.providerChecker.listing && !panel.providerChecker.checking; });

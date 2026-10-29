@@ -40,7 +40,7 @@ from kdeaichat import minidbus
 from kdeaichat.speechnote_bus import SpeechNoteError
 
 MAX_TEXT = 500_000
-_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,119}$")
+_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,119}\Z")
 POLL = 1.0
 KEEPALIVE_EVERY = 4.0
 ENGINE_ERRORS = {1: ("mic_error", "Speech Note could not use the microphone"),

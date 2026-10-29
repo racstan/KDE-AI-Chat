@@ -51,7 +51,7 @@ SERVER_IDLE = float(os.environ.get("KDEAICHAT_PI_SERVER_IDLE", 10 * 60))
 MAX_BODY = 40 * 1024 * 1024
 CHAT_ID = re.compile(r"[A-Za-z0-9._:-]{1,128}")
 THINKING = ("", "off", "minimal", "low", "medium", "high", "xhigh", "max")
-ROUTE = re.compile(r"^/chats/([^/]+)/(events|status|prompt|abort|ui-response|close)$")
+ROUTE = re.compile(r"^/chats/([^/]+)/(events|status|prompt|abort|ui-response|close)\Z")
 
 lock = threading.Lock()
 agents = {}          # chat id -> Agent

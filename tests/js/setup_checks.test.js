@@ -24,6 +24,15 @@ const ollama = {id: "ollama", name: "Ollama", baseUrl: "http://localhost:11434/v
 const cf = {id: "cloudflare", name: "Cloudflare", baseUrl: "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/v1", model: "m", local: false};
 const bad = {id: "custom_1", name: "Mine", baseUrl: "localhost:8080", model: "m", local: false};
 
+// A key sent over plain http to another computer is warned about; local http is fine.
+const lan = {id: "lan", name: "Home server", baseUrl: "http://192.168.1.5:8000/v1", model: "m", local: false};
+const lanSecure = Object.assign({}, lan, {id: "lan2", baseUrl: "https://192.168.1.5:8000/v1"});
+const loop = Object.assign({}, lan, {id: "loop", baseUrl: "http://127.0.0.5:8000/v1"});
+const v6 = Object.assign({}, lan, {id: "v6", baseUrl: "http://[::1]:8000/v1"});
+assert.deepStrictEqual(codes(S.directChecks([lan, lanSecure, loop, v6], "ready", {lan: "k", lan2: "k", loop: "k", v6: "k"})),
+    ["ok:wallet-ready", "warn:key-plain-http", "ok:provider-ok", "ok:provider-ok", "ok:provider-ok"]);
+assert.ok(S.MESSAGES["key-plain-http"][0].indexOf("unencrypted") > 0);
+
 // No providers at all.
 assert.deepStrictEqual(codes(S.directChecks([], "ready", {})), ["error:no-providers"]);
 // Wallet ready: a missing key is an error, a provider without a model a warning; local ones need no key.

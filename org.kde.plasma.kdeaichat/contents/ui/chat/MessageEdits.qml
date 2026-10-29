@@ -25,6 +25,11 @@ QtObject {
         chat.saveCurrentSessionState(true);
     }
 
+    // Messages waiting in the queue after `index`: they survive a rewrite and go out after the new reply.
+    function queuedAfter(list, index) {
+        return list.slice(index + 1).filter(function(m) { return (m.role || "") === "queued"; });
+    }
+
     function saveEditedMessage() {
         var i = chat.editingMessageIndex;
         if (i < 0 || i >= chat.messages.length)
@@ -35,11 +40,10 @@ QtObject {
             chat.editingDraft = "";
             return ;
         }
-        // Cancel any active streaming/loading requests first
-        chat.stopStreaming();
+        chat.invalidateActiveRequest(false);   // really aborts the running request; the queue waits for the new reply
         var role = chat.messages[i].role || "";
         var isQueued = role === "queued";
-        var copy = isQueued ? chat.messages.slice() : chat.messages.slice(0, i + 1);
+        var copy = isQueued ? chat.messages.slice() : chat.messages.slice(0, i + 1).concat(queuedAfter(chat.messages, i));
         var item = Object.assign({}, copy[i]);
         item.content = chat.editingDraft;
         item.at = Date.now();
@@ -72,8 +76,8 @@ QtObject {
         }
         
         if (lastUserIdx >= 0) {
-            chat.stopStreaming();
-            var copy = chat.messages.slice(0, lastUserIdx + 1);
+            chat.invalidateActiveRequest(false);
+            var copy = chat.messages.slice(0, lastUserIdx + 1).concat(queuedAfter(chat.messages, lastUserIdx));
             chat.messages = copy;
             chat.clearCurrentOpenCodeSessionIfNeeded();
             chat.saveCurrentSessionState(true);
@@ -90,9 +94,9 @@ QtObject {
         var lastUserIdx = reply ? index - 1 : index;
         var userRole = lastUserIdx >= 0 ? (chat.messages[lastUserIdx].role || "") : "";
         if (userRole !== "user" && userRole !== "queued") return;
-        chat.stopStreaming();
+        chat.invalidateActiveRequest(false);
         var before = chat.messages;
-        var copy = before.slice(0, lastUserIdx + 1);
+        var copy = before.slice(0, lastUserIdx + 1).concat(queuedAfter(before, lastUserIdx));
         if (promptModifier) {
             var item = Object.assign({}, copy[lastUserIdx]);
             item.content = item.content + "\n\n" + promptModifier;

@@ -43,8 +43,8 @@ FETCH_TIMEOUT = 20
 USER_AGENT = "KDE-AI-Chat-image-fetch"
 
 _NAME = re.compile(r"[^A-Za-z0-9._-]")
-_STAGING = re.compile(r"^staging-[A-Za-z0-9._-]{1,80}\.ini$")
-_REL_PATH = re.compile(r"^images/[A-Za-z0-9._-]{1,128}/[A-Za-z0-9._-]{1,200}\.(png|jpg|webp|gif)$")
+_STAGING = re.compile(r"^staging-[A-Za-z0-9._-]{1,80}\.ini\Z")
+_REL_PATH = re.compile(r"^images/[A-Za-z0-9._-]{1,128}/[A-Za-z0-9._-]{1,200}\.(png|jpg|webp|gif)\Z")
 
 
 def sniff(data: bytes) -> Optional[Tuple[str, str]]:
@@ -253,7 +253,7 @@ def cmd_image_delete(payload: Dict[str, Any]) -> None:
         prefix = _clean_name(payload["message"], "message") + "-"
         for name in os.listdir(folder):
             full = os.path.join(folder, name)
-            if name.startswith(prefix) and re.match(r"^\d{1,2}\.(png|jpg|webp|gif)$", name[len(prefix):]) \
+            if name.startswith(prefix) and re.match(r"^\d{1,2}\.(png|jpg|webp|gif)\Z", name[len(prefix):]) \
                     and os.path.isfile(full) and not os.path.islink(full):
                 os.unlink(full)
                 removed += 1
@@ -306,7 +306,7 @@ def cmd_image_export(payload: Dict[str, Any]) -> None:
     """Copy the image to ``dest`` (a path chosen in the Save dialog)."""
     full = _file_for(payload)
     dest = safe_path(payload.get("dest", ""))
-    if not re.search(r"\.(png|jpe?g|webp|gif)$", dest, re.I):
+    if not re.search(r"\.(png|jpe?g|webp|gif)\Z", dest, re.I):
         raise ValueError("the file name must end in .png, .jpg, .webp or .gif")
     if os.path.isdir(dest):
         raise ValueError("the destination is a folder")

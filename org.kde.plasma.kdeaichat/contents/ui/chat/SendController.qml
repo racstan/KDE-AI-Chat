@@ -39,6 +39,11 @@ QtObject {
     }
 
     function beginRequest(sessionId) {
+        // Never two live requests: a request still running (direct, OpenCode, Pi, image job) is aborted first.
+        if (chat.activeXhr) {
+            try { chat.activeXhr.abort(); } catch (e) {}
+            chat.activeXhr = null;
+        }
         chat.requestGeneration++;
         chat.activeRequestSessionId = sessionId;
         return chat.requestGeneration;
@@ -234,7 +239,13 @@ QtObject {
             queued.role = "user";
             queued.at = Date.now();
             queued.time = TimeFormat.nowTime(queued.at);
-            copy[index] = queued;
+            // It is sent now, so it belongs after the last real message (a reply written since it was
+            // queued, e.g. after a regenerate, comes before it); other queued messages stay behind it.
+            copy.splice(index, 1);
+            var at = copy.length;
+            while (at > 0 && (copy[at - 1].role || "") === "queued")
+                at--;
+            copy.splice(at, 0, queued);
             chat.messages = copy;
             chat.nameChatFromFirstMessage(queued.content);
             chat.saveCurrentSessionState(true);

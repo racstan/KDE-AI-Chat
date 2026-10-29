@@ -17,7 +17,7 @@ import stat
 import time
 from typing import Any, Dict
 
-_NAME = re.compile(r"^kdeaichat-payload-[A-Za-z0-9-]{1,80}\.ini$")
+_NAME = re.compile(r"^kdeaichat-payload-[A-Za-z0-9-]{1,80}\.ini\Z")
 MAX_BYTES = 100 * 1024 * 1024  # a 20 MB chat export, even all 3-byte characters, as base64
 
 

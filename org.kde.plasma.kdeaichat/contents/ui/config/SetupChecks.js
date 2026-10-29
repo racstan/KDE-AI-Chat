@@ -34,6 +34,8 @@ var MESSAGES = {
                 I18N_NOOP("Correct it in the provider's settings; it starts with https:// or http://.")],
     "url-placeholder": [I18N_NOOP("The address of %1 still contains a placeholder."),
                         I18N_NOOP("Replace YOUR_ACCOUNT_ID in the address with your account id.")],
+    "key-plain-http": [I18N_NOOP("%1 uses a plain http:// address to another computer, so its API key and your messages travel unencrypted."),
+                       I18N_NOOP("Use an https:// address if the provider offers one; plain http is only safe on this computer or a network you trust.")],
     "model-missing": [I18N_NOOP("%1 has no model chosen."), I18N_NOOP("Pick one in the provider's settings.")],
     // Local servers
     "local-ok": [I18N_NOOP("%1 answers at %2."), ""],
@@ -125,6 +127,20 @@ function _validUrl(url) {
     return true;
 }
 
+// A plain http:// address of a computer other than this one (same rule as ProviderService.isPlainHttpRemote).
+function _plainHttpRemote(url) {
+    var value = String(url || "").trim();
+    if (!/^http:\/\//i.test(value))
+        return false;
+    var host = value.substring(7).split(/[\/?#]/, 1)[0].toLowerCase();
+    if (host.charAt(0) === "[")
+        host = host.substring(1, host.indexOf("]") < 0 ? host.length : host.indexOf("]"));
+    else
+        host = host.replace(/:\d*$/, "");
+    return !(host === "" || host === "localhost" || host === "::1" || /^127\.\d+\.\d+\.\d+$/.test(host)
+             || host === "0:0:0:0:0:0:0:1" || /\.localhost$/.test(host));
+}
+
 // entries: the chat providers [{id, name, baseUrl, model, local}] (image
 // services left out); walletStatus/walletKeys: store/Wallet.qml status and keys;
 // defaultId: the default provider, the only one whose missing model is
@@ -150,6 +166,8 @@ function directChecks(entries, walletStatus, walletKeys, defaultId) {
             out.push(row(id, "connection", "error", "url-bad", [e.name, e.baseUrl || ""]));
         else if (!e.local && walletUsable && !(walletKeys || {})[e.id])
             out.push(row(id, "connection", "error", "key-missing", [e.name]));
+        else if ((walletKeys || {})[e.id] && _plainHttpRemote(e.baseUrl))
+            out.push(row(id, "connection", "warn", "key-plain-http", [e.name]));
         else if (!String(e.model || "").trim() && e.id === defaultId)
             out.push(row(id, "connection", "warn", "model-missing", [e.name]));
         else if (!e.local)
