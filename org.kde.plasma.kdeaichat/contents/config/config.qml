@@ -11,6 +11,11 @@ ConfigModel {
         source: "ConfigConnection.qml"
     }
     ConfigCategory {
+        name: i18n("Spending")
+        icon: "view-statistics"
+        source: "ConfigSpending.qml"
+    }
+    ConfigCategory {
         name: i18n("Chat")
         icon: "dialog-messages"
         source: "ConfigChat.qml"

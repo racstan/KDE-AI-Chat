@@ -193,7 +193,8 @@ QtObject {
         var providerId = eff.provider;
         var modelId = eff.model;
         var label = providerId && modelId ? providerId + "/" + modelId : "OpenCode";
-        chat.currentStreamUsage = ({});
+        // Who answers this reply, for the spending log (ReplyEvents.qml copies it along with the usage).
+        chat.currentStreamUsage = ({"provider": providerId || "", "model": modelId || "", "mode": "opencode"});
         chat.loading = true;
         chat.activeXhr = OpenCodeBackend.send({
             "baseUrl": target.baseUrl,

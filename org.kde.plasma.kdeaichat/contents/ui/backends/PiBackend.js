@@ -101,9 +101,13 @@ function createEventMapper(emit) {
                 var message = event.message || {};
                 if (message.role !== "assistant") return;
                 var usage = message.usage || {};
-                if (usage.input || usage.output)
-                    emit({"type": "usage", "input": usage.input || 0, "output": usage.output || 0,
-                          "cost": (usage.cost || {}).total || 0});
+                if (usage.input || usage.output) {
+                    // The cost only when Pi gives one (a missing cost is unknown, not 0); cache reads when counted.
+                    var usageEvent = {"type": "usage", "input": usage.input || 0, "output": usage.output || 0};
+                    if (usage.cost && typeof usage.cost.total === "number") usageEvent.cost = usage.cost.total;
+                    if (typeof usage.cacheRead === "number") usageEvent.cacheRead = usage.cacheRead;
+                    emit(usageEvent);
+                }
                 if (message.stopReason === "error")
                     fail("Pi: " + String(message.errorMessage || "the request failed."));
                 else if (message.stopReason === "aborted")

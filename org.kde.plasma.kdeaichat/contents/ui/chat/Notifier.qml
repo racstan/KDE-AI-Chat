@@ -124,6 +124,15 @@ Item {
         return true;
     }
 
+    // A budget alert (chat/SpendingLog.qml): sent like a finished reply, so it follows the reply setting and
+    // stays quiet while the popup is open (the composer note shows it there). No sound.
+    function spendingAlert(title, text) {
+        if (!replyEnabled || popupOpen)
+            return false;
+        sender(title, escapeMarkup(text), "", false);
+        return true;
+    }
+
     // --- Input needed -------------------------------------------------------------
 
     // Notification bodies are read as markup by Plasma: text from a reply or an agent is escaped.

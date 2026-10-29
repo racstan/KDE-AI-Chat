@@ -14,6 +14,8 @@ QtObject {
     property var notifierRef: null  // chat/Notifier.qml
     property alias partialSave: partial  // saves the reply while it streams
     property var _partial: PartialSave { id: partial; chat: replies.chat }
+    // Logs each finished reply and shows the budget alert it raises (chat/SpendingLog.qml).
+    property var spendingLog: SpendingLog { chat: replies.chat; notifierRef: replies.notifierRef }
 
     // When the current stretch of thinking started and last grew (Date.now(); 0 = none).
     property real thinkStart: 0
@@ -136,6 +138,7 @@ QtObject {
             if (event.input !== undefined) usage.input = event.input;
             if (event.output !== undefined) usage.output = event.output;
             if (event.cost !== undefined) usage.cost = (usage.cost || 0) + event.cost;
+            if (event.cacheRead !== undefined) usage.cacheRead = event.cacheRead;
             chat.currentStreamUsage = usage;
         } else if (event.type === "error") {
             replies.resetProviderStreamingState();
@@ -157,6 +160,7 @@ QtObject {
                     reply.cost = chat.currentStreamUsage.cost;
                 msgs[chat.currentStreamIndex] = reply;
                 chat.messages = msgs;
+                replies.spendingLog.recordReply(chat.currentStreamUsage, chat.currentSessionId);
             } else if (completed) {
                 chat.pushErrorMessage(i18n("The model returned an empty response.")); // qmllint disable unqualified
             }

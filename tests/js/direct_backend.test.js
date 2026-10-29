@@ -176,6 +176,16 @@ const tests = {
         assert.strictEqual(events[events.length - 1].type, "done");
     },
 
+    cached_prompt_tokens_are_reported_as_cache_reads() {
+        // OpenAI-style: prompt_tokens_details.cached_tokens (a part of prompt_tokens, no cost unless the server gives one).
+        const openai = run({type: "openai", baseUrl: "https://cache1.test/v1", model: "m", messages: []}, 200, [
+            'data: {"choices":[],"usage":{"prompt_tokens":1000,"completion_tokens":3,"prompt_tokens_details":{"cached_tokens":768}}}\n\ndata: [DONE]\n\n',
+        ]);
+        openai.xhr.play();
+        assert.deepStrictEqual(plain(openai.events.filter(e => e.type === "usage")), [{type: "usage", input: 1000, output: 3, cacheRead: 768}]);
+        // (Anthropic's cache reads: anthropic_usage_includes_cached_prompt_tokens.)
+    },
+
     usage_repeated_in_several_chunks_is_reported_once() {
         // Gemini's OpenAI endpoint (and some proxies) put usage in every chunk.
         const {events, xhr} = run({type: "openai", baseUrl: "https://usage3.test/v1", model: "m", messages: []}, 200, [
@@ -231,7 +241,7 @@ const tests = {
         ]);
         xhr.play();
         assert.deepStrictEqual(plain(events.filter(e => e.type === "usage")), [
-            {type: "usage", input: 240, output: 1},
+            {type: "usage", input: 240, output: 1, cacheRead: 200},
             {type: "usage", output: 42},
         ]);
     },

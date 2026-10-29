@@ -10,6 +10,7 @@ The widget itself collects nothing: no analytics, no telemetry, no account. It s
 | **Chats** | One file per chat in `~/.local/share/kdeaichat/chats/`, in a folder only you can read. Deleting a chat deletes its file and its pictures. |
 | **Memories** | `~/.local/share/kdeaichat/memory.json`, private. |
 | **Schedules** | `~/.local/share/kdeaichat/schedules.v2.json`, with a small record of each run. |
+| **Spending log** | `~/.local/share/kdeaichat/usage/`, private: one line per reply with its token counts and the cost its provider reported (no chat text, no titles), and the budget alerts already shown. Budgets are in Settings → Spending. |
 | **Pictures** | In the chat's own folder, next to the chat. |
 | **Settings** | Plasma's normal widget settings. They hold no keys and no chat text. |
 

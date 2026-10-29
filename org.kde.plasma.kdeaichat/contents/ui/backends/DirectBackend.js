@@ -174,6 +174,9 @@ function _openAiUsage(usage) {
                  "output": usage.completion_tokens || usage.output_tokens || 0};
     if (usage.cost !== undefined && usage.cost !== null && isFinite(Number(usage.cost)) && Number(usage.cost) >= 0)
         event.cost = Number(usage.cost);
+    // Cached prompt tokens (part of input) when the server reports them (OpenAI's prompt_tokens_details).
+    if (usage.prompt_tokens_details && usage.prompt_tokens_details.cached_tokens !== undefined)
+        event.cacheRead = Number(usage.prompt_tokens_details.cached_tokens) || 0;
     return event;
 }
 
@@ -184,6 +187,7 @@ function _anthropicUsage(usage) {
     if (usage.input_tokens !== undefined)
         event.input = usage.input_tokens + (usage.cache_read_input_tokens || 0) + (usage.cache_creation_input_tokens || 0);
     if (usage.output_tokens !== undefined) event.output = usage.output_tokens;
+    if (usage.cache_read_input_tokens !== undefined) event.cacheRead = usage.cache_read_input_tokens || 0;
     return event;
 }
 

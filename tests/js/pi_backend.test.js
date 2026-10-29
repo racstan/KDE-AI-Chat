@@ -40,7 +40,7 @@ const tests = {
         assert.deepStrictEqual(out.find(e => e.type === "tool_end"),
                                {type: "tool_end", callId: "call_91pynjuz", title: "", output: "Successfully wrote 2 bytes to hello.txt", isError: false});
         assert.deepStrictEqual(out.find(e => e.type === "file_changed"), {type: "file_changed", path: "hello.txt"});
-        assert.deepStrictEqual(out.filter(e => e.type === "usage")[1], {type: "usage", input: 1889, output: 82, cost: 0});
+        assert.deepStrictEqual(out.filter(e => e.type === "usage")[1], {type: "usage", input: 1889, output: 82, cost: 0, cacheRead: 0});
         assert.deepStrictEqual(out[out.length - 1], {type: "done", reason: "complete"});
     },
 

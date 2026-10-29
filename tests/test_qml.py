@@ -72,6 +72,8 @@ def _run(qml_input, env):
     # dictation units at start) must never touch the user's systemd units.
     env.setdefault("KDEAICHAT_UNIT_DIR", os.path.join(SCREENS, "..", "qml-units"))
     env.setdefault("KDEAICHAT_SYSTEMCTL", "true")
+    # A reply that reports its usage is logged by the real helper (chat/SpendingLog.qml): never into the user's log.
+    env.setdefault("KDEAICHAT_USAGE_DIR", os.path.join(SCREENS, "..", "qml-usage"))
     result = subprocess.run(
         [RUNNER, "-platform", "offscreen", "-input", qml_input],
         capture_output=True,

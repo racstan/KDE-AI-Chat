@@ -80,8 +80,12 @@ function createEventMapper(sessionId, emit) {
                 tools[callId] = state.status || "pending";
         } else if (part.type === "step-finish" && part.tokens && !counted[part.id]) {
             counted[part.id] = true;
-            emit({"type": "usage", "input": part.tokens.input || 0, "output": part.tokens.output || 0,
-                  "reasoning": part.tokens.reasoning || 0, "cost": part.cost || 0});
+            // The cost and cache reads only when the server gives them: a missing cost is unknown, not 0.
+            var usageEvent = {"type": "usage", "input": part.tokens.input || 0, "output": part.tokens.output || 0,
+                              "reasoning": part.tokens.reasoning || 0};
+            if (typeof part.cost === "number") usageEvent.cost = part.cost;
+            if (part.tokens.cache && typeof part.tokens.cache.read === "number") usageEvent.cacheRead = part.tokens.cache.read;
+            emit(usageEvent);
         } else if (part.type === "patch") {
             for (var i = 0; i < (part.files || []).length; i++)
                 emit({"type": "file_changed", "path": String(part.files[i])});
