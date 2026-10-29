@@ -28,6 +28,9 @@ KCM.SimpleKCM {
     // Runs the helper's commands; a property so a test can pass a fake.
     property var helperRunner: defaultRunner
     property var openUrl: function(url) { Qt.openUrlExternally(url); }
+    readonly property var plasmoidObject: typeof plasmoid !== "undefined" ? plasmoid : null
+    readonly property var configuration: plasmoidObject ? plasmoidObject.configuration : null
+    readonly property alias backup: backupSection
 
     // The last storage_usage reply (null until it arrives).
     property var usage: null
@@ -258,6 +261,23 @@ KCM.SimpleKCM {
             Config.SettingHelp {
                 text: i18n("The voices and speech models used for reading aloud and dictation belong to the Speech Note app. They are not counted above and this widget never removes them; manage them in Speech Note.")
             }
+        }
+
+        Kirigami.Separator {
+            Layout.fillWidth: true
+        }
+
+        Config.BackupSection {
+            id: backupSection
+            objectName: "backupSection"
+            Layout.fillWidth: true
+            helperRunner: page.helperRunner
+            configuration: page.configuration
+            widgetVersion: page.plasmoidObject && page.plasmoidObject.metaData ? String(page.plasmoidObject.metaData.version) : ""
+            directory: page.plasmoidObject && String(page.plasmoidObject.id) !== ""
+                ? decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.GenericDataLocation)).replace(/^file:\/\//, ""))
+                  + "/kdeaichat/chats/applet-" + page.plasmoidObject.id
+                : ""
         }
     }
 }

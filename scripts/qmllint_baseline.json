@@ -101,6 +101,7 @@
   "org.kde.plasma.kdeaichat/contents/ui/chat/WorkspaceBar.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/components/ModelPicker.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/components/VariantPicker.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/config/BackupSection.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/config/DictationSettings.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/config/IconSettings.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/config/ImageModels.qml": 0,

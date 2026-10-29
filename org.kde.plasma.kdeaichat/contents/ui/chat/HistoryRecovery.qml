@@ -6,6 +6,7 @@
 import QtQuick
 
 QtObject {
+    id: recovery
     property var chat: null
     property var sessions: null
 
@@ -31,5 +32,23 @@ QtObject {
         chat.sessionHistoryLoadBlocked = false;
         chat.sessions = [];
         sessions.createSession(true);
+    }
+
+    // Settings -> Storage raises chatsReloadRevision after a restore or an import wrote chats to disk:
+    // the new ones join the open list (nothing in memory is replaced or reread).
+    function addNewChats() {
+        if (chat.sessionHistoryLoadBlocked || !chat.chatStore)
+            return;
+        var fresh = chat.chatStore.freshChats(chat.sessions);
+        if (fresh.length === 0)
+            return;
+        chat.sessions = chat.sessions.concat(sessions.parseSessions(fresh));
+        sessions.sortSessionsByUpdated();
+        sessions.persistSessions([]);
+    }
+
+    property var reloadRequests: Connections {
+        target: recovery.chat && recovery.chat.plasmoid ? recovery.chat.plasmoid.configuration : null
+        function onChatsReloadRevisionChanged() { recovery.addNewChats(); }
     }
 }

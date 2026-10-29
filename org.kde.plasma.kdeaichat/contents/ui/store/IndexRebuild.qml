@@ -47,4 +47,33 @@ QtObject {
             if (callback) callback(metas.length);
         });
     }
+
+    // Chats that are in the index on disk but not in `sessions` (a restore or an import wrote them
+    // while the widget was open), ready for the chat list: messages stay on disk until opened.
+    function freshChats(sessions) {
+        var s = rebuilder.chatStore;
+        var known = {};
+        for (var i = 0; i < sessions.length; i++)
+            known[sessions[i].value] = true;
+        var metas = s._parseIndex(s._read("index.ini", "sessions") || "[]") || [];
+        var fresh = [];
+        for (var j = 0; j < metas.length; j++) {
+            if (!metas[j] || !metas[j].value || known[metas[j].value])
+                continue;
+            var session = Object.assign({}, metas[j]);
+            if (/^(provider|opencode|pi)$/.test(String(session.source || "")) && typeof session.messageCount === "number") {
+                session.messages = [];
+                session.messagesUnloaded = true;
+                s._written[session.value] = null;
+                s._unloaded[session.value] = true;
+            } else {
+                var raw = s._read(s.fileNameForId(session.value), "messages");
+                var list = s._parseIndex(raw || "[]");
+                session.messages = list === null ? [] : list;
+                s._written[session.value] = list === null ? null : raw;
+            }
+            fresh.push(session);
+        }
+        return fresh;
+    }
 }
