@@ -4,11 +4,11 @@
 
 A chat assistant that lives on your **KDE Plasma 6** desktop. Talk to the AI service of your choice, or to a model running on your own computer. Drop in files, keep your chats in projects, schedule messages, and let the AI help with code. Your API keys are kept in KDE Wallet, and your chats stay in private files on your computer.
 
-![Sending a message in KDE AI Chat](docs/media/send-message.gif)
-
 [![Watch the full tour on YouTube (13 min)](https://img.youtube.com/vi/SnkKFCN_Jkg/maxresdefault.jpg)](https://youtu.be/SnkKFCN_Jkg)
 
 [Watch the full tour on YouTube](https://youtu.be/SnkKFCN_Jkg) (13 min)
+
+![Sending a message in KDE AI Chat](docs/media/send-message.gif)
 
 ---
 
