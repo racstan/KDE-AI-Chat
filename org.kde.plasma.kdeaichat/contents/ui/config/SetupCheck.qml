@@ -147,7 +147,7 @@ ColumnLayout {
             opacity: 0.8
             text: check.summary.error + check.summary.warn === 0 ? i18n("Everything is ready.")
                 : check.summary.error > 0 && check.summary.warn > 0
-                    ? i18np("%1 problem", "%1 problems", check.summary.error) + ", " + i18np("%1 warning", "%1 warnings", check.summary.warn)
+                    ? i18nc("%1 is a number of problems, %2 a number of warnings", "%1, %2", i18np("%1 problem", "%1 problems", check.summary.error), i18np("%1 warning", "%1 warnings", check.summary.warn))
                 : check.summary.error > 0 ? i18np("%1 problem", "%1 problems", check.summary.error)
                 : i18np("%1 warning", "%1 warnings", check.summary.warn)
         }

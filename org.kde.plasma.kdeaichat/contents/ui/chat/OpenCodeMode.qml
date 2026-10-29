@@ -260,7 +260,7 @@ QtObject {
                 msg.status = ok ? (approved ? "allowed" : "denied") : "pending";
             });
             if (!ok)
-                chat.pushErrorMessage("OpenCode didn't accept the permission answer (HTTP " + status + ").");
+                chat.pushErrorMessage(i18n("OpenCode didn't accept the permission answer (HTTP %1).", status));
             chat.saveCurrentSessionState(true);
         });
     }
@@ -280,7 +280,7 @@ QtObject {
                 if (ok && !isReject) msg.submittedAnswer = answerValue;
             });
             if (!ok)
-                chat.pushErrorMessage("OpenCode didn't accept the answer (HTTP " + status + ").");
+                chat.pushErrorMessage(i18n("OpenCode didn't accept the answer (HTTP %1).", status));
             chat.saveCurrentSessionState(true);
         });
     }
@@ -358,7 +358,7 @@ QtObject {
             chat.activeRequestSessionId = "";
             chat.requestGeneration++;
             if (error)
-                chat.pushErrorMessage("Sync failed: " + error);
+                chat.pushErrorMessage(i18n("Sync failed: %1", error));
         }
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE || !chat.requestIsCurrent(sessionId, generation))

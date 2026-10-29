@@ -324,7 +324,7 @@ QtObject {
             listsChanged();
             var providerCount = (rootRef.openCodeProvidersList || []).length;
             var modelCount = (rootRef.openCodeModelsList || []).length;
-            _setStatus(providerCount > 0 ? i18n("Loaded %1 providers, %2 models", providerCount, modelCount)
+            _setStatus(providerCount > 0 ? i18nc("%1 is a number of providers, %2 a number of models", "Loaded %1, %2", i18np("%1 provider", "%1 providers", providerCount), i18np("%1 model", "%1 models", modelCount))
                                          : i18n("OpenCode returned no providers or models"));
             if (done) done();
         });

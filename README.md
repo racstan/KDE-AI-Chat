@@ -108,7 +108,7 @@ The widget works out of the box. Some features need a small tool; if one is miss
 ## Known Problems
 
 - **Many keyboard shortcuts can't be changed yet.** The only one you can change is the shortcut that opens the widget; the others are fixed for now. Making them customisable is planned for a future release.
-- **Other languages haven't been tested.** The widget comes with translations, but they haven't been checked by people who speak those languages. Testing them is planned for future releases, and testers are welcome to help.
+- **Translations are partial and unchecked.** About 15% of the texts are translated; the rest shows in English. The translations that exist haven't been checked by people who speak those languages. Completing them is planned for 1.5, and testers are welcome to help.
 - **Direct chats have no MCP servers, skills or agent tools yet.** When the widget talks to a provider directly, the AI can only answer and ask you questions. For tools, MCP servers, skills and work on your files, start the chat in the OpenCode or Pi mode, which bring their own (set them up in OpenCode or Pi). Support in direct chats is planned for 1.5 (see below).
 - **The word being read aloud only glows with system voices.** With Speech Note, the whole sentence being read glows instead, because Speech Note doesn't report which word it is saying.
 - **Dictation is press to start, press to stop.** Holding a key to talk isn't possible, because a Plasma widget can't see when a key is released.

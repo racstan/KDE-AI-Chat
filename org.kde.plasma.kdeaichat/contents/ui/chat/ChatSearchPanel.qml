@@ -146,7 +146,7 @@ ColumnLayout {
         text: panel.query !== ChatSearch.normalizeQuery(searchField.text) ? i18n("Searching…")
             : ChatSearch.patternFor(panel.query) === null ? i18n("Type at least two characters.")
             : panel.found.results.length === 0 ? i18n("No chats match “%1”.", panel.query)
-            : panel.found.more ? i18n("The first %1 matches. Type more to narrow them down.", panel.found.results.length)
+            : panel.found.more ? i18np("The first %1 match. Type more to narrow it down.", "The first %1 matches. Type more to narrow them down.", panel.found.results.length)
             : i18np("%1 match", "%1 matches", panel.found.results.length)
     }
 

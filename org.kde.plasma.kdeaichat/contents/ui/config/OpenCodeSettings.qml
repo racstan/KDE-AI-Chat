@@ -93,7 +93,7 @@ Kirigami.FormLayout {
         }
         var chosen = ids.indexOf(provider) >= 0 ? provider : ids[0];
         choose(chosen, model || ((obj && obj["default"]) || {})[chosen] || "");
-        status = i18n("Connected. %1 providers available.", ids.length);
+        status = i18np("Connected. %1 provider available.", "Connected. %1 providers available.", ids.length);
     }
 
     function refresh() {

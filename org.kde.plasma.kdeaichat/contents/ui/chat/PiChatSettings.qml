@@ -31,7 +31,7 @@ ColumnLayout {
 
     RowLayout {
         Layout.fillWidth: true
-        PC3.Label { text: "Pi Agent"; font.bold: true; Layout.fillWidth: true }
+        PC3.Label { text: i18n("Pi Agent"); font.bold: true; Layout.fillWidth: true }
         PC3.ToolButton {
             icon.name: "view-refresh"
             enabled: !pi.busy

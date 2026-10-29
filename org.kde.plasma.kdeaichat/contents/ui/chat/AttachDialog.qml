@@ -21,9 +21,9 @@ FileDialog {
         dialog.open();
     }
 
-    title: "Attach Files"
+    title: i18n("Attach Files")
     fileMode: FileDialog.OpenFiles
-    nameFilters: ["All supported files (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.pdf *.csv *.docx *.txt *.md *.json)", "Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp)", "Documents (*.pdf *.docx *.csv *.txt *.md *.json)", "All files (*)"]
+    nameFilters: [i18n("All supported files") + " (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.pdf *.csv *.docx *.txt *.md *.json)", i18n("Images") + " (*.png *.jpg *.jpeg *.webp *.gif *.bmp)", i18n("Documents") + " (*.pdf *.docx *.csv *.txt *.md *.json)", i18n("All files") + " (*)"]
     onAccepted: {
         for (var i = 0; i < selectedFiles.length; i++)
             dialog.chat.attachFile(selectedFiles[i]);

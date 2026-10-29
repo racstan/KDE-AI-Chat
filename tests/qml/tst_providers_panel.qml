@@ -18,6 +18,7 @@ Item {
             text = text.replace("%" + i, arguments[i]);
         return text;
     }
+    function i18np(one, many, n) { return (n === 1 ? one : many).replace("%1", n); }
 
     property var walletFolder: ({})
 

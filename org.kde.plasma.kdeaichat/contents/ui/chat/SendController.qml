@@ -96,47 +96,47 @@ QtObject {
     function validateOpenCodeConfig(sessionId) {
         var missing = [];
         if (!chat.openCodeBaseUrl())
-            missing.push("a valid OpenCode HTTP(S) URL");
+            missing.push(i18n("a valid OpenCode HTTP(S) URL"));
         var eff = chat.effectiveConfig(sessionId);
         var provider = eff.provider, model = eff.model, agent = eff.agent;
         if (!provider && !agent)
-            missing.push("OpenCode provider or agent");
+            missing.push(i18n("OpenCode provider or agent"));
         if (!model && !agent)
-            missing.push("OpenCode model or agent");
+            missing.push(i18n("OpenCode model or agent"));
         if (missing.length > 0)
-            return "Cannot send yet. Configure: " + missing.join(", ") + ".";
+            return i18n("Cannot send yet. Configure: %1.", missing.join(", "));
         return "";
     }
 
     function validateProviderConfig(providerId, cfg) {
         if (!cfg)
-            return "Provider configuration missing.";
+            return i18n("Provider configuration missing.");
 
         var name = chat.providerDisplayName(providerId);
         if (cfg.found === false)
-            return "The provider \"" + name + "\" isn't set up any more. Add it in Widget Settings → General → Providers, or pick another provider in this chat's settings.";
+            return i18n("The provider \"%1\" isn't set up any more. Add it in Widget Settings → General → Providers, or pick another provider in this chat's settings.", name);
         // An image service makes pictures from the message: it needs no model or URL, only to be switched on.
         if (cfg.type === "image")
             return sender.imageJobsRef.validate(providerId, cfg);
         var missing = [];
         if (!providerId)
-            missing.push("provider");
+            missing.push(i18n("provider"));
 
         if (!cfg.baseUrl && cfg.type !== "anthropic")
-            missing.push("base URL");
+            missing.push(i18n("base URL"));
 
         if (!cfg.model)
-            missing.push("model");
+            missing.push(i18n("model"));
 
         if (cfg.type === "anthropic" && !cfg.apiKey)
-            missing.push("API key");
+            missing.push(i18n("API key"));
 
         if (cfg.type !== "anthropic" && !cfg.allowEmptyKey && !cfg.apiKey)
-            missing.push("API key");
+            missing.push(i18n("API key"));
 
         if (missing.length > 0)
-            return "Cannot send message with " + name + ". Missing: " + missing.join(", ") + ". Please open Widget Settings (Configure KDE AI Chat) to set your API key or model."
-                + (missing.indexOf("API key") !== -1 && !chat.wallet.usable && chat.wallet.status !== "unknown" ? " " + chat.wallet.statusMessage() : "");
+            return i18n("Cannot send message with %1. Missing: %2. Please open Widget Settings (Configure KDE AI Chat) to set your API key or model.", name, missing.join(", "))
+                + (missing.indexOf(i18n("API key")) !== -1 && !chat.wallet.usable && chat.wallet.status !== "unknown" ? " " + chat.wallet.statusMessage() : "");
 
         return "";
     }
@@ -150,13 +150,13 @@ QtObject {
             text = PromptTemplates.expand(text, chat.promptTemplates);
 
             if (text.length > 200000) {
-                sender.pushErrorMessage("Message is too large. Keep messages under 200,000 characters.");
+                sender.pushErrorMessage(i18n("Message is too large. Keep messages under 200,000 characters."));
                 return;
             }
             if (text === "" && attachments.length === 0)
                 return ;
             if (!chat.attachmentsReadyToSend()) {
-                sender.pushErrorMessage("Please wait for attached files to finish loading before sending.");
+                sender.pushErrorMessage(i18n("Please wait for attached files to finish loading before sending."));
                 return;
             }
 
@@ -179,7 +179,7 @@ QtObject {
         } catch (err) {
             chat.loading = false;
             chat.activeXhr = null;
-            sender.pushErrorMessage("Send failed: " + err);
+            sender.pushErrorMessage(i18n("Send failed: %1", err));
             sender.processNextQueuedMessage();
         }
     }

@@ -7,7 +7,7 @@
             }
         ],
         "Category": "Utilities",
-        "Description": "A KDE Plasma AI chat widget with session history, OpenCode priority mode, and multi-provider settings.",
+        "Description": "Chat with online or local AI from the panel, with OpenCode and Pi agents, scheduled prompts and voice through Speech Note.",
         "Icon": "dialog-messages",
         "Id": "org.kde.plasma.kdeaichat",
         "License": "PolyForm-Noncommercial-1.0.0",
@@ -18,6 +18,5 @@
     },
     "KPackageStructure": "Plasma/Applet",
     "X-Plasma-API-Minimum-Version": "6.0",
-    "X-Plasma-ConfigurationUI": "ui/ConfigGeneral.qml",
     "Version": "1.4.0"
 }

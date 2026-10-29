@@ -184,7 +184,7 @@ QtObject {
         chatStore.writeBackup("legacy-chat-history-backup.ini", legacy);
         configuration.chatSessionsJson = "";
         console.info("KDE AI Chat: moved", sessions.length, "chats to", chatStore.directory);
-        _say(i18n("Moved %1 chats into private files.", sessions.length)); // qmllint disable unqualified
+        _say(i18np("Moved %1 chat into private files.", "Moved %1 chats into private files.", sessions.length)); // qmllint disable unqualified
         if (callback) callback(true);
     }
 }

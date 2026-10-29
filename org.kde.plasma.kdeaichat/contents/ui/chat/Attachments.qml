@@ -116,7 +116,7 @@ P5Support.DataSource {
         localPath = decodeURIComponent(localPath);
         var files = chat.attachedFiles.slice();
         if (files.length >= 10) {
-            chat.pushErrorMessage("You can attach at most 10 files per message.");
+            chat.pushErrorMessage(i18n("You can attach at most 10 files per message."));
             return;
         }
         for (var i = 0; i < files.length; i++) {
@@ -152,7 +152,7 @@ P5Support.DataSource {
         if (!docExtractorPath || !safePath) {
             files.pop();
             chat.attachedFiles = files;
-            chat.pushErrorMessage("Unable to attach this file: unsupported or unsafe path.");
+            chat.pushErrorMessage(i18n("Unable to attach this file: unsupported or unsafe path."));
             return;
         }
         var marker = "extract-file-" + (++attachments.requestCounter) + "-" + Date.now();
@@ -167,7 +167,7 @@ P5Support.DataSource {
     function checkClipboardForAttachments() {
         var docExtractorPath = attachments.getDocExtractorPath();
         if (!docExtractorPath) {
-            chat.pushErrorMessage("Attachment extractor is not available in the installed widget.");
+            chat.pushErrorMessage(i18n("Attachment extractor is not available in the installed widget."));
             return;
         }
         var cmd = "timeout 20s python3 " + Sec.quoteForShell(docExtractorPath) + " --clipboard";
@@ -283,7 +283,7 @@ P5Support.DataSource {
         var fileObj = Object.assign({}, files[matchedIndex]);
         fileObj.loading = false;
         if (exitCode !== 0 || stderr.trim() !== "") {
-            fileObj.error = stderr.trim() || ("Command exited with code " + exitCode);
+            fileObj.error = stderr.trim() || i18n("Command exited with code %1", exitCode);
         } else {
             try {
                 var res = JSON.parse(stdout);
@@ -294,10 +294,10 @@ P5Support.DataSource {
                     fileObj.size = res.size;
                     fileObj.warning = attachments.largeFileWarning(fileObj);
                 } else {
-                    fileObj.error = res.message || "Failed to extract file contents";
+                    fileObj.error = res.message || i18n("Failed to extract file contents");
                 }
             } catch (e) {
-                fileObj.error = "Failed to parse extractor output: " + e;
+                fileObj.error = i18n("Failed to parse extractor output: %1", e);
             }
         }
         files[matchedIndex] = fileObj;

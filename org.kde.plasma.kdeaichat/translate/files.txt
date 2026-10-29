@@ -1,6 +1,7 @@
 contents/config/config.qml
 contents/ui/chat/ActivityBox.qml
 contents/ui/chat/AskInbox.qml
+contents/ui/chat/AttachDialog.qml
 contents/ui/chat/AttachmentChips.qml
 contents/ui/chat/Attachments.qml
 contents/ui/chat/ChatDeleteConfirm.qml
@@ -47,11 +48,13 @@ contents/ui/chat/MessageText.qml
 contents/ui/chat/ModeMismatchBanner.qml
 contents/ui/chat/NoticeBanner.qml
 contents/ui/chat/Notifier.qml
+contents/ui/chat/OpenCodeMode.qml
 contents/ui/chat/OwnModelCheck.qml
 contents/ui/chat/PendingFiles.qml
 contents/ui/chat/PermissionButtons.qml
 contents/ui/chat/PermissionDetail.qml
 contents/ui/chat/PiChatSettings.qml
+contents/ui/chat/PiMode.qml
 contents/ui/chat/PrivacyBadge.qml
 contents/ui/chat/ProjectDeleteConfirm.qml
 contents/ui/chat/ProjectEditor.qml
@@ -64,6 +67,8 @@ contents/ui/chat/QuoteChips.qml
 contents/ui/chat/ReasoningBlock.qml
 contents/ui/chat/RememberPopup.qml
 contents/ui/chat/RenameRow.qml
+contents/ui/chat/ReplyEvents.qml
+contents/ui/chat/SendController.qml
 contents/ui/chat/SenderName.qml
 contents/ui/chat/SessionList.qml
 contents/ui/chat/Sessions.qml

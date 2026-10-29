@@ -23,7 +23,7 @@ RowLayout {
     readonly property bool isNewChat: !!chat && (chat.messages || []).length === 0
     readonly property string text: {
         if (chat.loading)
-            return (chat.currentStreamIndex >= 0 ? i18n("Writing…") : i18n("Thinking…")) + " " + i18n("Esc stops it.");
+            return chat.currentStreamIndex >= 0 ? i18n("Writing… Esc stops it.") : i18n("Thinking… Esc stops it.");
         if (voiceText !== "")
             return ({"Reading aloud...": i18n("Reading aloud…"), "Generating speech...": i18n("Making speech…"), "Starting Speech Note...": i18n("Starting Speech Note…"),
                      "Paused": i18n("Reading paused")})[voiceText] || voiceText;

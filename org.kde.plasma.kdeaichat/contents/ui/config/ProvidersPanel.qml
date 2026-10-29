@@ -261,7 +261,7 @@ ColumnLayout {
             listChat = result.chat;
             listAll = result.all;
             loadVariants();
-            setStatus(result.all.length > 0 ? i18n("%1 models available.", result.chat.length) : i18n("The provider returned no models."), "info"); // qmllint disable unqualified
+            setStatus(result.all.length > 0 ? i18np("%1 model available.", "%1 models available.", result.chat.length) : i18n("The provider returned no models."), "info"); // qmllint disable unqualified
             checkSavedModel(entry, key, force, result);
         });
     }

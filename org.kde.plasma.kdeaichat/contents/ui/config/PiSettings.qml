@@ -65,7 +65,7 @@ Kirigami.FormLayout {
             return;
         }
         choose(ids.indexOf(provider) >= 0 ? provider : ids[0], model);
-        status = i18n("%1 providers available.", ids.length);
+        status = i18np("%1 provider available.", "%1 providers available.", ids.length);
     }
 
     function refresh() {

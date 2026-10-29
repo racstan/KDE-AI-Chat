@@ -154,7 +154,7 @@ RowLayout {
             agentSelectorCombo.currentIndex = Qt.binding(function() { return OpenCodeAgents.indexOf(bar.agentModel, bar.chat.openCodeAgent); });
         }
         QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "Agent profile — uses model from opencode.json\nCurrently: " + (bar.chat.openCodeAgent || "(default)")
+        QQC2.ToolTip.text: i18n("Agent profile — uses model from opencode.json\nCurrently: %1", bar.chat.openCodeAgent || i18n("(default)"))
         Accessible.name: i18n("Agent profile")
     }
 
@@ -162,7 +162,7 @@ RowLayout {
         visible: bar.chat.openCodeMode
         icon.name: "view-list-details"
         QQC2.ToolTip.visible: hovered
-        QQC2.ToolTip.text: "Reload the agent list from OpenCode"
+        QQC2.ToolTip.text: i18n("Reload the agent list from OpenCode")
         Accessible.name: QQC2.ToolTip.text
         onClicked: bar.chat.fetchOpenCodeAgents()
     }
