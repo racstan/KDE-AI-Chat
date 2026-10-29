@@ -208,7 +208,7 @@ QtObject {
                 if (ok && response.value !== undefined) msg.submittedAnswer = response.value;
             });
             if (!ok)
-                chat.pushErrorMessage(i18n("Pi didn't accept the answer (HTTP %1).", status));
+                chat.pushErrorMessage(i18n("Pi didn't accept the answer (HTTP %1).", status)); // qmllint disable unqualified
             chat.saveCurrentSessionState(true);
         });
     }

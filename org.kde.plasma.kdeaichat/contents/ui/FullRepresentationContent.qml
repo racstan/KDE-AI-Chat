@@ -83,7 +83,7 @@ Chat.AccentArea {
                 }
 
                 Kirigami.Heading {
-                    text: i18n("Drop files here to attach")
+                    text: i18n("Drop files here to attach") // qmllint disable unqualified
                     level: 3
                     color: Kirigami.Theme.highlightColor
                     Layout.alignment: Qt.AlignHCenter

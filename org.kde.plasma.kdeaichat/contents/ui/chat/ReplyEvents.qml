@@ -158,7 +158,7 @@ QtObject {
                 msgs[chat.currentStreamIndex] = reply;
                 chat.messages = msgs;
             } else if (completed) {
-                chat.pushErrorMessage(i18n("The model returned an empty response."));
+                chat.pushErrorMessage(i18n("The model returned an empty response.")); // qmllint disable unqualified
             }
             chat.currentStreamIndex = -1;
             replies.resetProviderStreamingState();

@@ -358,7 +358,7 @@ QtObject {
             chat.activeRequestSessionId = "";
             chat.requestGeneration++;
             if (error)
-                chat.pushErrorMessage(i18n("Sync failed: %1", error));
+                chat.pushErrorMessage(i18n("Sync failed: %1", error)); // qmllint disable unqualified
         }
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE || !chat.requestIsCurrent(sessionId, generation))
