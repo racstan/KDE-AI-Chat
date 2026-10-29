@@ -16,6 +16,8 @@ QtObject {
     property var request: null   // chat/DirectRequest.qml: sendRound(ctx), finishRequest(ctx)
     // Runs the tools besides ask_user, with approval (chat/DirectToolRunner.qml).
     readonly property var runner: DirectToolRunner { chat: rounds.chat }
+    // The tools of the user's MCP servers plug into the runner (chat/McpTools.qml).
+    readonly property var mcp: McpTools { chat: rounds.chat; runner: rounds.runner }
 
     // The question the model is waiting on: {questionId, bubbleId, callId, done(output)}.
     property var pending: null
