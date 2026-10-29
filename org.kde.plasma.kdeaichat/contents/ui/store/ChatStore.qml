@@ -300,7 +300,7 @@ Item {
     // Writes a new index from the chat files (IndexRebuild.qml). callback(count) when done.
     function rebuildIndex(callback) { rebuilder.run(callback); }
 
-    IndexRebuild { id: rebuilder; store: store }
+    IndexRebuild { id: rebuilder; chatStore: store }
 
     // Schedules a save of `sessions`; immediate writes now (if ready).
     // `changed` (optional) lists the ids of the chats whose messages may have

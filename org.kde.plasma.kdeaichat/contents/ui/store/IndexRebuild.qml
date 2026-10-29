@@ -4,14 +4,14 @@ import QtQuick
 QtObject {
     id: rebuilder
 
-    property var store: null
+    property var chatStore: null
 
     // Lists the chat files and writes a new index for them (title from the first
     // message, mode left to be inferred from the messages as for any chat without
     // one). A chat file that cannot be read is listed empty and stays as it is.
     // callback(count) when done.
     function run(callback) {
-        var s = rebuilder.store;
+        var s = rebuilder.chatStore;
         s.runHelper("list_chat_files", {"directory": s.directory}, function(output) {
             var files = [];
             try { files = JSON.parse(output).files || []; } catch (e) { }
