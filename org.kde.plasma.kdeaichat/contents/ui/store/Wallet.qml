@@ -177,8 +177,9 @@ QtObject {
     }
 
     // Copies keys from the pre-1.4.0 folder into `folder` (a key already in
-    // `folder` wins), reads them back, and only then removes the old folder.
-    // callback(movedCount); movedCount is -1 when nothing was removed.
+    // `folder` wins), reads them back, and only then removes those entries.
+    // Only entries confirmed in `folder` are removed from the old folder, which
+    // itself goes only when it is empty that way. callback(copiedCount); -1 on failure.
     function migrateLegacyFolder(callback) {
         var moved = -1;
         _withWallet(true, function(h, done) {
@@ -213,13 +214,40 @@ QtObject {
                                         return;
                                     }
                                 }
-                                call("removeFolder", [h, legacyFolder, appId], function() {
+                                // Only entries now confirmed in the new folder are removed from the old one
+                                // (a key already there wins); anything else stays, and so does the folder.
+                                var verified = [];
+                                var leftover = 0;
+                                for (var e = 0; e < names.length; e++) {
+                                    var entryId = wallet.legacyProviderId(names[e]);
+                                    if (entryId && String(after[entryId] || "").trim() !== "" && String(legacy[names[e]] || "").trim() !== "")
+                                        verified.push(names[e]);
+                                    else
+                                        leftover++;
+                                }
+                                var v = 0;
+                                function removeNext() {
+                                    if (v < verified.length) {
+                                        call("removeEntry", [h, legacyFolder, verified[v++], appId], function() { removeNext(); },
+                                             function(error) {
+                                                 console.warn("KDE AI Chat: could not remove a copied entry from the old KaiChat wallet folder:", error);
+                                                 leftover++;
+                                                 removeNext();
+                                             });
+                                        return;
+                                    }
                                     moved = ids.length;
-                                    done(true);
-                                }, function(error) {
-                                    console.warn("KDE AI Chat: could not remove the old KaiChat wallet folder:", error);
-                                    done(false);
-                                });
+                                    if (leftover > 0) {
+                                        console.info("KDE AI Chat: the old KaiChat wallet folder was kept:", leftover, "entries were not copied");
+                                        done(true);
+                                        return;
+                                    }
+                                    call("removeFolder", [h, legacyFolder, appId], function() { done(true); }, function(error) {
+                                        console.warn("KDE AI Chat: could not remove the old KaiChat wallet folder:", error);
+                                        done(false);
+                                    });
+                                }
+                                removeNext();
                             }, function() { done(false); });
                         }
                         next();
