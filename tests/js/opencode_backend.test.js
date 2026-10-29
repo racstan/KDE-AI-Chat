@@ -12,7 +12,7 @@ function load(file, names) {
     vm.runInNewContext(src + "\nthis.exports = {" + names.join(",") + "};", ctx);
     return ctx.exports;
 }
-const OC = load("OpenCodeBackend.js", ["url", "promptBody", "send", "replyPermission", "replyQuestion"]);
+const OC = load("OpenCodeBackend.js", ["url", "promptBody", "send", "replyPermission", "replyQuestion", "setAuthorization", "authorize"]);
 OC.createEventMapper = load("OpenCodeEvents.js", ["createEventMapper"]).createEventMapper;
 const DB = load("DirectBackend.js", ["createSseParser"]);
 const plain = x => JSON.parse(JSON.stringify(x));
@@ -198,6 +198,24 @@ const tests = {
             {m: "POST", u: "http://127.0.0.1:4096/question/q%201/reply?directory=%2Fw", body: {answers: [["A"], ["B", "C"]]}},
             {m: "POST", u: "http://127.0.0.1:4096/question/q2/reject?directory=%2Fw", body: null},
         ]);
+    },
+
+    // The password of the server the widget started goes with every request (REST calls and the event stream).
+    requests_carry_the_authorization_of_the_widgets_server() {
+        const seen = [];
+        const factory = () => { const h = {}; seen.push(h);
+            return {open(m, u) { h.url = u; }, setRequestHeader(k, v) { h[k] = v; }, send() { this.readyState = 4; this.status = 200; this.responseText = "{}"; this.onreadystatechange && this.onreadystatechange(); }}; };
+        OC.setAuthorization("Basic b3BlbmNvZGU6cHc=");
+        OC.replyPermission({baseUrl: "http://127.0.0.1:4096", directory: "", xhrFactory: factory}, "per_1", "once", () => {});
+        const events = [];
+        OC.send({baseUrl: "http://127.0.0.1:4096", directory: "", sessionId: "ses_A", body: {}, parserFactory: DB.createSseParser, mapperFactory: OC.createEventMapper,
+                 xhrFactory: factory, onEvent: e => events.push(e)});
+        assert.ok(seen.length >= 2);
+        for (const h of seen) assert.strictEqual(h.Authorization, "Basic b3BlbmNvZGU6cHc=", h.url);
+        OC.setAuthorization("");
+        seen.length = 0;
+        OC.replyPermission({baseUrl: "http://127.0.0.1:4096", directory: "", xhrFactory: factory}, "per_1", "once", () => {});
+        assert.strictEqual(seen[0].Authorization, undefined, "a server without a password gets no header");
     },
 
     send_reports_unreachable_server() {

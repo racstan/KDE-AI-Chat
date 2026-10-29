@@ -18,7 +18,7 @@ import os
 from contextlib import contextmanager
 from typing import Any, Dict, Iterator, List, Optional
 
-from kdeaichat import chats
+from kdeaichat import chats, common
 from kdeaichat.common import atomic_write_json
 from kdeaichat.schedule_model import DEFAULT_HISTORY_LIMIT, ID_RE
 
@@ -80,7 +80,7 @@ def save_run_state(sid: str, state: Dict[str, Any], limit: int = DEFAULT_HISTORY
     out["version"] = 1
     history: List[Any] = [h for h in out.get("history") or [] if isinstance(h, dict)]
     out["history"] = history[-max(1, limit):]
-    os.makedirs(runs_dir(), mode=0o700, exist_ok=True)
+    common.ensure_private_dir(runs_dir())
     atomic_write_json(run_state_path(sid), out)
 
 
@@ -88,7 +88,7 @@ def save_run_state(sid: str, state: Dict[str, Any], limit: int = DEFAULT_HISTORY
 def run_state_lock(sid: str) -> Iterator[None]:
     """Exclusive lock for one schedule's run state (job vs. job, job vs. migration)."""
     path = run_state_path(sid) + ".lock"
-    os.makedirs(runs_dir(), mode=0o700, exist_ok=True)
+    common.ensure_private_dir(runs_dir())
     fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)

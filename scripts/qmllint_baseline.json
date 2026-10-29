@@ -55,6 +55,7 @@
   "org.kde.plasma.kdeaichat/contents/ui/chat/NoticeBanner.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/Notifier.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/OpenCodeMode.qml": 0,
+  "org.kde.plasma.kdeaichat/contents/ui/chat/OpenCodeServer.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/OwnModelCheck.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/PanelIcon.qml": 0,
   "org.kde.plasma.kdeaichat/contents/ui/chat/PanelVideo.qml": 0,

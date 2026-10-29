@@ -22,6 +22,8 @@ HarnessTestCase {
         property var attached: []
         property var calls: []
         property bool filesReady: true
+        property bool openCodeMode: false
+        property bool piMode: false
         function triggerInitialLoad() { calls.push("load"); }
         function createSession(switchToNew) { calls.push("newChat:" + switchToNew); currentSessionId = "fresh"; }
         function attachFile(url) { attached.push(url); calls.push("attach"); }
@@ -91,8 +93,27 @@ HarnessTestCase {
         fakeChat.calls = [];
         fakeChat.filesReady = true;
         fakeChat.throwOnSend = false;
+        fakeChat.openCodeMode = false;
+        fakeChat.piMode = false;
         queued = [];
         helperCalls = [];
+    }
+
+    function test_nothing_is_sent_by_itself_into_an_agent_chat() {
+        var modes = ["openCodeMode", "piMode"];
+        for (var i = 0; i < modes.length; i++) {
+            init();
+            fakeChat[modes[i]] = true;
+            var inbox = createTemporaryObject(inboxComponent, testCase);
+            queued = [item({"text": "rm -rf the logs", "send": true}), item({"text": "second", "send": true})];
+            inbox.take();
+            compare(fakeChat.expanded, true, "the popup still opens");
+            tryVerify(function() { return fakeChat.chatInputText.indexOf("second") >= 0; }, 3000);
+            wait(600);
+            compare(fakeChat.calls.filter(function(c) { return c.indexOf("send:") === 0; }).length, 0, modes[i] + ": never sent");
+            verify(fakeChat.chatInputText.indexOf("rm -rf the logs") >= 0, "the text waits in the message box");
+            inbox.destroy();
+        }
     }
 
     function test_a_question_opens_the_popup_and_is_sent_in_the_open_chat() {

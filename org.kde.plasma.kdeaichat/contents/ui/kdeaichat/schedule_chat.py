@@ -25,7 +25,7 @@ import time
 from contextlib import contextmanager
 from typing import Any, Dict, Iterator, List, Optional
 
-from kdeaichat import chats, qsettings_ini
+from kdeaichat import chats, common, qsettings_ini
 from kdeaichat.common import atomic_write_text
 from kdeaichat.schedule_model import CHAT_ID_RE
 
@@ -102,7 +102,7 @@ def inbox_dir(directory: str) -> str:
 def folder_lock(directory: str) -> Iterator[None]:
     """Serialises scheduled runs writing into the same chat folder."""
     folder = inbox_dir(directory)
-    os.makedirs(folder, mode=0o700, exist_ok=True)
+    common.ensure_private_dir(folder)
     fd = os.open(os.path.join(folder, ".lock"), os.O_RDWR | os.O_CREAT, 0o600)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)

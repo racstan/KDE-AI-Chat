@@ -15,6 +15,7 @@ for this session is rejected, and the reply says so.
 """
 import json
 import os
+import secrets
 import signal
 import socket
 import subprocess
@@ -41,9 +42,23 @@ def _url(base: str, path: str, directory: str) -> str:
     return base + path + (("&" if "?" in path else "?") + "directory=" + urllib.parse.quote(directory, safe="") if directory else "")
 
 
+_TEMP_AUTH: Dict[int, str] = {}  # port -> Authorization of a temporary server this run started
+
+
+def _headers(url: str, extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    """Request headers; a local server with a password (the widget's, or this run's own) gets its credentials."""
+    headers = dict(extra or {})
+    parts = urllib.parse.urlparse(url)
+    if parts.hostname in ("127.0.0.1", "localhost", "::1") and parts.port:
+        auth = _TEMP_AUTH.get(parts.port) or opencode_server.auth_for_port(parts.port)
+        if auth:
+            headers["Authorization"] = auth
+    return headers
+
+
 def _request(method: str, url: str, body: Optional[Dict[str, Any]] = None, timeout: float = 15) -> Any:
     data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(url, data=data, method=method, headers={"Content-Type": "application/json"})
+    req = urllib.request.Request(url, data=data, method=method, headers=_headers(url, {"Content-Type": "application/json"}))
     with urllib.request.urlopen(req, timeout=timeout) as response:
         text = response.read(50_000_000).decode("utf-8", "replace")
     return json.loads(text) if text.strip() else None
@@ -51,7 +66,7 @@ def _request(method: str, url: str, body: Optional[Dict[str, Any]] = None, timeo
 
 def _healthy(base: str) -> bool:
     try:
-        with urllib.request.urlopen(base + "/global/health", timeout=2) as response:
+        with urllib.request.urlopen(urllib.request.Request(base + "/global/health", headers=_headers(base)), timeout=2) as response:
             return 200 <= response.status < 300
     except OSError:
         return False
@@ -79,9 +94,13 @@ class Server:
             raise RunError("OpenCode isn't installed (no `opencode` command found).")
         port = _free_port()
         cwd = directory if directory and os.path.isdir(directory) else os.path.expanduser("~")
+        password = secrets.token_urlsafe(32)  # this run's own server: only we know it (environment, never argv)
+        _TEMP_AUTH[port] = opencode_server.authorization(password)
+        env = dict(os.environ, OPENCODE_SERVER_PASSWORD=password)
+        env.pop("OPENCODE_SERVER_USERNAME", None)
         self.process = subprocess.Popen([binary, "serve", "--port", str(port), "--hostname", "127.0.0.1"], cwd=cwd,
                                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                        start_new_session=True, close_fds=True)
+                                        start_new_session=True, close_fds=True, env=env)
         self.base = f"http://127.0.0.1:{port}"
         deadline = time.time() + 30
         while time.time() < deadline:
@@ -127,7 +146,8 @@ def _watch(base: str, directory: str, session_id: str, notes: List[str], stop: t
     """Rejects permission requests and questions for our session until stopped."""
     while not stop.is_set():
         try:
-            with urllib.request.urlopen(_url(base, "/event", directory), timeout=60) as response:
+            event_url = _url(base, "/event", directory)
+            with urllib.request.urlopen(urllib.request.Request(event_url, headers=_headers(event_url)), timeout=60) as response:
                 connected.set()
                 for raw in response:
                     if stop.is_set():
