@@ -15,6 +15,7 @@ QtObject {
     property var modeSyncRef: null        // chat/ModeSync.qml: the mode and workspace of new chats
     property var helperCommandsRef: null  // chat/HelperCommands.qml
     property var recovery: HistoryRecovery { chat: manager.chat; sessions: manager }
+    property var messagesRef: SessionMessages { chat: manager.chat }   // reads a chat's messages when it is opened
 
     function makeSessionId() {
         return "s-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
@@ -42,28 +43,11 @@ QtObject {
                 session.value = Sec.validateSessionId(session.value) || manager.makeSessionId();
                 while (seenIds[session.value]) session.value = manager.makeSessionId();
                 seenIds[session.value] = true;
-                if (!Array.isArray(session.messages)) session.messages = [];
-                session.messages = session.messages.filter(function(message) {
-                    return message && typeof message === "object";
-                });
+                messagesRef.normalise(session);
                 if (session.archived === undefined) session.archived = false;
                 if (!EffectiveConfig.isMode(session.source)) {
                     session.source = EffectiveConfig.inferSource(session);
                     chat.sessionSourceInferred = true;
-                }
-                for (var j = 0; j < session.messages.length; j++) {
-                    var message = session.messages[j];
-                    if (message.content === undefined || message.content === null)
-                        message.content = "";
-                    else if (typeof message.content !== "string")
-                        message.content = String(message.content);
-                    // A long message keeps its full text; the view cuts it (ReplyState.displayContent).
-                    // A plain notice: the error banner's action would replace the history.
-                    if (message.content.length > chat.maxMessageChars)
-                        chat.privacyNotice = i18n("Some messages are too long to show in full and are shown shortened. The full text is kept."); // qmllint disable unqualified
-                    ReplyState.markInterrupted(message);
-                    if (!message.at) message.at = session.updatedAt || session.createdAt || Date.now();
-                    if (!message.time) message.time = TimeFormat.nowTime(message.at);
                 }
                 if (!session.updatedAt) session.updatedAt = session.createdAt || Date.now();
                 valid.push(session);
@@ -226,7 +210,7 @@ QtObject {
     function loadSessions() {
         if (chat.incognito)
             chat.incognito.cleanup("");  // pictures of an incognito chat still open when the widget ended
-        chat.sessions = manager.parseSessions(chat.chatStore.loadAll());
+        chat.sessions = manager.parseSessions(chat.chatStore.loadAll(true));
         recovery.afterLoad();
         if (chat.sessions.length === 0)
             manager.createSession(true);
@@ -236,12 +220,14 @@ QtObject {
         if (idx < 0)
             idx = 0;
 
+        manager.messagesRef.ensure(chat.sessions[idx].value);
         chat.currentSessionId = chat.sessions[idx].value;
         chat.currentSessionTitle = chat.sessions[idx].text;
         chat.messages = chat.sessions[idx].messages || [];
         chat.applySessionSource(chat.sessions[idx]);
         manager.sortSessionsByUpdated();
-        if (chat.sessionSourceInferred)
+        // An index from before 1.5 has no message counts: written once, so the next start reads the index only.
+        if (chat.sessionSourceInferred || chat.sessions.some(function(s) { return typeof s.messageCount !== "number"; }))
             manager.persistSessions();
     }
 
@@ -330,6 +316,7 @@ QtObject {
         // session. Invalidate callbacks before changing the active model.
         chat.invalidateActiveRequest(false);
         manager.saveCurrentSessionState(false);
+        manager.messagesRef.ensure(sessionId);
         var idx = manager.sessionIndexById(sessionId);
         var previousId = chat.currentSessionId;
         chat.currentSessionId = chat.sessions[idx].value;
@@ -362,6 +349,7 @@ QtObject {
         chat.sessionDeleted(removed, idx);
         manager.helperCommandsRef.deleteSessionSchedules(sessionId);
         if (chat.currentSessionId === sessionId) {
+            manager.messagesRef.ensure(chat.sessions[0].value);
             var next = chat.sessions[0];
             chat.currentSessionId = next.value;
             chat.currentSessionTitle = next.text;

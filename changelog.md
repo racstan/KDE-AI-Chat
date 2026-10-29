@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Attached files are kept once as files, not inside the chat file.** Each attachment is stored in the chat's folder (`attachments/<chat>/<hash>.<ext>`, private, written once per file) and the chat file keeps only a short reference, so chats with pictures and documents stay small and save fast. Old chats are moved the next time they are saved, after the copy has been read back and checked. Incognito chats still write no files. Deleting a chat deletes its attachments.
+- **Chats are read when you open them.** At start only the chat list is read; a chat's messages are read when you open it (search reads the rest the first time you search).
+
 ## [1.4.1] - 2026-10-29
 
 Fixes from a review of the 1.4.0 release.

@@ -100,6 +100,8 @@ QtObject {
         if (sessionId === chat.currentSessionId)
             return chat.messages;
         var idx = chat.sessionIndexById(sessionId);
+        if (idx >= 0 && chat.sessions[idx].messagesUnloaded)
+            chat.messageLoader.ensure(sessionId);
         return idx >= 0 ? (chat.sessions[idx].messages || []) : [];
     }
 
@@ -126,7 +128,7 @@ QtObject {
             }
             // A reply that is only a picture goes back as a short note, never as an empty message.
             var said = rm.content || (rm.role === "assistant" && (rm.images || []).length > 0 ? "[image]" : "");
-            var item = {"role": rm.role, "content": extras ? MessageContent.build(rm.content, rm.attachments, apiType, rm.quotes) : said};
+            var item = {"role": rm.role, "content": extras ? MessageContent.build(rm.content, chat.messageLoader ? chat.messageLoader.resolve(rm.attachments) : rm.attachments, apiType, rm.quotes) : said};
             messages.push(item);
             plain.push(item);
         }

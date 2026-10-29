@@ -4,6 +4,11 @@
 //   <directory>/index.ini.bak    the index as last saved, used when index.ini is damaged
 //   <directory>/chat-<id>.ini    messages = JSON list of messages
 //   <directory>/projects.ini     projects = JSON list of projects (chat/Projects.js)
+//   <directory>/attachments/<chat>/<sha256>.<ext>   attached files (AttachmentFiles.qml); the chat file keeps references
+//
+// The chat list is read from the index alone (loadAll(true)); a chat's messages
+// are read when it is first needed (loadMessages). A chat whose messages are
+// not loaded is never written, so its file stays as it is.
 //
 // Files are written in-process with QtCore Settings (atomic, no helper
 // process, nothing on a command line). Saves are debounced and only chats
@@ -24,6 +29,9 @@ Item {
     // Runs a helper command; calls onDone(output) when it finishes (if given).
     property var runHelper: function(command, payload, onDone) { if (onDone) onDone(""); }
     property int saveDelay: 400
+    // How long the attachment files of a removed chat are kept (the undo notice).
+    property int attachmentDeleteDelay: 12000
+    readonly property alias attachmentFiles: attachments
 
     // Set once prepare() has made the folder private.
     property bool ready: false
@@ -40,6 +48,9 @@ Item {
     property var _written: ({})
     property string _writtenIndex: ""
     property var _pending: null
+    property var _lastSessions: null
+    // id -> true for chats whose messages are still on disk only (loadAll(true)).
+    property var _unloaded: ({})
 
     signal saved()
     signal fileWritten(string fileName)
@@ -47,6 +58,21 @@ Item {
     Component {
         id: fileComponent
         Settings {}
+    }
+
+    AttachmentFiles {
+        id: attachments
+        directory: store.directory
+        runHelper: store.runHelper
+        deleteDelay: store.attachmentDeleteDelay
+        isPresent: function(chatId) { return chatId in store._written; }
+        // The bytes are on disk now: the chat is saved again, without them.
+        onStored: function(chatId) {
+            store._dirty[chatId] = true;
+            if (store._pending === null && store._lastSessions !== null)
+                store._pending = store._lastSessions;
+            saveTimer.restart();
+        }
     }
 
     Timer {
@@ -193,10 +219,12 @@ Item {
     }
 
     // Returns the stored chats (metadata with messages), or null when this
-    // folder has no index yet. A damaged index is copied aside and replaced by
+    // folder has no index yet. With `lazy`, the messages of chats that have a
+    // mode stay on disk: such a chat has messages [] and messagesUnloaded true
+    // until loadMessages(id); its messageCount comes from the index. A damaged index is copied aside and replaced by
     // index.ini.bak when that is readable (recoveredFromBackup); otherwise the
     // result is [] with indexProblem set and nothing will be written.
-    function loadAll() {
+    function loadAll(lazy) {
         if (!hasIndex())
             return null;
         indexProblem = "";
@@ -216,9 +244,19 @@ Item {
         }
         var written = {};
         var damaged = {};
+        var unloaded = {};
         var sessions = [];
         for (var i = 0; i < metas.length; i++) {
             var session = Object.assign({}, metas[i]);
+            // A chat without a mode (or a count) is read now: its mode is inferred from its messages (chat/EffectiveConfig.js).
+            if (lazy === true && /^(provider|opencode|pi)$/.test(String(session.source || "")) && typeof session.messageCount === "number") {
+                session.messages = [];
+                session.messagesUnloaded = true;
+                written[session.value] = null;
+                unloaded[session.value] = true;
+                sessions.push(session);
+                continue;
+            }
             var raw = _read(fileNameForId(session.value), "messages");
             try {
                 session.messages = raw ? JSON.parse(raw) : [];
@@ -232,49 +270,37 @@ Item {
             sessions.push(session);
         }
         _written = written;
+        _unloaded = unloaded;
         damagedIds = damaged;
         return sessions;
     }
 
-    // Lists the chat files and writes a new index for them (title from the first
-    // message, mode left to be inferred from the messages as for any chat without
-    // one). A chat file that cannot be read is listed empty and stays as it is.
-    // callback(count) when done.
-    function rebuildIndex(callback) {
-        runHelper("list_chat_files", {"directory": directory}, function(output) {
-            var files = [];
-            try { files = JSON.parse(output).files || []; } catch (e) { }
-            var metas = [];
-            var written = {};
-            var damaged = {};
-            for (var i = 0; i < files.length; i++) {
-                var id;
-                try { id = decodeURIComponent(files[i].slice(5, -4)); } catch (e) { continue; }
-                if (/^s-incognito-/.test(id))
-                    continue;
-                var raw = _read(files[i], "messages");
-                var messages = _parseIndex(raw || "[]");
-                if (messages === null) {
-                    damaged[id] = true;
-                    messages = [];
-                    _keepDamaged(files[i]);
-                } else {
-                    written[id] = raw;
-                }
-                var first = messages.filter(function(m) { return m && m.role === "user" && typeof m.content === "string"; })[0];
-                var last = messages.length > 0 && messages[messages.length - 1] ? messages[messages.length - 1].at : 0;
-                metas.push({"value": id, "text": first ? first.content.trim().substring(0, 40) : "Recovered chat",
-                            "createdAt": messages.length > 0 && messages[0] && messages[0].at ? messages[0].at : last || Date.now(),
-                            "updatedAt": last || Date.now()});
-            }
-            _written = written;
+    // Reads the messages of a chat loaded without them. Returns the list, or
+    // null when the chat's file cannot be read (it is kept aside and never written).
+    function loadMessages(id) {
+        var raw = _read(fileNameForId(id), "messages");
+        var messages = null;
+        try {
+            messages = raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            var damaged = Object.assign({}, damagedIds);
+            damaged[id] = true;
             damagedIds = damaged;
-            _pending = null;
-            _writeIndex(JSON.stringify(metas));
-            indexProblem = "";
-            if (callback) callback(metas.length);
-        });
+            _keepDamaged(fileNameForId(id));
+            lastError = "chat " + id + " unreadable: " + e;
+        }
+        var rest = Object.assign({}, _unloaded);
+        delete rest[id];
+        _unloaded = rest;
+        if (messages !== null)
+            _written[id] = raw;
+        return Array.isArray(messages) ? messages : null;
     }
+
+    // Writes a new index from the chat files (IndexRebuild.qml). callback(count) when done.
+    function rebuildIndex(callback) { rebuilder.run(callback); }
+
+    IndexRebuild { id: rebuilder; store: store }
 
     // Schedules a save of `sessions`; immediate writes now (if ready).
     // `changed` (optional) lists the ids of the chats whose messages may have
@@ -302,6 +328,7 @@ Item {
         var dirty = _dirty;
         var full = _fullCompare;
         _pending = null;
+        _lastSessions = sessions;
         _dirty = {};
         _fullCompare = false;
 
@@ -314,6 +341,13 @@ Item {
                 continue;
             var meta = Object.assign({}, session);
             delete meta.messages;
+            delete meta.messagesUnloaded;
+            if (_unloaded[session.value]) {  // messages still on disk: not touched
+                metas.push(meta);
+                written[session.value] = _written[session.value];
+                continue;
+            }
+            meta.messageCount = (session.messages || []).length;
             metas.push(meta);
             if (damagedIds[session.value]) {  // unreadable file: kept as it is
                 written[session.value] = _written[session.value];
@@ -324,7 +358,10 @@ Item {
                 written[session.value] = _written[session.value];
                 continue;
             }
-            var json = JSON.stringify(session.messages || []);
+            // Attached files are kept as files: the chat file holds references once they are stored.
+            var messages = session.messages || [];
+            var json = JSON.stringify(attachments.strip(session.value, messages));
+            attachments.schedule(session.value, messages);
             if (_written[session.value] !== json)
                 _write(fileNameForId(session.value), "messages", json);
             written[session.value] = json;
@@ -332,8 +369,10 @@ Item {
 
         var removed = [];
         for (var id in _written) {
-            if (!(id in written))
+            if (!(id in written)) {
                 removed.push(fileNameForId(id));
+                attachments.chatRemoved(id);
+            }
         }
         _written = written;
 

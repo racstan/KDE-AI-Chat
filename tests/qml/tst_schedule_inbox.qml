@@ -146,4 +146,18 @@ TestCase {
         });
         compare(fakeNotifier.sent.length, 1);
     }
+
+    // A chat whose messages were never read: the job already put the run in its file and the widget
+    // never writes such a chat, so only the list entry changes (and the notice is shown).
+    function test_a_run_for_a_chat_that_was_not_read_updates_its_entry_only() {
+        var dir = freshDir();
+        fakeChat.sessions = [{value: "open", messages: []}, {value: "other", messages: [], messagesUnloaded: true, messageCount: 5, updatedAt: 1}];
+        var inbox = createTemporaryObject(inboxComponent, testCase, {"directory": dir, "ready": true});
+        writeFile(dir + "/inbox", "run-1792998774769-news.ini", "entry", JSON.stringify(run("news-5", "other")));
+        tryVerify(function() { return fakeChat.sessions[1].messageCount === 7; }, 5000, "the count includes the run");
+        compare(fakeChat.sessions[1].messages.length, 0, "its messages stay on disk");
+        compare(fakeChat.sessions[1].messagesUnloaded, true);
+        verify(fakeChat.sessions[1].updatedAt > 1);
+        compare(fakeNotifier.sent.length, 1);
+    }
 }

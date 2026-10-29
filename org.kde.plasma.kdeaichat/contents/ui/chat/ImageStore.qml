@@ -175,6 +175,9 @@ QtObject {
     // The message with the entries added to its images. Works on any chat, not only the open one.
     function attach(sessionId, messageId, entries) {
         var current = sessionId === chat.currentSessionId;
+        var at0 = current ? -1 : chat.sessionIndexById(sessionId);
+        if (at0 >= 0 && chat.sessions[at0].messagesUnloaded)
+            chat.messageLoader.ensure(sessionId);
         var list = current ? chat.messages : ((chat.sessions[chat.sessionIndexById(sessionId)] || {}).messages || []);
         var at = -1;
         for (var i = list.length - 1; i >= 0 && at < 0; i--) {
@@ -264,6 +267,8 @@ QtObject {
             return false;
         if (!messageId)
             return true;
+        if (chat.sessions[idx].messagesUnloaded)
+            chat.messageLoader.ensure(sessionId);
         var list = sessionId === chat.currentSessionId ? chat.messages : (chat.sessions[idx].messages || []);
         for (var i = 0; i < list.length; i++) {
             if (list[i] && list[i].id === messageId && (list[i].images || []).length > 0)

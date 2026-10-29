@@ -37,6 +37,14 @@ def _chat_dir(payload: Dict[str, Any]) -> str:
     return directory
 
 
+def chat_folder_name(chat_id: str) -> str:
+    """A chat id as a folder name (images/<chat>, attachments/<chat>): characters outside [A-Za-z0-9._-] become "_"."""
+    name = re.sub(r"[^A-Za-z0-9._-]", "_", str(chat_id or ""))[:128].strip(".")
+    if not name:
+        raise ValueError("chat is required")
+    return name
+
+
 def cmd_prepare_chat_dir(payload: Dict[str, Any]) -> None:
     """Create the chat folder and its inbox private (0700) and tighten existing files to 0600."""
     directory = _chat_dir(payload)

@@ -253,6 +253,20 @@ QtObject {
         var requestSessionId = chat.currentSessionId;
         chat.setCurrentSessionSource();
         var requestGeneration = sender.beginRequest(requestSessionId);
+        // Attached files that were saved as files are read back before the request is built.
+        if (chat.messageLoader) {
+            chat.loading = true;  // no second request starts while the files are read
+            chat.messageLoader.hydrate(chat.sessionMessages(requestSessionId), function() {
+                if (chat.requestIsCurrent(requestSessionId, requestGeneration))
+                    sender.dispatchRequest(requestSessionId, requestGeneration, text);
+            });
+            return;
+        }
+        sender.dispatchRequest(requestSessionId, requestGeneration, text);
+    }
+
+    // Sends the request for the chat's last messages in the chat's mode.
+    function dispatchRequest(requestSessionId, requestGeneration, text) {
         if (chat.openCodeMode) {
             sender.openCodeRef.send(requestSessionId, requestGeneration);
             return ;

@@ -52,6 +52,8 @@ QtObject {
         if (!sessionId || sessionId === chat.currentSessionId)
             return chat.messages || [];
         var session = _session(sessionId);
+        if (session && session.messagesUnloaded)
+            chat.messageLoader.ensure(sessionId);
         return session ? session.messages || [] : [];
     }
 
