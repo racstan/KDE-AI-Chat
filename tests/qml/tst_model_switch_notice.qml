@@ -75,7 +75,7 @@ Item {
         id: tc
         name: "ModelSwitchNotice"
 
-        readonly property string cacheNote: "Switching models starts the provider's cache over, so the next message may use more input tokens."
+        readonly property string cacheNote: "New model: the cache starts over, so the next message may cost more."
 
         function setup(session, config) {
             chat.plasmoid = {configuration: Object.assign({

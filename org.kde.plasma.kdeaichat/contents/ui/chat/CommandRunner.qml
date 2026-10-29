@@ -255,7 +255,7 @@ Item {
             return !!m && (m.role === "user" || m.role === "assistant" || m.role === "opencode_assistant");
         });
         if (earlier)
-            show(i18n("Switching models starts the provider's cache over, so the next message may use more input tokens."));
+            show(i18n("New model: the cache starts over, so the next message may cost more."));
     }
 
     Timer {
