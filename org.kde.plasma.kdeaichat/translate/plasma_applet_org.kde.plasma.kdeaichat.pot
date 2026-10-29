@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-28 10:00+0530\n"
+"POT-Creation-Date: 2026-10-28 22:34+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -123,7 +123,7 @@ msgstr ""
 msgid "Not attached (not a readable file): %1"
 msgstr ""
 
-#: contents/ui/chat/AttachmentChips.qml:34
+#: contents/ui/chat/AttachmentChips.qml:36
 msgid "Open %1"
 msgstr ""
 
@@ -151,7 +151,7 @@ msgstr ""
 #: contents/ui/chat/ChatDeleteConfirm.qml:56
 #: contents/ui/chat/MessageActions.qml:229
 #: contents/ui/chat/ProjectDeleteConfirm.qml:48
-#: contents/ui/chat/ProjectEditor.qml:234
+#: contents/ui/chat/ProjectEditor.qml:236
 #: contents/ui/chat/RememberPopup.qml:129
 #: contents/ui/config/ImageProviderEditor.qml:266
 #: contents/ui/config/MemoryRow.qml:137
@@ -228,36 +228,36 @@ msgstr ""
 msgid "More actions"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:280 contents/ui/chat/ChatRowMenu.qml:25
+#: contents/ui/chat/ChatHeader.qml:276 contents/ui/chat/ChatRowMenu.qml:25
 #: contents/ui/chat/SessionList.qml:313
 msgid "Rename chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:297
+#: contents/ui/chat/ChatHeader.qml:295
 msgid "Jump to first message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:308
+#: contents/ui/chat/ChatHeader.qml:306
 msgid "Jump to previous message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:313
+#: contents/ui/chat/ChatHeader.qml:311
 msgid "Jump to next message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:318
+#: contents/ui/chat/ChatHeader.qml:316
 msgid "Jump to latest message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:329
+#: contents/ui/chat/ChatHeader.qml:327
 msgid "Schedule a message…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:335
+#: contents/ui/chat/ChatHeader.qml:333
 msgid "Export chat…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:341
+#: contents/ui/chat/ChatHeader.qml:339
 msgid "Clear chat"
 msgstr ""
 
@@ -292,8 +292,8 @@ msgstr ""
 #: contents/ui/chat/ChatOverridesForm.qml:233
 #: contents/ui/chat/FirstRunKey.qml:68 contents/ui/chat/PiChatSettings.qml:66
 #: contents/ui/chat/PiChatSettings.qml:69
-#: contents/ui/chat/ProjectEditor.qml:216
-#: contents/ui/chat/ProjectEditor.qml:217
+#: contents/ui/chat/ProjectEditor.qml:218
+#: contents/ui/chat/ProjectEditor.qml:219
 #: contents/ui/components/ModelPicker.qml:104
 #: contents/ui/voice/SttEngines.js:21
 msgid "Model"
@@ -338,7 +338,7 @@ msgstr[1] ""
 msgid "The latest message was sent with no memories."
 msgstr ""
 
-#: contents/ui/chat/ChatOverridesForm.qml:87
+#: contents/ui/chat/ChatOverridesForm.qml:90
 msgid "Select the chat's working folder"
 msgstr ""
 
@@ -435,7 +435,7 @@ msgid "The project's folder: %1"
 msgstr ""
 
 #: contents/ui/chat/ChatOverridesForm.qml:310
-#: contents/ui/chat/WorkspaceBar.qml:92 contents/ui/ConfigChat.qml:123
+#: contents/ui/chat/WorkspaceBar.qml:94 contents/ui/ConfigChat.qml:129
 msgid "No workspace"
 msgstr ""
 
@@ -874,7 +874,7 @@ msgid "Send message"
 msgstr ""
 
 #: contents/ui/chat/Composer.qml:341 contents/ui/chat/ImageJobCard.qml:73
-#: contents/ui/config/OpenCodeSettings.qml:169 contents/ui/ConfigVoice.qml:268
+#: contents/ui/config/OpenCodeSettings.qml:169 contents/ui/ConfigVoice.qml:269
 msgid "Stop"
 msgstr ""
 
@@ -894,7 +894,7 @@ msgstr ""
 msgid "Reading aloud…"
 msgstr ""
 
-#: contents/ui/chat/ComposerStatus.qml:28 contents/ui/ConfigVoice.qml:275
+#: contents/ui/chat/ComposerStatus.qml:28 contents/ui/ConfigVoice.qml:276
 msgid "Making speech…"
 msgstr ""
 
@@ -927,7 +927,7 @@ msgid "End call mode"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:75
-#: contents/ui/chat/MessageActions.qml:167 contents/ui/chat/MessageText.qml:114
+#: contents/ui/chat/MessageActions.qml:167 contents/ui/chat/MessageText.qml:86
 msgid "Stop reading"
 msgstr ""
 
@@ -1334,7 +1334,7 @@ msgid "%1 s"
 msgstr ""
 
 #: contents/ui/chat/ImageJobCard.qml:23
-#: contents/ui/config/SpeechNotePanel.qml:149
+#: contents/ui/config/SpeechNotePanel.qml:152
 msgid "%1 min"
 msgstr ""
 
@@ -1503,12 +1503,12 @@ msgstr ""
 msgid "Cancel edit"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:167 contents/ui/chat/MessageText.qml:115
+#: contents/ui/chat/MessageActions.qml:167 contents/ui/chat/MessageText.qml:87
 msgid "Read selection aloud"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:167 contents/ui/chat/MessageText.qml:115
-#: contents/ui/chat/Notifier.qml:55 contents/ui/ConfigVoice.qml:182
+#: contents/ui/chat/MessageActions.qml:167 contents/ui/chat/MessageText.qml:87
+#: contents/ui/chat/Notifier.qml:55 contents/ui/ConfigVoice.qml:183
 msgid "Read aloud"
 msgstr ""
 
@@ -1532,7 +1532,7 @@ msgstr ""
 msgid "Shorter"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:275 contents/ui/chat/MessageText.qml:105
+#: contents/ui/chat/MessageActions.qml:275 contents/ui/chat/MessageText.qml:77
 msgid "Copy"
 msgstr ""
 
@@ -1809,64 +1809,64 @@ msgstr ""
 msgid "Delete project and chats"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:91
+#: contents/ui/chat/ProjectEditor.qml:93
 msgid "Select the project's working folder"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:103
+#: contents/ui/chat/ProjectEditor.qml:105
 #: contents/ui/chat/ProjectsSidebar.qml:181
 msgid "Edit project"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:103
+#: contents/ui/chat/ProjectEditor.qml:105
 #: contents/ui/chat/ProjectsSidebar.qml:66
 msgid "New project"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:111
-#: contents/ui/chat/ProjectEditor.qml:112
+#: contents/ui/chat/ProjectEditor.qml:113
+#: contents/ui/chat/ProjectEditor.qml:114
 msgid "Project name"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:136
+#: contents/ui/chat/ProjectEditor.qml:138
 msgid "Colour %1"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:145
+#: contents/ui/chat/ProjectEditor.qml:147
 msgid "Instructions for every chat in this project"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:159
+#: contents/ui/chat/ProjectEditor.qml:161
 msgid "For example: answer in French, keep code in Python"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:164
+#: contents/ui/chat/ProjectEditor.qml:166
 msgid "Working folder (OpenCode and Pi work here)"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:174
-#: contents/ui/chat/ProjectEditor.qml:186
+#: contents/ui/chat/ProjectEditor.qml:176
+#: contents/ui/chat/ProjectEditor.qml:188
 msgid "No folder"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:179
+#: contents/ui/chat/ProjectEditor.qml:181
 msgid "Choose…"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:194
-#: contents/ui/chat/ProjectEditor.qml:201
+#: contents/ui/chat/ProjectEditor.qml:196
+#: contents/ui/chat/ProjectEditor.qml:203
 msgid "Model for direct chats"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:206
+#: contents/ui/chat/ProjectEditor.qml:208
 msgid "Main settings"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:228
+#: contents/ui/chat/ProjectEditor.qml:230
 msgid "Delete project"
 msgstr ""
 
-#: contents/ui/chat/ProjectEditor.qml:240
+#: contents/ui/chat/ProjectEditor.qml:242
 #: contents/ui/chat/RememberPopup.qml:135
 #: contents/ui/config/ImageProviderEditor.qml:260
 #: contents/ui/config/MemoryRow.qml:143
@@ -1876,23 +1876,23 @@ msgstr ""
 msgid "Save"
 msgstr ""
 
-#: contents/ui/chat/ProjectInfoLine.qml:40
+#: contents/ui/chat/ProjectInfoLine.qml:42
 msgid "In the project “%1”"
 msgstr ""
 
-#: contents/ui/chat/ProjectInfoLine.qml:52
+#: contents/ui/chat/ProjectInfoLine.qml:54
 msgid "Instructions: the project's, then this chat's own"
 msgstr ""
 
-#: contents/ui/chat/ProjectInfoLine.qml:53
+#: contents/ui/chat/ProjectInfoLine.qml:55
 msgid "Instructions: from the project"
 msgstr ""
 
-#: contents/ui/chat/ProjectInfoLine.qml:63
+#: contents/ui/chat/ProjectInfoLine.qml:65
 msgid "Working folder: %1 (from the project)"
 msgstr ""
 
-#: contents/ui/chat/ProjectInfoLine.qml:64
+#: contents/ui/chat/ProjectInfoLine.qml:66
 msgid "Working folder: %1 (this chat's own)"
 msgstr ""
 
@@ -2496,31 +2496,31 @@ msgstr ""
 msgid "Undo"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:62
+#: contents/ui/chat/WorkspaceBar.qml:64
 msgid "Select the chat's workspace folder"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:75
+#: contents/ui/chat/WorkspaceBar.qml:77
 msgid "Workspace: %1"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:75
+#: contents/ui/chat/WorkspaceBar.qml:77
 msgid "Choose a workspace folder"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:118
+#: contents/ui/chat/WorkspaceBar.qml:120
 msgid "%1 (folder from the project)"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:131
+#: contents/ui/chat/WorkspaceBar.qml:133
 msgid "Clear the workspace (No workspace)"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:156
+#: contents/ui/chat/WorkspaceBar.qml:158
 msgid "Agent profile"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:172
+#: contents/ui/chat/WorkspaceBar.qml:174
 msgid "Sync session history from OpenCode"
 msgstr ""
 
@@ -3020,158 +3020,158 @@ msgid ""
 "Plasma's own buttons keep the desktop colour."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:46 contents/ui/ConfigChat.qml:124
+#: contents/ui/ConfigChat.qml:50 contents/ui/ConfigChat.qml:130
 msgid "Default workspace for new chats"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:62
+#: contents/ui/ConfigChat.qml:66
 msgid "Earlier messages sent:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:67
+#: contents/ui/ConfigChat.qml:71
 msgid "All (up to 100)"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:73
+#: contents/ui/ConfigChat.qml:77
 msgid "Number of earlier messages sent with each request"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:77
+#: contents/ui/ConfigChat.qml:81
 msgid ""
 "How much of the conversation the AI sees each time you write. More lets it "
 "remember what was said earlier in the chat; fewer is faster and cheaper."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:78
+#: contents/ui/ConfigChat.qml:82
 msgid ""
 "The AI keeps nothing between messages: the earlier messages are sent again "
 "with every new one. Long chats set to \"All\" use more of your provider's "
 "allowance."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:83
+#: contents/ui/ConfigChat.qml:87
 msgid "Chat names:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:84
+#: contents/ui/ConfigChat.qml:88
 msgid "Let the model name new chats"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:88
+#: contents/ui/ConfigChat.qml:92
 msgid ""
 "After your first message, the AI gives the chat a short title for the chat "
 "list. Turn this off to name chats yourself."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:94
+#: contents/ui/ConfigChat.qml:98
 msgid "Questions:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:95
+#: contents/ui/ConfigChat.qml:99
 msgid "Let the AI ask me questions"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:99
+#: contents/ui/ConfigChat.qml:103
 msgid ""
 "When it needs a choice or a missing detail, the AI can ask you in the chat "
 "and wait for your answer. Applies to chats with a provider; the agent modes "
 "ask in their own way."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:105
+#: contents/ui/ConfigChat.qml:109
 msgid "Incognito chats:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:106
+#: contents/ui/ConfigChat.qml:110
 msgid "Ask before leaving one that has messages"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:110
+#: contents/ui/ConfigChat.qml:114
 msgid ""
 "An incognito chat (the button next to New chat, or Ctrl+Shift+N) is never "
 "saved: when you leave it, its messages are gone. With this on, you are asked "
 "first."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:114
+#: contents/ui/ConfigChat.qml:118
 msgid "Default workspace for new chats:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:129 contents/ui/ConfigChat.qml:131
+#: contents/ui/ConfigChat.qml:135 contents/ui/ConfigChat.qml:137
 msgid "Choose a folder"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:136
+#: contents/ui/ConfigChat.qml:142
 msgid ""
 "A folder on your computer that new chats work in, for example a project you "
 "are coding. Copied into a chat when it is created. Leave empty for no "
 "workspace. Each chat can change its own in the bar above the chat."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:137
+#: contents/ui/ConfigChat.qml:143
 msgid "The agent modes (OpenCode and Pi) read and change files in this folder."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:142
+#: contents/ui/ConfigChat.qml:148
 msgid "Model settings per chat"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:148
+#: contents/ui/ConfigChat.qml:154
 msgid "Chats:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:149
+#: contents/ui/ConfigChat.qml:155
 msgid "Let chats have their own model settings"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:150
+#: contents/ui/ConfigChat.qml:156
 msgid ""
 "When off, every chat uses the model settings from Settings. A chat's own "
 "settings are kept but ignored."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:155
+#: contents/ui/ConfigChat.qml:161
 msgid ""
 "A chat can choose its own provider and model in its Chat info panel. The way "
 "it sends messages (directly, OpenCode or Pi) stays the one it was started "
 "with."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:156
+#: contents/ui/ConfigChat.qml:162
 msgid ""
 "Every chat uses the mode, provider and model from Settings. Any model "
 "settings a chat already has are kept, and come back if you turn this on."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:163
+#: contents/ui/ConfigChat.qml:169
 msgid "When they differ:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:164
+#: contents/ui/ConfigChat.qml:170
 msgid "This chat's settings win"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:174
+#: contents/ui/ConfigChat.qml:180
 msgid "Main settings win"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:182
+#: contents/ui/ConfigChat.qml:188
 msgid ""
 "A chat that has its own settings uses them; anything it leaves empty comes "
 "from the main settings."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:183
+#: contents/ui/ConfigChat.qml:189
 msgid ""
 "The main settings are used. A chat's own settings only fill in what the main "
 "settings leave empty, such as a model."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:188
+#: contents/ui/ConfigChat.qml:194
 msgid "Prompt templates"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:193
+#: contents/ui/ConfigChat.qml:199
 msgid ""
 "A template is a message you use often, saved under a short name. In the chat "
 "box, type / and the name (for example /summarize) and the saved text "
@@ -3179,17 +3179,17 @@ msgid ""
 "built-in commands."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:198
+#: contents/ui/ConfigChat.qml:204
 msgid "Insert with /name:"
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:204
+#: contents/ui/ConfigChat.qml:210
 msgid ""
 "Add a template with a short name and the text it stands for. Changes are "
 "kept when you press OK or Apply."
 msgstr ""
 
-#: contents/ui/ConfigChat.qml:215
+#: contents/ui/ConfigChat.qml:221
 msgid "Your prompt templates are kept."
 msgstr ""
 
@@ -3301,7 +3301,7 @@ msgstr ""
 msgid "Installed now: KRunner %1, Dolphin %2, shortcut %3."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:68 contents/ui/ConfigVoice.qml:187
+#: contents/ui/config/DictationSettings.qml:68 contents/ui/ConfigVoice.qml:188
 msgid "Engine:"
 msgstr ""
 
@@ -3322,7 +3322,7 @@ msgid ""
 "choosing yours helps with short phrases."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:128 contents/ui/ConfigVoice.qml:264
+#: contents/ui/config/DictationSettings.qml:128 contents/ui/ConfigVoice.qml:265
 msgid "Try it:"
 msgstr ""
 
@@ -3504,7 +3504,7 @@ msgstr ""
 
 #: contents/ui/config/ImageProviderEditor.qml:145
 #: contents/ui/config/PiSettings.qml:100
-#: contents/ui/config/ProviderEditor.qml:103 contents/ui/ConfigStorage.qml:183
+#: contents/ui/config/ProviderEditor.qml:103 contents/ui/ConfigStorage.qml:185
 msgid "Refresh"
 msgstr ""
 
@@ -5628,70 +5628,73 @@ msgstr ""
 msgid "%1 %2"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:85
+#: contents/ui/config/SpeechNotePanel.qml:87
 msgid "Set up:"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:89
+#: contents/ui/config/SpeechNotePanel.qml:91
 msgid ""
 "Install Speech Note, then download a speech-to-text model in your language "
 "inside Speech Note."
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:90
+#: contents/ui/config/SpeechNotePanel.qml:92
 msgid ""
 "Install Speech Note, then download a voice in your language inside Speech "
 "Note. Until then the system voice reads."
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:96
+#: contents/ui/config/SpeechNotePanel.qml:98
 msgid "Get it:"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:107
+#: contents/ui/config/SpeechNotePanel.qml:109
 msgid "Speech model:"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:107 contents/ui/ConfigSupport.qml:69
+#: contents/ui/config/SpeechNotePanel.qml:109 contents/ui/ConfigSupport.qml:69
 msgid "Voice:"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:111
+#: contents/ui/config/SpeechNotePanel.qml:113
 msgid "Speech Note's default"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:128
+#: contents/ui/config/SpeechNotePanel.qml:131
 msgid ""
-"Speech Note has no speech-to-text model yet: download one in Speech Note."
+"Speech Note has no speech-to-text model yet: download one in your language "
+"inside Speech Note."
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:129
-msgid "Speech Note has no voice yet: download one in Speech Note."
+#: contents/ui/config/SpeechNotePanel.qml:132
+msgid ""
+"Speech Note has no voice yet: download one in your language inside Speech "
+"Note. Until then the system voice reads."
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:135
+#: contents/ui/config/SpeechNotePanel.qml:138
 msgid ""
 "Which of the speech models you downloaded in Speech Note understands you. "
 "\"Speech Note's default\" uses the one chosen in Speech Note; each model's "
 "name shows its language."
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:136
+#: contents/ui/config/SpeechNotePanel.qml:139
 msgid ""
 "Which of the voices you downloaded in Speech Note reads to you. \"Speech "
 "Note's default\" uses the one chosen in Speech Note; each voice's name shows "
 "its language."
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:144
+#: contents/ui/config/SpeechNotePanel.qml:147
 msgid "Keep ready:"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:149
+#: contents/ui/config/SpeechNotePanel.qml:152
 msgid "Only when used"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:156
+#: contents/ui/config/SpeechNotePanel.qml:159
 msgid ""
 "How long Speech Note stays ready after you close the chat, so the next press "
 "starts at once. While it is ready its speech model stays in memory (and in "
@@ -5699,82 +5702,82 @@ msgid ""
 "minute."
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:161
+#: contents/ui/config/SpeechNotePanel.qml:164
 msgid "Credit:"
 msgstr ""
 
-#: contents/ui/config/SpeechNotePanel.qml:166 contents/ui/ConfigSupport.qml:74
+#: contents/ui/config/SpeechNotePanel.qml:169 contents/ui/ConfigSupport.qml:74
 msgid ""
 "Speech, models and GPU support by <a href=\"%1\">Speech Note</a>, © Michał "
 "Kosciesza, MPL-2.0"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:40
+#: contents/ui/ConfigStorage.qml:42
 msgid "Chats"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:41
+#: contents/ui/ConfigStorage.qml:43
 msgid ""
 "Your conversations: the text of every chat and the list of chats. Delete "
 "chats in the chat history; this page only shows the space they use."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:42
+#: contents/ui/ConfigStorage.qml:44
 msgid "Pictures"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:43
+#: contents/ui/ConfigStorage.qml:45
 msgid ""
 "Pictures the AI made for you, saved next to the chats they belong to. "
 "Deleting a chat deletes its pictures; they can't be removed from here."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:44
+#: contents/ui/ConfigStorage.qml:46
 msgid "Memories"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:45
+#: contents/ui/ConfigStorage.qml:47
 msgid ""
 "The notes you asked the assistant to remember. Manage them in Settings → "
 "Memory."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:46
+#: contents/ui/ConfigStorage.qml:48
 msgid "Schedules and their logs"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:47
+#: contents/ui/ConfigStorage.qml:49
 msgid ""
 "Your scheduled prompts and the record of when each one last ran. Manage them "
 "in Settings → Schedules."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:48
+#: contents/ui/ConfigStorage.qml:50
 msgid "Backups"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:49
+#: contents/ui/ConfigStorage.qml:51
 msgid ""
 "Copies of your Plasma widget settings, made automatically before a clean-up. "
 "Safe to remove once you are happy with how the widget works; it never needs "
 "them to run."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:50
+#: contents/ui/ConfigStorage.qml:52
 msgid "Temporary files"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:51
+#: contents/ui/ConfigStorage.qml:53
 msgid ""
 "Short-lived files the widget makes while it works (spoken audio, recordings "
 "and logs). Safe to remove; the widget makes new ones when needed."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:52
+#: contents/ui/ConfigStorage.qml:54
 msgid "Old voice engines (no longer used)"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:53
+#: contents/ui/ConfigStorage.qml:55
 msgid ""
 "Programs and speech models that earlier versions of the widget installed for "
 "reading aloud and dictation. Voice now uses the separate app Speech Note, so "
@@ -5782,68 +5785,68 @@ msgid ""
 "background services."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:54
+#: contents/ui/ConfigStorage.qml:56
 msgid "Other files"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:55
+#: contents/ui/ConfigStorage.qml:57
 msgid ""
 "Small files the widget needs, such as connection details for its helper "
 "programs. They can't be removed here."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:67
+#: contents/ui/ConfigStorage.qml:69
 msgid "Could not work out the sizes."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:104
+#: contents/ui/ConfigStorage.qml:106
 msgid "Removed. %1 freed."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:106
+#: contents/ui/ConfigStorage.qml:108
 msgid "Could not remove it."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:122
+#: contents/ui/ConfigStorage.qml:124
 msgid "Remove %1?"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:125
+#: contents/ui/ConfigStorage.qml:127
 msgid "This frees %1 and can't be undone."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:140
+#: contents/ui/ConfigStorage.qml:142
 msgid ""
 "Everything the widget keeps on this computer is in one folder. It can't be "
 "moved. Your API keys are not in it: they are kept in KDE Wallet."
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:148
+#: contents/ui/ConfigStorage.qml:150
 msgid "Folder:"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:161 contents/ui/ConfigStorage.qml:251
+#: contents/ui/ConfigStorage.qml:163 contents/ui/ConfigStorage.qml:253
 #: contents/ui/config/StorageRow.qml:48
 msgid "Open folder"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:176
+#: contents/ui/ConfigStorage.qml:178
 msgid "Counting…"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:177
+#: contents/ui/ConfigStorage.qml:179
 msgid "In total: at least %1"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:178
+#: contents/ui/ConfigStorage.qml:180
 msgid "In total: %1"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:244
+#: contents/ui/ConfigStorage.qml:246
 msgid "Speech models are kept by Speech Note"
 msgstr ""
 
-#: contents/ui/ConfigStorage.qml:257
+#: contents/ui/ConfigStorage.qml:259
 msgid ""
 "The voices and speech models used for reading aloud and dictation belong to "
 "the Speech Note app. They are not counted above and this widget never "
@@ -6000,92 +6003,98 @@ msgid "Read aloud failed: %1"
 msgstr ""
 
 #: contents/ui/ConfigVoice.qml:150
+msgid "That was the system voice."
+msgstr ""
+
+#: contents/ui/ConfigVoice.qml:151
+msgid ""
+"That was the system voice, because Speech Note has no voice yet: download "
+"one in Speech Note."
+msgstr ""
+
+#: contents/ui/ConfigVoice.qml:152
 msgid ""
 "That was the system voice, because Speech Note is not installed: see the "
 "setup steps above."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:151
-msgid "That was the system voice."
-msgstr ""
-
-#: contents/ui/ConfigVoice.qml:151
+#: contents/ui/ConfigVoice.qml:152
 msgid "Finished."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:161
+#: contents/ui/ConfigVoice.qml:162
 msgid "Read aloud:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:162
+#: contents/ui/ConfigVoice.qml:163
 msgid "Offer to read replies aloud"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:166
+#: contents/ui/ConfigVoice.qml:167
 msgid ""
 "Adds a speaker button under each reply that reads it out loud. Choose the "
 "voice below."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:172
+#: contents/ui/ConfigVoice.qml:173
 msgid "Dictation:"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:173
+#: contents/ui/ConfigVoice.qml:174
 msgid "Show a microphone button in the chat"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:177
+#: contents/ui/ConfigVoice.qml:178
 msgid ""
 "Speak instead of typing: press the microphone, talk, and your words are "
 "written into the message box. The speech is turned into text on this "
 "computer unless you pick a server below."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:190
+#: contents/ui/ConfigVoice.qml:191
 msgid "Engine"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:200
+#: contents/ui/ConfigVoice.qml:201
 msgid "%1 (not available)"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:211
+#: contents/ui/ConfigVoice.qml:212
 msgid "Looking for voices…"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:224
+#: contents/ui/ConfigVoice.qml:225
 msgid ""
 "The engine is the program that makes the speech. Speech Note is a separate "
 "app with natural voices in many languages; \"System voices\" works without "
 "any setup but sounds robotic; a speech server is one you run or pay for."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:268
+#: contents/ui/ConfigVoice.qml:269
 msgid "Say Hello"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:275
+#: contents/ui/ConfigVoice.qml:276
 msgid "Speaking…"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:283
+#: contents/ui/ConfigVoice.qml:284
 msgid ""
 "Plays a short greeting with the settings above, so you can hear them before "
 "saving."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:289
+#: contents/ui/ConfigVoice.qml:290
 msgid "Read every reply aloud when it is finished"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:294
+#: contents/ui/ConfigVoice.qml:295
 msgid ""
 "Hands-free: each new reply is spoken without pressing the speaker button. "
 "Stop it with the stop button or Ctrl+Shift+S."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:299
+#: contents/ui/ConfigVoice.qml:300
 msgid "Dictation"
 msgstr ""
 
@@ -6157,19 +6166,19 @@ msgstr ""
 msgid "Checking KWallet…"
 msgstr ""
 
-#: contents/ui/VoiceManager.qml:35
+#: contents/ui/VoiceManager.qml:36
 msgid "Voice error"
 msgstr ""
 
-#: contents/ui/VoiceManager.qml:99
+#: contents/ui/VoiceManager.qml:100
 msgid "Dictation failed."
 msgstr ""
 
-#: contents/ui/VoiceManager.qml:110
+#: contents/ui/VoiceManager.qml:111
 msgid "Listening…"
 msgstr ""
 
-#: contents/ui/VoiceManager.qml:115
+#: contents/ui/VoiceManager.qml:116
 msgid "Transcribing…"
 msgstr ""
 
