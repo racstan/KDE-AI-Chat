@@ -194,6 +194,7 @@ QtObject {
             console.warn("KDE AI Chat: chat migration could not be verified; the old history was kept and will be tried again next start.");
             chatStore.discardIndex();
             chatMigrationFailed = true;
+            _say(i18n("Your old chats could not be moved, so changes are not saved until the widget restarts and tries again.")); // qmllint disable unqualified
             if (callback) callback(false);
             return;
         }
