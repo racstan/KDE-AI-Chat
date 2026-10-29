@@ -26,6 +26,7 @@ QtObject {
     function getProviderConfig(provider, sessionId) {
         var providerId = provider || chat.getEffectiveProvider(sessionId || chat.currentSessionId);
         var cfg = ProviderService.getProviderConfig(providerId, chat.plasmoid.configuration);
+        cfg.providerId = providerId;  // the spending log names the provider (chat/SpendingLog.qml)
         cfg.baseUrl = Sec.validateHttpUrl(cfg.baseUrl);
         // Keys come from KWallet. A plaintext value left by an older version is
         // only used while KWallet is unavailable, until it can be migrated.
@@ -188,7 +189,8 @@ QtObject {
         var tools = DirectTools.toolDefinitions(apiType, {"askUser": chat.plasmoid.configuration.allowAskUser !== false, "extra": extra});
         var withTools = tools.length > 0 && !DirectBackend.rejectsTools({"baseUrl": cfg.baseUrl, "model": cfg.model || ""});
         var parts = direct.buildDirectRequestParts(sessionId, apiType, withTools);
-        chat.currentStreamUsage = ({});
+        // Who answers this reply, for the spending log (ReplyEvents.qml copies it along with the usage).
+        chat.currentStreamUsage = ({"provider": cfg.providerId || "", "model": cfg.model || "", "mode": "direct"});
         chat.loading = true;
         direct.sendRound({"cfg": cfg, "sessionId": sessionId, "generation": generation, "variantSend": variantSend,
                           "apiType": apiType, "model": cfg.model || "", "system": parts.system, "messages": parts.messages,

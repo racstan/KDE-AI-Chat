@@ -18,7 +18,7 @@ from typing import Any, Callable, Dict
 
 from kdeaichat import (ask_inbox, attachments, chats, config_cleanup, desktop_integration, diagnostics, images, local_servers, maintenance, mcp_bridge, mcp_config, memory, opencode_server,
                        panel_icon, pi_bridge, pi_models, privacy, schedule_chat, schedule_job, schedule_store, schedules,
-                       speechnote, storage, stt_commands, tool_approvals, tts, voice_legacy)
+                       speechnote, storage, stt_commands, tool_approvals, tts, usage, voice_legacy)
 
 
 def _decode_payload(raw: str) -> Dict[str, Any]:
@@ -64,7 +64,7 @@ def main() -> None:
     commands: Dict[str, Callable[[Dict[str, Any]], None]] = {}
     for module in (schedules, schedule_store, schedule_job, schedule_chat, stt_commands, maintenance, privacy,
                    chats, attachments, images, memory, opencode_server, panel_icon, pi_bridge, pi_models, tts, voice_legacy,
-                   diagnostics, mcp_bridge, mcp_config, config_cleanup, speechnote, local_servers, storage, ask_inbox, desktop_integration, tool_approvals):
+                   diagnostics, mcp_bridge, mcp_config, config_cleanup, speechnote, local_servers, storage, ask_inbox, desktop_integration, tool_approvals, usage):
         commands.update(module.COMMANDS)
     if command not in commands:
         print(f"Unknown command: {command}")

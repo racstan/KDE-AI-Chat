@@ -60,6 +60,12 @@ ColumnLayout {
         runner.noteModelSwitch(sessionId, before, after);
     }
 
+    // A short note in the status line from outside the composer (a budget alert, chat/SpendingLog.qml).
+    // Typing clears it, as with the other notes.
+    function showNotice(text) {
+        runner.show(text);
+    }
+
     // Starts editing the last message you wrote (Ctrl+E), if
     // there is one and no reply is being written. Returns whether it did.
     function editLastMessage() {

@@ -165,6 +165,8 @@ QtObject {
     function sendPrompt(sessionId, generation, canRetry) {
         var source = chat.sessionMessages(sessionId);
         var body = mode.promptBody(sessionId, source[source.length - 1] || {});
+        // Who answers this reply, for the spending log: the provider and model the request carries (ReplyEvents.qml).
+        chat.currentStreamUsage = Object.assign({}, chat.currentStreamUsage, {"provider": body.provider || "", "model": body.model || "", "mode": "pi"});
         var label = body.model ? "Pi · " + body.model : "Pi";
         var retrying = false;
         var progressed = false;

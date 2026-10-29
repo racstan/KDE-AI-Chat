@@ -468,6 +468,17 @@
     <entry name="requestTimeout" type="Int">
       <default>60</default>
     </entry>
+    <!-- Settings -> Spending: a monthly budget per provider in dollars, as a JSON object (provider id -> number; {} = none).
+         The spending log itself is ~/.local/share/kdeaichat/usage/ (kdeaichat/usage.py), never here. -->
+    <entry name="spendingBudgets" type="String">
+      <default>{}</default>
+    </entry>
+    <!-- The share of a budget (percent) at which a provider's alert shows; the full budget (100%) always alerts too. -->
+    <entry name="spendingAlertPercent" type="Int">
+      <default>80</default>
+      <min>1</min>
+      <max>100</max>
+    </entry>
     <entry name="walletKeysRevision" type="Int">
       <default>0</default>
     </entry>

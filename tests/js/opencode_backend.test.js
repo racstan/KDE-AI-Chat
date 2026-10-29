@@ -96,6 +96,17 @@ const tests = {
         assert.deepStrictEqual(out.filter(e => e.type === "done"), [{type: "done", reason: "complete"}]);
     },
 
+    usage_without_a_cost_or_with_cache_reads() {
+        // A step with no cost says nothing about cost (unknown, not 0); cache reads come along when reported.
+        const step = (id, extra) => ev("message.part.updated", {part: Object.assign({id, messageID: "msg_a", type: "step-finish",
+                                                                                   reason: "stop", tokens: {input: 50, output: 5}}, extra)});
+        const out = run([ev("message.updated", {info: {id: "msg_a", role: "assistant"}}),
+                         step("p_1", {}), step("p_2", {cost: 0.25, tokens: {input: 50, output: 5, cache: {read: 40, write: 0}}})]);
+        const usage = out.filter(e => e.type === "usage");
+        assert.deepStrictEqual(usage, [{type: "usage", input: 50, output: 5, reasoning: 0},
+                                       {type: "usage", input: 50, output: 5, reasoning: 0, cost: 0.25, cacheRead: 40}]);
+    },
+
     idle_before_work_is_ignored() {
         const out = run([ev("session.idle", {}), ev("session.status", {status: {type: "idle"}})]);
         assert.deepStrictEqual(out, []);
