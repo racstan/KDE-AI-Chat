@@ -79,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The words being read aloud glow.** While a message is read aloud, the sentence being read is softly highlighted and the highlight moves along as it reads; with System voices the word being said is highlighted too, also in replies with code blocks. Speech Note reports each sentence as it starts it. The glow sits behind the text, so it no longer replaces your own selection.
 - **The More actions menu opens and closes at once.** Hovering the button opens it straight away and moving off it closes it, with no wait and no fade; its Move to project submenu opens at once too.
 - **One activity box for thinking and steps.** In direct and Pi chats, a reply's thinking and the steps the AI takes (tool calls, notices, changed files) now sit in one collapsible box above the reply, in the order they happened. Collapsed it is one line: what the AI is doing right now while it works ("Running read_file…"), then "Thought for 12 s · 3 steps" once it is done. Older chats show in the same box; OpenCode chats look as before.
-- **New license: PolyForm Noncommercial 1.0.0.** From 1.4.0, KDE AI Chat may be used, changed and shared for any noncommercial purpose; commercial use needs a separate license from the author. Versions up to 1.3.1 stay under the GNU GPL v3.0 or later. A **SECURITY.md** says how to report security problems privately.
+- **New license: PolyForm Noncommercial 1.0.0.** From 1.4.0, KDE AI Chat may be used, changed and shared for any noncommercial purpose; commercial use needs a separate license from the author. Versions up to 1.3.1 were released under the GNU GPL and stay available under it. A **SECURITY.md** says how to report security problems privately.
 - **One "Icon:" setting in Settings → Appearance.** The theme icon, a still image, an animated image (GIF, APNG, WebP) and a short video are all chosen from the one Icon button's menu, which shows what the panel will show. The separate "Panel icon:" choice and its "File:" row are gone; the file name, the size message and "Animate only while the pointer is on it" appear only when an animation or video is chosen. Your saved settings are unchanged.
 - Check setup's fix for a local server that isn't running reads "Start Ollama (local), or correct the address. For Ollama, the command is: ollama serve" instead of the doubled brackets.
 - **Error cards can be translated.** Their plain-words texts (chat/ErrorText.js) are now in the translation template and shown through i18n(); the provider's own words stay as they are.
@@ -147,12 +147,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A reply could be built from the chat on screen instead of the chat it belonged to.
 - Closing the settings page before keys had loaded could delete them from KWallet.
 - The Save buttons for DeepSeek, MiniMax and OpenRouter keys didn't work.
-- The Settings → Other page and model search in Settings → General failed to load or threw errors.
 - **⚡ Lower idle CPU use**: The widget no longer starts a shell process every 3 seconds when the scheduler is switched off. ([#4](https://github.com/racstan/KDE-AI-Chat/issues/4))
 - Fixed invalid theme and visibility bindings that logged `Unable to assign [undefined]` warnings in the journal. ([#4](https://github.com/racstan/KDE-AI-Chat/issues/4))
 - Fixed QML binding loops and a blocking subprocess that could freeze plasmashell when opening chat settings.
-- Hardened voice daemons with per-user token authentication, loopback/origin checks, bounded requests, private temporary audio, and authenticated systemd setup.
-- Reworked request/session cancellation, OpenCode/Pi completion handling, MCP follow-up generations, context compaction, attachment correlation, and queued scheduler triggers.
+- Reworked request/session cancellation, OpenCode/Pi completion handling, attachment correlation, and queued scheduler triggers.
 - Added URL/path/session validation, bounded message and scheduler payloads, atomic scheduler writes, KWallet synchronization for custom providers, and temporary attachment cleanup.
 - Custom Anthropic-compatible endpoints now work.
 - Removed unused JavaScript modules that were no longer loaded by the widget.

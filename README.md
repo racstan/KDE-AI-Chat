@@ -143,7 +143,7 @@ Plans can change; ideas and requests are welcome in the [issues](https://github.
 
 Copyright (C) 2026 Rachit Asthana
 
-KDE AI Chat is licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0): you may use, change and share it for any noncommercial purpose (personal use, study, research, hobby projects, and use by charities, schools and public bodies). Commercial use needs the author's permission. It comes without any warranty. See [LICENSE](LICENSE) for the full text, [TERMS.md](TERMS.md) for the terms of use and [SECURITY.md](SECURITY.md) for reporting security problems. Versions up to 1.3.1 were released under the GNU GPL v3.0 or later and stay available under that license.
+KDE AI Chat is licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0): you may use, change and share it for any noncommercial purpose (personal use, study, research, hobby projects, and use by charities, schools and public bodies). Commercial use needs the author's permission. It comes without any warranty. See [LICENSE](LICENSE) for the full text, [TERMS.md](TERMS.md) for the terms of use and [SECURITY.md](SECURITY.md) for reporting security problems. Versions up to 1.3.1 were released under the GNU GPL and stay available under that license.
 
 Using the widget also means accepting the [terms of use](TERMS.md): no warranty, your messages go only to the services you choose, and you are responsible for your keys, your costs and how you use the answers.
 
