@@ -114,6 +114,7 @@ The widget works out of the box. Some features need a small tool; if one is miss
 - **Dictation is press to start, press to stop.** Holding a key to talk isn't possible, because a Plasma widget can't see when a key is released.
 - **Good voices need Speech Note.** Speech Note is a separate app and a large download. Without it (or until it has a voice), replies are read with the plainer system voice, and dictation needs Speech Note or a speech server of your own.
 - **Pi may forget details in very long chats.** When a Pi chat grows very long (for example after attaching a whole book), Pi shortens its own memory of the conversation, so later answers can miss details and cost more for a while. This is how Pi works, not the widget.
+- **Long chats don't make full use of prompt caching yet.** Many providers can cache the start of a conversation so that it is cheaper to send again, but the widget doesn't ask for it where a provider needs to be asked (such as Anthropic) and doesn't show how much came from the cache. Changing a chat's model also starts the provider's cache over, so the next message can cost more input tokens, and the widget doesn't warn you about that yet. Both are being worked on for 1.5.0.
 
 ---
 
@@ -131,6 +132,7 @@ Also on the list:
 - Push-to-talk: a shortcut that opens the widget and starts dictation, and stops it when pressed again.
 - A spending page with monthly budgets and alerts per provider.
 - Backup and restore of all chats and settings, and importing ChatGPT and Claude exports.
+- Prompt caching, so long chats cost less, and a warning when changing a chat's model will start the cache over.
 - A fallback model that answers when your provider is down or out of credit.
 - One place to see and change what each agent or MCP server is allowed to do.
 - Customisable keyboard shortcuts.
