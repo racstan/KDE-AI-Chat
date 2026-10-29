@@ -104,14 +104,14 @@ Item {
         if (!replyEnabled || popupOpen)
             return false;
         var hidden = isIncognito(chatId);
-        sender(hidden ? i18n("Incognito chat") : chatName(chatTitle), (hidden ? "" : preview(text)) || i18n("The reply is ready."), String(chatId), false, String(text || ""));
+        sender(hidden ? i18n("Incognito chat") : chatName(chatTitle), escapeMarkup((hidden ? "" : preview(text)) || i18n("The reply is ready.")), String(chatId), false, String(text || ""));
         return true;
     }
 
     function failed(chatId, chatTitle, message) {
         if (!errorEnabled || popupOpen)
             return false;
-        sender(i18n("%1: request failed", isIncognito(chatId) ? i18n("Incognito chat") : chatName(chatTitle)), preview(message) || i18n("Something went wrong."), String(chatId), true);
+        sender(i18n("%1: request failed", isIncognito(chatId) ? i18n("Incognito chat") : chatName(chatTitle)), escapeMarkup(preview(message) || i18n("Something went wrong.")), String(chatId), true);
         return true;
     }
 
@@ -120,31 +120,65 @@ Item {
         if (!scheduledEnabled)
             return false;
         var name = String(taskName || "").trim();
-        sender(name ? i18n("%1 is ready", name) : i18n("A scheduled prompt is ready"), preview(message), String(chatId), false);
+        sender(name ? i18n("%1 is ready", name) : i18n("A scheduled prompt is ready"), escapeMarkup(preview(message)), String(chatId), false);
         return true;
     }
 
     // --- Input needed -------------------------------------------------------------
 
+    // Notification bodies are read as markup by Plasma: text from a reply or an agent is escaped.
+    function escapeMarkup(text) {
+        return String(text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // The tool and arguments of a permission request as one text, or "" when they can't be shown
+    // completely and as written in a notification (too long, several lines, hidden characters).
+    function permissionLiteral(message) {
+        var args = (message.arguments || []).map(function(a) { return String(a); });
+        var parts = [String(message.tool || "")].concat(args);
+        var whole = parts[0] + (args.length > 0 ? ": " + args.join("\n") : "");
+        var hidden = new RegExp("[\\u0000-\\u0009\\u000b-\\u001f\\u007f-\\u009f\\u00ad\\u200b-\\u200f\\u2028-\\u202e\\u2060-\\u206f\\ufeff]");
+        if (parts[0] === "" || args.length > 3 || whole.length > 200 || hidden.test(whole)
+                || parts.some(function(p) { return p.indexOf("\n") >= 0 || p.trim() !== p; }))
+            return "";
+        return whole;
+    }
+
     // What the notification for a question_request or permission_request message
-    // (backends/AgentEvents.js) shows: {kind, id, chatId, title, text, actions: [{label, value}], typed}.
-    // Up to three answers become buttons, a typed answer uses Plasma's inline reply, a permission is Allow / Deny.
+    // (backends/AgentEvents.js) shows: {kind, id, chatId, title, text, actions: [{label, value, open}], typed}.
+    // Up to three answers become buttons, a typed answer uses Plasma's inline reply, a permission is Allow / Deny,
+    // but only while the whole request shows as written: otherwise the notification only opens the chat.
+    // An incognito chat's notification shows neither the question nor the request, and only opens the chat.
+    // `text` is markup-escaped.
     function inputSpec(chatId, chatTitle, message) {
-        var spec = {"chatId": String(chatId), "title": i18n("%1: input needed", isIncognito(chatId) ? i18n("Incognito chat") : chatName(chatTitle)), "actions": [], "typed": false};
+        var hidden = isIncognito(chatId);
+        var open = {"label": i18n("Open chat"), "open": true};
+        var spec = {"chatId": String(chatId), "title": i18n("%1: input needed", hidden ? i18n("Incognito chat") : chatName(chatTitle)), "actions": [], "typed": false};
         if (message.role === "permission_request") {
-            var detail = (message.arguments || [])[0];
+            var literal = hidden ? "" : permissionLiteral(message);
             spec.kind = "permission";
             spec.id = String(message.permissionId || "");
-            spec.text = preview(i18n("%1 asks to use %2", message.model || "", String(message.tool || "") + (detail ? ": " + detail : "")), 240);
-            spec.actions = [{"label": i18n("Allow"), "value": true}, {"label": i18n("Deny"), "value": false}];
+            if (literal !== "") {
+                spec.text = escapeMarkup(i18n("%1 asks to use %2", message.model || "", literal));
+                spec.actions = [{"label": i18n("Allow"), "value": true}, {"label": i18n("Deny"), "value": false}];
+            } else {
+                spec.text = hidden ? i18n("The AI asks for permission. Open the chat to answer.")
+                                   : escapeMarkup(i18n("%1 asks to use %2. Open the chat to see the whole request.", message.model || "", preview(message.tool, 60)));
+                spec.actions = [open];
+            }
+            return spec;
+        }
+        spec.kind = "question";
+        spec.id = String(message.questionId || "");
+        if (hidden) {
+            spec.text = i18n("The AI asks you a question. Open the chat to answer.");
+            spec.actions = [open];
             return spec;
         }
         var questions = message.questions || [];
         var first = questions[0] || {};
         var labels = questions.length === 1 ? (first.options || []).map(function(o) { return String((o || {}).label || ""); }).filter(function(l) { return l !== ""; }) : [];
-        spec.kind = "question";
-        spec.id = String(message.questionId || "");
-        spec.text = preview(first.question || first.header || message.content, 240) + (labels.length > 0 ? "\n" + preview(labels.join(" · "), 120) : "");
+        spec.text = escapeMarkup(preview(first.question || first.header || message.content, 240) + (labels.length > 0 ? "\n" + preview(labels.join(" · "), 120) : ""));
         spec.actions = labels.slice(0, 3).map(function(l) { return {"label": l.length > 40 ? l.substring(0, 39) + "…" : l, "value": l}; });
         spec.typed = questions.length === 1 && message.allowCustom !== false;
         return spec;
@@ -161,10 +195,12 @@ Item {
         return true;
     }
 
-    // An answer given on the notification goes where the card's answer goes.
+    // An answer given on the notification goes where the card's answer goes. Only an answer the
+    // notification offered counts (no Allow for a request it could not show in full).
     function answerInput(spec, value) {
         delete openInputs[spec.id];
-        if (!chat || String(chat.currentSessionId) !== spec.chatId) {
+        var offered = spec.actions.some(function(a) { return !a.open && a.value === value; }) || (spec.typed && spec.kind === "question");
+        if (!offered || !chat || String(chat.currentSessionId) !== spec.chatId) {
             openChat(spec.chatId);
             return false;
         }
@@ -213,7 +249,12 @@ Item {
         var actions = [];
         spec.actions.forEach(function(a) {
             var action = actionComponent.createObject(n, {"label": a.label});
-            action.activated.connect(function() { notifier.answerInput(spec, a.value); });
+            action.activated.connect(function() {
+                if (a.open)
+                    notifier.openChat(spec.chatId);
+                else
+                    notifier.answerInput(spec, a.value);
+            });
             actions.push(action);
         });
         n.actions = actions;

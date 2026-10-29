@@ -143,12 +143,14 @@ ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 0
                     QQC2.Label {
+                        textFormat: Text.PlainText
                         objectName: "localServerName"
                         text: panel.title(line.modelData)
                         elide: Text.ElideRight
                         Layout.fillWidth: true
                     }
                     QQC2.Label {
+                        textFormat: Text.PlainText
                         objectName: "localServerDetail"
                         text: panel.detail(line.modelData)
                         opacity: 0.7

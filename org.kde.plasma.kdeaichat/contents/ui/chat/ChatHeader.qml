@@ -130,6 +130,7 @@ RowLayout {
     // The title takes what the buttons leave and elides. It must never widen
     // the header: a Label's minimum width is its text width unless set to 0.
     PC3.Label {
+        textFormat: Text.PlainText
         text: header.historyFull ? i18n("%1 History", header.appName) : (header.chat.currentSessionTitle || i18n("New Chat"))
         font.bold: true
         horizontalAlignment: Text.AlignHCenter

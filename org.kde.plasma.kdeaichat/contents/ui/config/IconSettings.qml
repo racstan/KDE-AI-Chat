@@ -234,6 +234,7 @@ Kirigami.FormLayout {
     }
 
     QQC2.Label {
+        textFormat: Text.PlainText
         objectName: "panelIconMessage"
         visible: settings.animating && settings.message !== ""
         Layout.fillWidth: true

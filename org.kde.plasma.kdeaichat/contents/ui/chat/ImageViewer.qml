@@ -49,6 +49,7 @@ QQC2.Popup {
         }
 
         QQC2.Label {
+            textFormat: Text.PlainText
             objectName: "viewerCaption"
             Layout.fillWidth: true
             visible: viewer.caption !== ""

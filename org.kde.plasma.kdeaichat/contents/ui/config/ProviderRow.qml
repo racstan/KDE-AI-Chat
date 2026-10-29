@@ -48,12 +48,14 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 0
             QQC2.Label {
+                textFormat: Text.PlainText
                 text: row.entry.name + (row.isDefault ? "  · " + (row.imageService ? i18n("used by /image") : i18n("default")) : "")
                 font.bold: row.isDefault
                 elide: Text.ElideRight
                 Layout.fillWidth: true
             }
             QQC2.Label {
+                textFormat: Text.PlainText
                 objectName: "detailLabel"
                 text: (row.entry.model || i18n("no model set")) + " · " + row.host
                     + (row.missingKey ? " · " + i18n("no API key") : "")

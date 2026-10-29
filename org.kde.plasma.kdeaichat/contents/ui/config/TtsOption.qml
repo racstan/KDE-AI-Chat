@@ -104,6 +104,7 @@ ColumnLayout {
                 onTextEdited: row.set(text)
             }
             QQC2.Label {
+                textFormat: Text.PlainText
                 visible: parent.problem !== ""
                 text: parent.problem
                 color: Kirigami.Theme.negativeTextColor

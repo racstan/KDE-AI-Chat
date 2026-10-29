@@ -63,6 +63,7 @@ ColumnLayout {
                 Layout.preferredWidth: Kirigami.Units.gridUnit * 9
             }
             QQC2.Label {
+                textFormat: Text.PlainText
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
                 color: entry.modelData.status === "ok" ? Kirigami.Theme.positiveTextColor

@@ -61,6 +61,7 @@ Rectangle {
         }
 
         PC3.Label {
+            textFormat: Text.PlainText
             objectName: "jobStatus"
             Layout.fillWidth: true
             text: card.status

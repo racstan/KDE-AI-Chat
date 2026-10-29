@@ -113,6 +113,7 @@ ColumnLayout {
                 source: usedRow.modelData.pinned ? "pin" : "bookmark-new"
             }
             PC3.Label {
+                textFormat: Text.PlainText
                 objectName: "usedMemory"
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap

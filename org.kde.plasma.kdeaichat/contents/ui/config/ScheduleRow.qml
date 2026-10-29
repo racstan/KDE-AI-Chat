@@ -70,6 +70,7 @@ QQC2.Frame {
                     text: row.item.name || i18n("Untitled schedule")
                 }
                 QQC2.Label {
+                    textFormat: Text.PlainText
                     objectName: "scheduleChat"
                     Layout.fillWidth: true
                     elide: Text.ElideRight
@@ -116,6 +117,7 @@ QQC2.Frame {
         }
 
         QQC2.Label {
+            textFormat: Text.PlainText
             objectName: "scheduleSummary"
             Layout.fillWidth: true
             visible: !row.needsReview

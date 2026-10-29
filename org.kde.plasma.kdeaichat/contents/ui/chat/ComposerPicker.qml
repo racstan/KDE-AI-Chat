@@ -243,7 +243,7 @@ QQC2.Popup {
             }
         }
 
-        PC3.Label {
+        PC3.Label { textFormat: Text.PlainText
             objectName: "pickerStatus"
             visible: picker.perChat && text !== ""
             Layout.fillWidth: true
@@ -286,7 +286,7 @@ QQC2.Popup {
                         Layout.preferredWidth: Kirigami.Units.iconSizes.small
                         Layout.preferredHeight: Kirigami.Units.iconSizes.small
                     }
-                    QQC2.Label {
+                    QQC2.Label { textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: entry.modelData.id
                         elide: Text.ElideMiddle
@@ -370,7 +370,7 @@ QQC2.Popup {
             text: i18n("Choosing gives this chat its own model settings. The main settings stay as they are.")
         }
 
-        PC3.Label {
+        PC3.Label { textFormat: Text.PlainText
             objectName: "pickerNote"
             visible: picker.note !== ""
             Layout.fillWidth: true

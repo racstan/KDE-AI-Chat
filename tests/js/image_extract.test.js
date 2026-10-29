@@ -13,7 +13,7 @@ function load(file, expose) {
     vm.runInNewContext(src + "\nthis.exports = {" + expose + "};", ctx);
     return ctx.exports;
 }
-const X = load("chat/ImageExtract.js", "parseDataUrl, itemFromUrl, itemFromPart, fromMessage, textOf, extractMarkdown, bytesToBase64, itemKey, MAX_ITEMS");
+const X = load("chat/ImageExtract.js", "parseDataUrl, itemFromUrl, itemFromPart, fromMessage, textOf, extractMarkdown, safeMarkdown, bytesToBase64, itemKey, MAX_ITEMS");
 const S = load("Security.js", "validateImageUrl");
 const plain = x => JSON.parse(JSON.stringify(x));
 const PNG_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==";
@@ -93,6 +93,41 @@ const tests = {
         assert.strictEqual(X.extractMarkdown("a [link](https://x.example.com) b").text, "a [link](https://x.example.com) b");
         assert.strictEqual(X.extractMarkdown("![a](https://x.example.com/1.png)![a](https://x.example.com/1.png)").links.length, 1);
         assert.strictEqual(X.extractMarkdown(null).text, "");
+    },
+    markdown_titles_and_bracketed_destinations() {
+        const r = plain(X.extractMarkdown("![a](https://h.example.com/x 'single') ![b](<https://h.example.com/a b>) ![c](https://h.example.com/p (paren title)) ![d](http://h/x \"t\")"));
+        assert.strictEqual(r.text, "[image: a] [image: b] [image: c] [image: d]");
+        assert.deepStrictEqual(r.links.map(l => l.url), ["https://h.example.com/x", "https://h.example.com/a b", "https://h.example.com/p"]);
+    },
+    markdown_reference_images() {
+        const text = "![full][R1] ![collapsed][] ![shortcut] ![nodef][zz]\n\n[r1]: https://h.example.com/1.png\n[Collapsed]: <https://h.example.com/2.png> \"t\"\n  [shortcut]: http://h/3.png";
+        const r = plain(X.extractMarkdown(text));
+        assert.ok(r.text.startsWith("[image: full] [image: collapsed] [image: shortcut] ![nodef][zz]"), r.text);
+        assert.deepStrictEqual(r.links.map(l => l.url), ["https://h.example.com/1.png", "https://h.example.com/2.png"]);
+    },
+    safe_markdown_leaves_no_image_or_html() {
+        const variants = ["![a](http://h/x 'single')", "![a](<http://h/a b>)", "![a][r]\n\n[r]: http://h/ref", "![a][]\n\n[a]: http://h/ref",
+                          "![r]\n\n[r]: http://h/ref", "![a](http://h/x (paren title))", "![a](http://h/x_(y))", "<img src=\"http://h/x\">",
+                          "<IMG SRC=http://h/x>", "x\n<div>\n<img src=http://h/x>\n</div>", "a <img src=x> b", "\\\\![a](http://h/x)",
+                          "\\`![a](http://h/x)\\`", "`a\n![a](http://h/x)\n`", "| `a | ![a](http://h/x) | b` |", "<!-- c --><?x?>",
+                          "![a](file:///etc/passwd)", "!![a](http://h/x)"];
+        for (const v of variants) {
+            const out = X.safeMarkdown(v);
+            assert.ok(!/(^|[^\\])!\[/.test(out), "no image left: " + JSON.stringify(v) + " -> " + JSON.stringify(out));
+            assert.ok(!/(^|[^\\])<[A-Za-z\/!?]/.test(out), "no html left: " + JSON.stringify(v) + " -> " + JSON.stringify(out));
+        }
+    },
+    safe_markdown_keeps_code_spans_links_and_plain_text() {
+        assert.strictEqual(X.safeMarkdown("Use `![x](y)` and ``<div>`` here"), "Use `![x](y)` and ``<div>`` here");
+        assert.strictEqual(X.safeMarkdown("a < b, see <https://kde.org> and [kde](https://kde.org)"), "a < b, see <https://kde.org> and [kde](https://kde.org)");
+        assert.strictEqual(X.safeMarkdown("![cat](https://img.example.com/cat.png) <b>bold</b>"), "[image: cat] \\<b>bold\\</b>");
+        assert.strictEqual(X.safeMarkdown("Wow![ok]"), "Wow!\\[ok]");
+        assert.strictEqual(X.safeMarkdown(X.safeMarkdown("<i>x</i> !\\[a]")), "\\<i>x\\</i> !\\[a]", "running it twice changes nothing");
+        assert.strictEqual(X.safeMarkdown(null), "");
+        assert.deepStrictEqual(plain(X.extractMarkdown("`![x](https://h.example.com/c.png)`").links), [], "an image in a code span is code, not an image");
+        assert.strictEqual(X.safeMarkdown("\\``<b>` x"), "\\``<b>` x", "an escaped backtick does not hide the code span after it");
+        assert.strictEqual(X.safeMarkdown("<http://a/`> <b>`"), "<http://a/`> \\<b>`", "a backtick in an autolink opens no code span");
+        assert.strictEqual(X.extractMarkdown("<b>x</b>").text, "<b>x</b>", "extractMarkdown (stored text) does not escape");
     },
     base64_of_bytes() {
         const bytes = new Uint8Array(Buffer.from("hello world, this is a longer test string!"));

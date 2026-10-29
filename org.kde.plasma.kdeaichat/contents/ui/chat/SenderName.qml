@@ -43,6 +43,7 @@ RowLayout {
     PC3.Label {
         id: nameLabel
         objectName: "senderName"
+        textFormat: Text.PlainText
         text: sender.role === "user" ? (sender.userName || i18n("You"))
             : sender.role === "queued" ? (sender.userName ? i18n("%1 · queued", sender.userName) : i18n("You · queued"))
             : sender.role === "error" ? i18n("Something went wrong")
@@ -58,6 +59,7 @@ RowLayout {
 
     PC3.Label {
         objectName: "senderScheduled"
+        textFormat: Text.PlainText
         visible: sender.mine && sender.scheduleName !== ""
         text: i18n("Scheduled: %1", sender.scheduleName)
         font: Kirigami.Theme.smallFont
@@ -73,6 +75,7 @@ RowLayout {
         objectName: "senderModel"
         visible: sender.aiName !== "" && sender.model !== ""
         text: sender.model
+        textFormat: Text.PlainText
         font: Kirigami.Theme.smallFont
         opacity: 0.7
         elide: Text.ElideRight

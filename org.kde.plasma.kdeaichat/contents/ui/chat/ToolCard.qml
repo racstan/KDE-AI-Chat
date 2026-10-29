@@ -111,8 +111,11 @@ Rectangle {
                     opacity: 0.7
                 }
 
+                // An agent's strings are shown as written, never as rich text (no <img> is fetched).
                 PC3.Label {
+                    objectName: "toolName"
                     text: card.tool.name || i18n("Tool")
+                    textFormat: Text.PlainText
                     font.bold: true
                 }
 
@@ -120,6 +123,7 @@ Rectangle {
                     objectName: "toolDetail"
                     Layout.fillWidth: true
                     text: card.tool.detail || ""
+                    textFormat: Text.PlainText
                     font: card.monoFont
                     elide: Text.ElideMiddle
                     opacity: 0.75

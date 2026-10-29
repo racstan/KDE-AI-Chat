@@ -246,6 +246,7 @@ Kirigami.FormLayout {
     }
 
     QQC2.Label {
+        textFormat: Text.PlainText
         objectName: "image_statusLabel"
         visible: editor.message !== ""
         text: editor.message

@@ -110,6 +110,7 @@ Rectangle {
                     Layout.fillWidth: true
                 }
                 PC3.Label {
+                    textFormat: Text.PlainText
                     text: settingsDraft.sessionTitle
                     elide: Text.ElideRight
                     opacity: 0.7

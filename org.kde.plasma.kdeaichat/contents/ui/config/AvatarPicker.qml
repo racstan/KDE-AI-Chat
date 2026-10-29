@@ -211,6 +211,7 @@ RowLayout {
     }
 
     QQC2.Label {
+        textFormat: Text.PlainText
         objectName: picker.prefix + "Status"
         Layout.fillWidth: true
         Layout.maximumWidth: Kirigami.Units.gridUnit * 20

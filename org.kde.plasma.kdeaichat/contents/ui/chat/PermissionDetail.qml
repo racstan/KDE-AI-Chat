@@ -24,6 +24,7 @@ ColumnLayout {
     spacing: Kirigami.Units.smallSpacing
 
     PC3.Label {
+        textFormat: Text.PlainText
         objectName: "permissionTool"
         visible: detail.tool !== ""
         Layout.fillWidth: true
