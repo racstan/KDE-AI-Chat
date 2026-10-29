@@ -8,7 +8,8 @@
 //     request never changes the mode of a chat;
 //   - files are attached with the normal attachment code (doc_extractor.py);
 //   - the text goes into the message box (after what is already typed there); a request marked "send" is sent
-//     at once, when the box was empty and the files have loaded, and only while the same chat is still open.
+//     at once, when the box was empty and the files have loaded, and only while the same chat is still open
+//     and is a direct chat: in an OpenCode or Pi chat (agents that run commands) the text only waits in the box.
 // On start it also re-installs the KRunner/Dolphin/shortcut files if those switches are on (so a moved or updated
 // widget keeps them pointing at the right place). `chat` is the widget root (main.qml).
 import QtQuick
@@ -84,6 +85,12 @@ Item {
         return i18n("Not attached (not a readable file): %1", name);
     }
 
+    // An OpenCode or Pi chat can run commands: text from other programs is never sent into it by itself, it
+    // waits in the message box for the user to press Send.
+    function agentChat() {
+        return inbox.chat.openCodeMode === true || inbox.chat.piMode === true;
+    }
+
     function apply(item) {
         chat.triggerInitialLoad();
         chat.expanded = true;
@@ -106,7 +113,7 @@ Item {
             chat.chatInputText = draft.trim() !== "" ? draft + "\n" + text : text;
         chat.focusInput();
         // Files never send by themselves: the user looks at them and presses Enter.
-        if (item.send === true && paths.length === 0 && text !== "" && draft.trim() === "") {
+        if (item.send === true && paths.length === 0 && text !== "" && draft.trim() === "" && !inbox.agentChat()) {
             inbox._busy = true;
             inbox._sendChatId = String(chat.currentSessionId);
             inbox._waited = 0;
@@ -124,7 +131,7 @@ Item {
         onTriggered: {
             inbox._waited++;
             var sameChat = String(inbox.chat.currentSessionId) === inbox._sendChatId;
-            if (!sameChat || inbox._waited > 150) {
+            if (!sameChat || inbox._waited > 150 || inbox.agentChat()) {
                 sendTimer.stop();   // the user moved on (or 30 s passed): the text stays in the box
             } else if (inbox.chat.attachmentsReadyToSend()) {
                 sendTimer.stop();
