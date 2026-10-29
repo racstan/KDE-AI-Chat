@@ -168,15 +168,30 @@ QtObject {
     }
 
     function sendDirectRequest(cfg, sessionId, generation, variantSend) {
+        chat.loading = true;
+        // Tool providers (MCP, skills, workspace) are asked first; with none, this goes on right away.
+        var waited = false;
+        direct.toolRounds.runner.collectTools(sessionId, function(extra) {
+            if (waited && !chat.requestIsCurrent(sessionId, generation))
+                return;
+            direct._sendFirstRound(cfg, sessionId, generation, variantSend, extra);
+        });
+        waited = true;
+    }
+
+    function _sendFirstRound(cfg, sessionId, generation, variantSend, extra) {
         var apiType = cfg.type === "anthropic" ? "anthropic" : "openai";
-        var tools = DirectTools.toolDefinitions(apiType, {"askUser": chat.plasmoid.configuration.allowAskUser !== false});
+        var registry = DirectTools.toolRegistry(extra);
+        var tools = DirectTools.toolDefinitions(apiType, {"askUser": chat.plasmoid.configuration.allowAskUser !== false, "extra": extra});
         var withTools = tools.length > 0 && !DirectBackend.rejectsTools({"baseUrl": cfg.baseUrl, "model": cfg.model || ""});
         var parts = direct.buildDirectRequestParts(sessionId, apiType, withTools);
         chat.currentStreamUsage = ({});
         chat.loading = true;
         direct.sendRound({"cfg": cfg, "sessionId": sessionId, "generation": generation, "variantSend": variantSend,
                           "apiType": apiType, "model": cfg.model || "", "system": parts.system, "messages": parts.messages,
-                          "plain": parts.plain, "tools": tools, "round": 0, "roundText": "", "sepPending": false});
+                          "plain": parts.plain, "tools": tools, "toolRegistry": registry,
+                          "maxRounds": DirectTools.maxRounds(chat.plasmoid.configuration.directToolMaxRounds),
+                          "round": 0, "roundText": "", "sepPending": false});
     }
 
     // Sends one request of a reply: the first, or the next after the tools the model called.

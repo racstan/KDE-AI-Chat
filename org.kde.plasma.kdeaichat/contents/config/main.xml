@@ -401,6 +401,12 @@
       <default>true</default>
     </entry>
     <!-- Direct mode: offer the model the ask_user tool (chat/DirectToolRounds.qml). -->
+    <!-- Direct mode: most rounds of tool calls in one reply (chat/DirectToolRounds.qml). -->
+    <entry name="directToolMaxRounds" type="Int">
+      <default>8</default>
+      <min>1</min>
+      <max>50</max>
+    </entry>
     <entry name="allowAskUser" type="Bool">
       <default>true</default>
     </entry>

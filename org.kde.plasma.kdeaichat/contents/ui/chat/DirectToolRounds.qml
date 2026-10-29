@@ -1,6 +1,6 @@
 // Direct mode: what happens when the model asks for tools. Shows each call as a
 // tool card on the reply, runs it (ask_user shows a question card and waits for
-// the answer), keeps the calls with the reply so the chat can be sent again, and
+// the answer; any other tool goes to chat/DirectToolRunner.qml), keeps the calls with the reply so the chat can be sent again, and
 // asks chat/DirectRequest.qml for the next round with the results.
 // `chat` is the widget root (main.qml).
 import QtQuick
@@ -14,12 +14,15 @@ QtObject {
 
     property var chat: null
     property var request: null   // chat/DirectRequest.qml: sendRound(ctx), finishRequest(ctx)
+    // Runs the tools besides ask_user, with approval (chat/DirectToolRunner.qml).
+    readonly property var runner: DirectToolRunner { chat: rounds.chat }
 
     // The question the model is waiting on: {questionId, bubbleId, callId, done(output)}.
     property var pending: null
 
+    // The model is waiting on the user: a question, or an approval to run a tool.
     function hasPendingQuestion() {
-        return rounds.pending !== null;
+        return rounds.pending !== null || rounds.runner.hasPending();
     }
 
     function _indexOfId(id) {
@@ -39,7 +42,7 @@ QtObject {
     // A round of tool calls from the model: ctx is the request (DirectRequest.sendRound), ev the "tool_calls" event.
     function run(ctx, ev) {
         ctx.round++;
-        if (ctx.round > DirectTools.MAX_ROUNDS) {
+        if (ctx.round > (ctx.maxRounds || DirectTools.MAX_ROUNDS)) {
             chat.applyBackendEvent({"type": "text_delta", "delta": (chat.currentStreamText !== "" ? "\n\n" : "") + i18n("Stopped: the AI asked for too many tools in a row.")}, ctx.model);
             request.finishRequest(ctx);
             return;
@@ -86,7 +89,7 @@ QtObject {
 
     function _execute(ctx, call, bubbleId, done) {
         if (call.name !== DirectTools.ASK_USER) {
-            done("Unknown tool: " + call.name + ". Only ask_user is available.", true);
+            rounds.runner.run(ctx, call, bubbleId, done);
             return;
         }
         var q = DirectTools.askUserQuestion(call.args);
@@ -123,12 +126,20 @@ QtObject {
 
     // The request is stopped or the user wrote something else: the question is not answered.
     function cancelPending() {
+        var approval = rounds.runner.cancelPending();
+        if (approval)
+            rounds._setResult(approval.bubbleId, approval.callId, "The user stopped the request before approving this tool call.", false);
         var p = rounds.pending;
         if (!p)
             return;
         rounds.pending = null;
         rounds._finishQuestion(p.questionId, "dismissed", "");
         rounds._setResult(p.bubbleId, p.callId, "The user did not answer.", false);
+    }
+
+    // Allow, Always allow or Deny on a tool's permission card (chat/MessageEdits.qml routes direct-mode cards here).
+    function respondToPermission(permissionId, approved, always) {
+        rounds.runner.respondToPermission(permissionId, approved, always);
     }
 
     function _finishQuestion(questionId, status, text) {

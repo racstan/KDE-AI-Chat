@@ -11,7 +11,7 @@ const read = name => fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.
 const ctx = {};
 vm.runInNewContext(read("DirectBackend.js") + "\n" + read("DirectStream.js") + "\n" + read("DirectTools.js")
     + "\nthis.exports = {send, buildRequest, rejectsTools, createThinkSplitter, toolDefinitions, createCollector, askUserQuestion,"
-    + " assistantMessage, resultMessages, historyMessages, hasToolRounds, parseArgs, ASK_USER, MAX_ROUNDS};", ctx);
+    + " assistantMessage, resultMessages, historyMessages, hasToolRounds, parseArgs, ASK_USER, MAX_ROUNDS, toolRegistry, lookupTool, maxRounds};", ctx);
 const T = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 
@@ -274,6 +274,75 @@ const tests = {
 
     the_round_limit_is_eight() {
         assert.strictEqual(T.MAX_ROUNDS, 8);
+    },
+
+    the_round_limit_setting_is_clamped() {
+        assert.strictEqual(T.maxRounds(undefined), 8);
+        assert.strictEqual(T.maxRounds(0), 8);
+        assert.strictEqual(T.maxRounds(51), 8);
+        assert.strictEqual(T.maxRounds("12"), 12);
+        assert.strictEqual(T.maxRounds(50), 50);
+        assert.strictEqual(T.maxRounds(1), 1);
+    },
+
+    extra_tools_are_offered_after_ask_user_in_both_formats() {
+        const extra = [{name: "read_file", description: "Reads.", schema: {type: "object", properties: {path: {type: "string"}}}, source: "workspace", risk: "read"}];
+        const openai = plain(T.toolDefinitions("openai", {askUser: true, extra}));
+        assert.deepStrictEqual(openai.map(d => d.function.name), ["ask_user", "read_file"]);
+        assert.deepStrictEqual(openai[1].function.parameters.properties.path, {type: "string"});
+        const anth = plain(T.toolDefinitions("anthropic", {askUser: false, extra}));
+        assert.deepStrictEqual(anth, [{name: "read_file", description: "Reads.", input_schema: extra[0].schema}]);
+        // Nothing extra: exactly the old result.
+        assert.deepStrictEqual(plain(T.toolDefinitions("openai", {askUser: true})), plain(T.toolDefinitions("openai", {askUser: true, extra: []})));
+        assert.deepStrictEqual(plain(T.toolDefinitions("openai", {})), []);
+    },
+
+    mcp_tools_get_provider_safe_names_and_map_back() {
+        const reg = T.toolRegistry([
+            {name: "list files!", source: "mcp:my server", risk: "read"},
+            {name: "x".repeat(100), source: "mcp:s", risk: "change"},
+            {name: "ask_user", source: "skill", risk: "read"},
+            {name: "", source: "skill"},
+            null,
+        ]);
+        assert.strictEqual(reg.list.length, 3);
+        const names = reg.list.map(t => t.name);
+        assert.strictEqual(names[0], "mcp__my_server__list_files_");
+        assert.ok(names.every(n => /^[a-zA-Z0-9_-]{1,64}$/.test(n)), names.join());
+        assert.strictEqual(names[1].length, 64);
+        assert.strictEqual(names[2], "ask_user_2", "ask_user stays ours");
+        const t = T.lookupTool(reg, "mcp__my_server__list_files_");
+        assert.strictEqual(t.realName, "list files!");
+        assert.strictEqual(t.source, "mcp:my server");
+        assert.strictEqual(t.kind, "mcp");
+        assert.strictEqual(t.server, "my server");
+        assert.strictEqual(t.risk, "read");
+        assert.strictEqual(T.lookupTool(reg, "nope"), null);
+        assert.strictEqual(T.lookupTool(reg, "constructor"), null);
+        assert.strictEqual(T.lookupTool(reg, "ask_user"), null);
+    },
+
+    names_that_collide_after_cutting_get_a_suffix() {
+        const long = "y".repeat(80);
+        const reg = T.toolRegistry([{name: long + "1", source: "workspace"}, {name: long + "2", source: "workspace"}, {name: long + "3", source: "workspace"}]);
+        const names = reg.list.map(t => t.name);
+        assert.strictEqual(new Set(names).size, 3);
+        assert.ok(names.every(n => /^[a-zA-Z0-9_-]{1,64}$/.test(n)));
+        assert.deepStrictEqual(plain(names.slice(1).map(n => n.slice(-2))), ["_2", "_3"]);
+        assert.strictEqual(T.lookupTool(reg, names[2]).realName, long + "3");
+    },
+
+    risk_defaults_to_change_and_schema_defaults_to_an_empty_object() {
+        const reg = T.toolRegistry([{name: "a", source: "workspace"}, {name: "b", source: "workspace", risk: "read", schema: "nonsense"}]);
+        assert.strictEqual(reg.list[0].risk, "change");
+        assert.strictEqual(reg.list[1].risk, "read");
+        assert.deepStrictEqual(plain(reg.list[1].schema), {type: "object", properties: {}});
+    },
+
+    extra_fields_of_a_tool_are_kept() {
+        const reg = T.toolRegistry([{name: "write_file", source: "workspace", risk: "change", folder: "/home/me/p"}]);
+        assert.strictEqual(reg.list[0].folder, "/home/me/p");
+        assert.strictEqual(T.toolRegistry(undefined).list.length, 0);
     },
 };
 
