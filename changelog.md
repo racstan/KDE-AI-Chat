@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-29
+
+Fixes from a review of the 1.4.0 release.
+
+### Security
+- **Replies can no longer make the widget load a web address by itself.** Some ways of writing a picture link in a reply (a title in single quotes or brackets, an address in angle brackets, reference-style links) slipped past the filter, and the chat loaded them as soon as the reply was shown. A prompt hidden in a web page or file could have used this to send parts of a chat to another server. Every picture in a reply now waits for a click.
+- **Tool cards and model names are shown as plain text.** A name or detail from an OpenCode or Pi agent could also make the chat load a picture by itself.
+- **Permission notifications only offer Allow when they show the whole command.** A long command was shortened in the notification, so Allow could approve more than you could see; such requests now open the chat instead.
+- Notification text from replies is escaped, and "input needed" notifications of incognito chats no longer show the question or command.
+- **A warning when a key would travel unencrypted.** The provider editor and Check setup say so when a provider with a key uses plain `http://` to another computer.
+- Names and times checked by the helper (schedules, chats, files) no longer accept a trailing line break.
+
+### Fixed
+- **Edit, Retry or Regenerate while a message is queued runs one request.** The queued message used to start as well, and the request it replaced kept running unseen (using tokens; in OpenCode and Pi the agent kept working). Now the old request is stopped in every mode and the queued message goes after the new reply.
+- Every visible text can be translated, with proper plural forms ("1 model", "2 models"), and sentences are no longer built from pieces that break other languages' word order.
+- The widget's description in Add Widgets is up to date.
+
 ## [1.4.0] - 2026-10-29
 
 ### Added
