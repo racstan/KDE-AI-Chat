@@ -45,11 +45,27 @@ function promptBody(options) {
     return body;
 }
 
+// The Authorization header for the OpenCode server the widget started itself (basic auth with a random
+// password the helper keeps; "" = none, for a server the user started). Set by chat/OpenCodeMode.qml from
+// helper opencode_server_auth, for a local server only; sent with every request below.
+var _authorization = "";
+
+function setAuthorization(value) {
+    _authorization = String(value || "");
+}
+
+// Call right after xhr.open().
+function authorize(xhr) {
+    if (_authorization)
+        xhr.setRequestHeader("Authorization", _authorization);
+}
+
 // One HTTP request; calls done(status, responseText).
 function _request(xhrFactory, method, target, body, timeoutMs, done) {
     var xhr = xhrFactory();
     try {
         xhr.open(method, target, true);
+        authorize(xhr);
         if (timeoutMs > 0) xhr.timeout = timeoutMs;
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.onreadystatechange = function() {
@@ -211,6 +227,7 @@ function send(options) {
         };
         xhr.onerror = function() { if (stream === xhr) lost(); };
         xhr.open("GET", url(options.baseUrl, "/event", directory), true);
+        authorize(xhr);
         xhr.send();
     }
     function begin() {

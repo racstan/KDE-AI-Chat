@@ -36,13 +36,13 @@ def valid_http_url(url: str) -> bool:
         and not any(c.isspace() or ord(c) < 32 for c in url)
 
 
-def probe(url: str, timeout: float = TIMEOUT) -> Tuple[str, int, Any]:
+def probe(url: str, timeout: float = TIMEOUT, headers: Optional[Dict[str, str]] = None) -> Tuple[str, int, Any]:
     """GET ``url`` -> (outcome, HTTP status, parsed JSON or None).
 
     outcome: ok (2xx), http (another status), refused, timeout, no-host,
     unreachable (anything else: TLS, reset, ...).
     """
-    request = urllib.request.Request(url, headers={"Accept": "application/json"})
+    request = urllib.request.Request(url, headers=dict(headers or {}, Accept="application/json"))
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             body = response.read(MAX_BODY)
@@ -134,7 +134,9 @@ def check_opencode(raw_url: str, timeout: float = TIMEOUT) -> List[Dict[str, Any
         return [row("opencode-server", "opencode", "error", "opencode-bad-url", raw_url)]
     binary = opencode_server.find_binary()
     version = _version([binary]) if binary else ""
-    outcome, status, data = probe(url + "/global/health", timeout)
+    port = urlsplit(url).port or 0
+    auth = opencode_server.auth_for_port(port) if _is_local(url) and port else ""  # the widget's own server has a password
+    outcome, status, data = probe(url + "/global/health", timeout, {"Authorization": auth} if auth else None)
     if outcome == "ok":
         server_version = str(data.get("version") or "") if isinstance(data, dict) else ""
         found = server_version or version

@@ -5,8 +5,10 @@ the exact command are recorded when starting, and stopping checks both
 before sending SIGTERM. A server the user runs on their own is left alone
 (older versions ran `pkill -f opencode`, which also killed terminal sessions).
 """
+import base64
 import json
 import os
+import secrets
 import shutil
 import signal
 import subprocess
@@ -14,7 +16,7 @@ import time
 import urllib.request
 from typing import Any, Dict, Optional
 
-from kdeaichat import chats, procs
+from kdeaichat import chats, common, procs
 
 
 def _state_path() -> str:
@@ -39,9 +41,25 @@ def _port(payload: Dict[str, Any]) -> int:
     return port
 
 
+def authorization(password: str) -> str:
+    """The Authorization header value OpenCode's basic auth expects (user name `opencode`)."""
+    return "Basic " + base64.b64encode(("opencode:" + password).encode("utf-8")).decode("ascii") if password else ""
+
+
+def auth_for_port(port: int) -> str:
+    """The Authorization value for the server the widget started on `port` ("" = none: a server the user
+    started, or one started before passwords existed). Only a server that is still ours gets it."""
+    state = _read_state()
+    if state.get("password") and int(state.get("port") or 0) == port and procs.is_ours(state):
+        return authorization(str(state["password"]))
+    return ""
+
+
 def healthy(port: int, timeout: float = 1.5) -> bool:
+    headers = {"Authorization": auth_for_port(port)} if auth_for_port(port) else {}
+    request = urllib.request.Request(f"http://127.0.0.1:{port}/global/health", headers=headers)
     try:
-        with urllib.request.urlopen(f"http://127.0.0.1:{port}/global/health", timeout=timeout) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             return 200 <= response.status < 300
     except OSError:
         return False
@@ -70,13 +88,15 @@ def cmd_opencode_server_start(payload: Dict[str, Any]) -> None:
         directory = os.path.expanduser("~")
     argv = [binary, "serve", "--port", str(port), "--hostname", "127.0.0.1"]
     log_path = os.path.join(chats.data_root(), "opencode-server.log")
-    os.makedirs(chats.data_root(), mode=0o700, exist_ok=True)
-    with open(log_path, "ab") as log:
+    common.ensure_private_dir(chats.data_root())
+    # A random password for this server (basic auth), in its environment only: never in argv or the log.
+    password = secrets.token_urlsafe(32)
+    env = dict(os.environ, OPENCODE_SERVER_PASSWORD=password)
+    env.pop("OPENCODE_SERVER_USERNAME", None)
+    with common.private_log(log_path) as log:
         process = subprocess.Popen(argv, cwd=directory, stdin=subprocess.DEVNULL, stdout=log, stderr=log,
-                                   start_new_session=True, close_fds=True)
-    with open(_state_path(), "w", encoding="utf-8") as f:
-        json.dump({"pid": process.pid, "port": port, "argv": argv}, f)
-    os.chmod(_state_path(), 0o600)
+                                   start_new_session=True, close_fds=True, env=env)
+    common.atomic_write_json(_state_path(), {"pid": process.pid, "port": port, "argv": argv, "password": password})
     deadline = time.time() + float(payload.get("wait", 20))
     while time.time() < deadline:
         if process.poll() is not None:
@@ -87,6 +107,12 @@ def cmd_opencode_server_start(payload: Dict[str, Any]) -> None:
             return
         time.sleep(0.3)
     print(json.dumps({"status": "error", "message": f"OpenCode didn't start answering on port {port} (see {log_path})."}))
+
+
+def cmd_opencode_server_auth(payload: Dict[str, Any]) -> None:
+    """{authorization} for the server on <port> when the widget started it with a password, else "" (the
+    widget then sends no credentials). The value goes to the widget's stdout, never to a log or argv."""
+    print(json.dumps({"authorization": auth_for_port(_port(payload))}))
 
 
 def cmd_opencode_server_stop(payload: Dict[str, Any]) -> None:
@@ -105,5 +131,6 @@ def cmd_opencode_server_stop(payload: Dict[str, Any]) -> None:
 
 COMMANDS = {
     "opencode_server_start": cmd_opencode_server_start,
+    "opencode_server_auth": cmd_opencode_server_auth,
     "opencode_server_stop": cmd_opencode_server_stop,
 }

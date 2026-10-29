@@ -74,42 +74,11 @@ QtObject {
         return parts;
     }
 
-    // Makes sure an OpenCode server answers at the configured URL; starts one
-    // (via the helper) when the URL is local and nothing is running.
-    // done(ok, message).
-    function ensureOpenCodeServer(baseUrl, directory, done) {
-        var xhr = new XMLHttpRequest();
-        var finished = false;
-        function finish(ok, message) { if (!finished) { finished = true; done(ok, message); } }
-        function notRunning() {
-            var match = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\]):(\d+)/i.exec(baseUrl);
-            if (!match) {
-                finish(false, "OpenCode isn't reachable at " + baseUrl + ".");
-                return;
-            }
-            chat.store.runHelper("opencode_server_start", {"port": Number(match[2]), "directory": directory}, function(stdout) {
-                var result = {};
-                try { result = JSON.parse(stdout); } catch (e) { result = {}; }
-                if (result.status === "started" || result.status === "already-running")
-                    finish(true, "");
-                else
-                    finish(false, "OpenCode isn't running at " + baseUrl + " and couldn't be started: " + (result.message || "unknown error") + ".");
-            });
-        }
-        try {
-            xhr.open("GET", baseUrl + "/global/health", true);
-            xhr.timeout = 1500;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState !== XMLHttpRequest.DONE) return;
-                if (xhr.status >= 200 && xhr.status < 300) finish(true, "");
-                else notRunning();
-            };
-            xhr.ontimeout = notRunning;
-            xhr.send();
-        } catch (e) {
-            notRunning();
-        }
-    }
+    property OpenCodeServer server: OpenCodeServer { chat: mode.chat }
+
+    // Makes sure an OpenCode server answers at the configured URL (OpenCodeServer.qml); done(ok, message).
+    function ensureOpenCodeServer(baseUrl, directory, done) { mode.server.ensure(baseUrl, directory, done); }
+    function withAuth(baseUrl, fn) { mode.server.withAuth(baseUrl, fn); }
 
     function send(sessionId, generation) {
         var target = mode.openCodeTarget(sessionId);
@@ -158,6 +127,10 @@ QtObject {
     // stale. The response carries the user's API keys: only OpenCodeCatalog's
     // reduced result is kept, and the response itself is never stored or logged.
     function fetchCatalog(callback) {
+        mode.withAuth(chat.openCodeBaseUrl(), function() { mode._fetchCatalog(callback); });
+    }
+
+    function _fetchCatalog(callback) {
         chat.openCodeProvidersList = [];
         chat.openCodeModelsList = [];
         chat.openCodeVariants = ({});
@@ -171,6 +144,7 @@ QtObject {
         function requestNext() {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", endpoints[endpointIndex], true);
+            OpenCodeBackend.authorize(xhr);
             xhr.timeout = 2000;
             var requestFinished = false;
             var finish = function(success) {
@@ -310,6 +284,10 @@ QtObject {
             finish(null);
             return;
         }
+        mode.withAuth(baseUrl, function() { mode._requestAgents(baseUrl, directory, finish); });
+    }
+
+    function _requestAgents(baseUrl, directory, finish) {
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE)
@@ -323,6 +301,7 @@ QtObject {
         xhr.ontimeout = function() { finish(null); };
         try {
             xhr.open("GET", OpenCodeBackend.url(baseUrl, "/agent", directory), true);
+            OpenCodeBackend.authorize(xhr);
             xhr.timeout = 5000;
             xhr.send();
         } catch (e) {
@@ -383,11 +362,14 @@ QtObject {
             chat.saveCurrentSessionState(true);
             chat.scrollToBottom();
         };
-        try {
-            xhr.open("GET", OpenCodeBackend.url(target.baseUrl, "/session/" + encodeURIComponent(remoteId) + "/message", target.directory), true);
-            xhr.send();
-        } catch (e) {
-            end("invalid OpenCode endpoint.");
-        }
+        mode.withAuth(target.baseUrl, function() {
+            try {
+                xhr.open("GET", OpenCodeBackend.url(target.baseUrl, "/session/" + encodeURIComponent(remoteId) + "/message", target.directory), true);
+                OpenCodeBackend.authorize(xhr);
+                xhr.send();
+            } catch (e) {
+                end("invalid OpenCode endpoint.");
+            }
+        });
     }
 }

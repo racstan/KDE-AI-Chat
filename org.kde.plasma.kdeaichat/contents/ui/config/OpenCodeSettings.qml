@@ -10,6 +10,7 @@ import org.kde.kirigami as Kirigami
 import "../components" as Components
 import "../Security.js" as Sec
 import "../Variants.js" as Variants
+import "../backends/OpenCodeBackend.js" as OpenCodeBackend
 import "../backends/OpenCodeCatalog.js" as OpenCodeCatalog
 
 // i18n() is provided by Plasma at runtime.
@@ -103,8 +104,23 @@ Kirigami.FormLayout {
             return;
         }
         status = i18n("Checking the OpenCode server…");
+        if (!helper) {
+            oc.request(target);
+            return;
+        }
+        // The server the widget started has a password (helper opencode_server_auth); a local address only.
+        helper.run("opencode_server_auth", {"port": port()}, function(stdout) {
+            var result = {};
+            try { result = JSON.parse(String(stdout).trim().split("\n").pop()); } catch (e) { result = {}; }
+            OpenCodeBackend.setAuthorization(/^https?:\/\/(127\.0\.0\.1|localhost|\[::1\]):/i.test(target) ? result.authorization : "");
+            oc.request(target);
+        });
+    }
+
+    function request(target) {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", target, true);
+        OpenCodeBackend.authorize(xhr);
         xhr.timeout = 15000;
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE)
