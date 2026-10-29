@@ -112,6 +112,28 @@ The widget works out of the box. Some features need a small tool; if one is miss
 
 ---
 
+## What's planned next
+
+The next version, 1.5, is planned to make direct chats (talking to a provider straight from the widget) much more capable:
+
+- **MCP servers.** Add the MCP servers you already use (or import the usual `mcpServers` settings from Claude Desktop or OpenCode), and the AI can use their tools in your chats. Every tool call asks first: allow once, always, or deny.
+- **Skills.** Folders with a `SKILL.md`, the same format Claude and OpenCode use. The AI sees what each skill is for and reads its instructions only when it needs them.
+- **Agent tools.** In a chat with a workspace folder, the AI can read, list and search the files there, and later edit files and run commands, each one only after you approve it.
+
+Also on the list:
+
+- A mode for agents that speak the Agent Client Protocol (ACP), with a browser for their earlier sessions.
+- Push-to-talk: a shortcut that opens the widget and starts dictation, and stops it when pressed again.
+- A spending page with monthly budgets and alerts per provider.
+- Backup and restore of all chats and settings, and importing ChatGPT and Claude exports.
+- A fallback model that answers when your provider is down or out of credit.
+- One place to see and change what each agent or MCP server is allowed to do.
+- Customisable keyboard shortcuts.
+
+Plans can change; ideas and requests are welcome in the [issues](https://github.com/racstan/KDE-AI-Chat/issues).
+
+---
+
 ## License
 
 Copyright (C) 2026 Rachit Asthana
