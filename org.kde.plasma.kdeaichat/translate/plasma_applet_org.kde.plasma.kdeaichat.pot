@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: plasma_applet_org.kde.plasma.kdeaichat\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-28 22:34+0530\n"
+"POT-Creation-Date: 2026-10-29 08:59+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -63,14 +63,12 @@ msgstr ""
 msgid "Running %1…"
 msgstr ""
 
-#: contents/ui/chat/ActivityBox.qml:44 contents/ui/chat/ComposerStatus.qml:26
-#: contents/ui/chat/MessageDelegate.qml:174
+#: contents/ui/chat/ActivityBox.qml:44 contents/ui/chat/MessageDelegate.qml:174
 #: contents/ui/chat/ReasoningBlock.qml:47
 msgid "Thinking…"
 msgstr ""
 
-#: contents/ui/chat/ActivityBox.qml:46 contents/ui/chat/ComposerStatus.qml:26
-#: contents/ui/chat/MessageDelegate.qml:174
+#: contents/ui/chat/ActivityBox.qml:46 contents/ui/chat/MessageDelegate.qml:174
 msgid "Writing…"
 msgstr ""
 
@@ -123,6 +121,26 @@ msgstr ""
 msgid "Not attached (not a readable file): %1"
 msgstr ""
 
+#: contents/ui/chat/AttachDialog.qml:24
+msgid "Attach Files"
+msgstr ""
+
+#: contents/ui/chat/AttachDialog.qml:26
+msgid "All supported files"
+msgstr ""
+
+#: contents/ui/chat/AttachDialog.qml:26
+msgid "Images"
+msgstr ""
+
+#: contents/ui/chat/AttachDialog.qml:26
+msgid "Documents"
+msgstr ""
+
+#: contents/ui/chat/AttachDialog.qml:26
+msgid "All files"
+msgstr ""
+
 #: contents/ui/chat/AttachmentChips.qml:36
 msgid "Open %1"
 msgstr ""
@@ -132,6 +150,30 @@ msgid ""
 "This file is very large (about %1 characters of text). Sending it may be "
 "slow or expensive, and the AI may not use all of it. Consider attaching only "
 "the part you need, or use a Pi or OpenCode chat, which read files themselves."
+msgstr ""
+
+#: contents/ui/chat/Attachments.qml:119
+msgid "You can attach at most 10 files per message."
+msgstr ""
+
+#: contents/ui/chat/Attachments.qml:155
+msgid "Unable to attach this file: unsupported or unsafe path."
+msgstr ""
+
+#: contents/ui/chat/Attachments.qml:170
+msgid "Attachment extractor is not available in the installed widget."
+msgstr ""
+
+#: contents/ui/chat/Attachments.qml:286
+msgid "Command exited with code %1"
+msgstr ""
+
+#: contents/ui/chat/Attachments.qml:297
+msgid "Failed to extract file contents"
+msgstr ""
+
+#: contents/ui/chat/Attachments.qml:300
+msgid "Failed to parse extractor output: %1"
 msgstr ""
 
 #: contents/ui/chat/ChatDeleteConfirm.qml:46
@@ -153,13 +195,13 @@ msgstr ""
 #: contents/ui/chat/ProjectDeleteConfirm.qml:48
 #: contents/ui/chat/ProjectEditor.qml:236
 #: contents/ui/chat/RememberPopup.qml:129
-#: contents/ui/config/ImageProviderEditor.qml:266
-#: contents/ui/config/MemoryRow.qml:137
-#: contents/ui/config/ProviderEditor.qml:188
-#: contents/ui/config/ProviderRow.qml:104
+#: contents/ui/config/ImageProviderEditor.qml:267
+#: contents/ui/config/MemoryRow.qml:138
+#: contents/ui/config/ProviderEditor.qml:200
+#: contents/ui/config/ProviderRow.qml:106
 #: contents/ui/config/ScheduleDescribeBox.qml:63
-#: contents/ui/config/ScheduleDescribeBox.qml:119
-#: contents/ui/config/ScheduleRow.qml:168
+#: contents/ui/config/ScheduleDescribeBox.qml:120
+#: contents/ui/config/ScheduleRow.qml:170
 #: contents/ui/config/TemplatesEditor.qml:134
 #: contents/ui/ScheduleDialog.qml:122
 msgid "Cancel"
@@ -199,65 +241,65 @@ msgstr ""
 msgid "Open Settings"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:133
+#: contents/ui/chat/ChatHeader.qml:134
 msgid "%1 History"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:133 contents/ui/chat/ChatSearchPanel.qml:190
+#: contents/ui/chat/ChatHeader.qml:134 contents/ui/chat/ChatSearchPanel.qml:190
 #: contents/ui/chat/SessionList.qml:162 contents/ui/chat/UndoNotice.qml:128
 msgid "New Chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:160
+#: contents/ui/chat/ChatHeader.qml:161
 #: contents/ui/chat/ModeMismatchBanner.qml:31
 #: contents/ui/ConfigAppearance.qml:62
 #: contents/ui/config/LayoutSettings.qml:168
 msgid "New chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:180 contents/ui/ConfigAppearance.qml:63
+#: contents/ui/chat/ChatHeader.qml:181 contents/ui/ConfigAppearance.qml:63
 msgid "New incognito chat (never saved)"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:192 contents/ui/ChatSettingsDialog.qml:109
+#: contents/ui/chat/ChatHeader.qml:193 contents/ui/ChatSettingsDialog.qml:109
 #: contents/ui/config/LayoutSettings.qml:180
 msgid "Chat info"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:207
+#: contents/ui/chat/ChatHeader.qml:208
 msgid "More actions"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:276 contents/ui/chat/ChatRowMenu.qml:25
+#: contents/ui/chat/ChatHeader.qml:277 contents/ui/chat/ChatRowMenu.qml:25
 #: contents/ui/chat/SessionList.qml:313
 msgid "Rename chat"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:295
+#: contents/ui/chat/ChatHeader.qml:296
 msgid "Jump to first message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:306
+#: contents/ui/chat/ChatHeader.qml:307
 msgid "Jump to previous message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:311
+#: contents/ui/chat/ChatHeader.qml:312
 msgid "Jump to next message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:316
+#: contents/ui/chat/ChatHeader.qml:317
 msgid "Jump to latest message"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:327
+#: contents/ui/chat/ChatHeader.qml:328
 msgid "Schedule a message…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:333
+#: contents/ui/chat/ChatHeader.qml:334
 msgid "Export chat…"
 msgstr ""
 
-#: contents/ui/chat/ChatHeader.qml:339
+#: contents/ui/chat/ChatHeader.qml:340
 msgid "Clear chat"
 msgstr ""
 
@@ -269,47 +311,38 @@ msgstr ""
 msgid "Not reported"
 msgstr ""
 
-#: contents/ui/chat/ChatInfoSummary.qml:62
+#: contents/ui/chat/ChatInfoSummary.qml:64
 msgid "Messages"
 msgstr ""
 
-#: contents/ui/chat/ChatInfoSummary.qml:68
+#: contents/ui/chat/ChatInfoSummary.qml:70
 msgid "Input tokens"
 msgstr ""
 
-#: contents/ui/chat/ChatInfoSummary.qml:75
+#: contents/ui/chat/ChatInfoSummary.qml:77
 msgid "Output tokens"
 msgstr ""
 
-#: contents/ui/chat/ChatInfoSummary.qml:83
+#: contents/ui/chat/ChatInfoSummary.qml:85
 msgid "Total cost"
 msgstr ""
 
-#: contents/ui/chat/ChatInfoSummary.qml:90
-#: contents/ui/chat/ChatOverridesForm.qml:145
-#: contents/ui/chat/ChatOverridesForm.qml:153
-#: contents/ui/chat/ChatOverridesForm.qml:229
-#: contents/ui/chat/ChatOverridesForm.qml:233
-#: contents/ui/chat/FirstRunKey.qml:68 contents/ui/chat/PiChatSettings.qml:66
-#: contents/ui/chat/PiChatSettings.qml:69
-#: contents/ui/chat/ProjectEditor.qml:218
-#: contents/ui/chat/ProjectEditor.qml:219
-#: contents/ui/components/ModelPicker.qml:104
-#: contents/ui/voice/SttEngines.js:21
+#: contents/ui/chat/ChatInfoSummary.qml:92
+msgctxt "Chat info: the models used in this chat"
 msgid "Model"
 msgid_plural "Models"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/chat/ChatInfoSummary.qml:96
+#: contents/ui/chat/ChatInfoSummary.qml:98
 msgid "Created"
 msgstr ""
 
-#: contents/ui/chat/ChatInfoSummary.qml:102
+#: contents/ui/chat/ChatInfoSummary.qml:104
 msgid "Last active"
 msgstr ""
 
-#: contents/ui/chat/ChatInfoSummary.qml:112
+#: contents/ui/chat/ChatInfoSummary.qml:114
 msgid "The provider gave no usage for 1 reply, so it isn't counted."
 msgid_plural ""
 "The provider gave no usage for %1 replies, so they aren't counted."
@@ -367,6 +400,19 @@ msgstr ""
 
 #: contents/ui/chat/ChatOverridesForm.qml:123
 msgid "The AI service this chat talks to."
+msgstr ""
+
+#: contents/ui/chat/ChatOverridesForm.qml:145
+#: contents/ui/chat/ChatOverridesForm.qml:153
+#: contents/ui/chat/ChatOverridesForm.qml:229
+#: contents/ui/chat/ChatOverridesForm.qml:233
+#: contents/ui/chat/FirstRunKey.qml:69 contents/ui/chat/PiChatSettings.qml:66
+#: contents/ui/chat/PiChatSettings.qml:69
+#: contents/ui/chat/ProjectEditor.qml:218
+#: contents/ui/chat/ProjectEditor.qml:219
+#: contents/ui/components/ModelPicker.qml:104
+#: contents/ui/voice/SttEngines.js:21
+msgid "Model"
 msgstr ""
 
 #: contents/ui/chat/ChatOverridesForm.qml:146
@@ -435,7 +481,7 @@ msgid "The project's folder: %1"
 msgstr ""
 
 #: contents/ui/chat/ChatOverridesForm.qml:310
-#: contents/ui/chat/WorkspaceBar.qml:94 contents/ui/ConfigChat.qml:129
+#: contents/ui/chat/WorkspaceBar.qml:95 contents/ui/ConfigChat.qml:129
 msgid "No workspace"
 msgstr ""
 
@@ -536,8 +582,10 @@ msgid "No chats match “%1”."
 msgstr ""
 
 #: contents/ui/chat/ChatSearchPanel.qml:149
-msgid "The first %1 matches. Type more to narrow them down."
-msgstr ""
+msgid "The first %1 match. Type more to narrow it down."
+msgid_plural "The first %1 matches. Type more to narrow them down."
+msgstr[0] ""
+msgstr[1] ""
 
 #: contents/ui/chat/ChatSearchPanel.qml:150
 msgid "%1 match"
@@ -627,7 +675,21 @@ msgid "Refreshing OpenCode providers…"
 msgstr ""
 
 #: contents/ui/chat/ChatSettingsDraft.qml:327
-msgid "Loaded %1 providers, %2 models"
+msgid "%1 provider"
+msgid_plural "%1 providers"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/chat/ChatSettingsDraft.qml:327
+#: contents/ui/config/LocalServers.qml:65
+msgid "%1 model"
+msgid_plural "%1 models"
+msgstr[0] ""
+msgstr[1] ""
+
+#: contents/ui/chat/ChatSettingsDraft.qml:327
+msgctxt "%1 is a number of providers, %2 a number of models"
+msgid "Loaded %1, %2"
 msgstr ""
 
 #: contents/ui/chat/ChatSettingsDraft.qml:328
@@ -766,7 +828,7 @@ msgstr ""
 msgid "Direct"
 msgstr ""
 
-#: contents/ui/chat/ComposerPicker.qml:93 contents/ui/config/ProviderRow.qml:51
+#: contents/ui/chat/ComposerPicker.qml:93 contents/ui/config/ProviderRow.qml:52
 msgid "default"
 msgstr ""
 
@@ -861,7 +923,7 @@ msgstr ""
 msgid "Queue"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:323 contents/ui/chat/Notifier.qml:223
+#: contents/ui/chat/Composer.qml:323 contents/ui/chat/Notifier.qml:264
 msgid "Send"
 msgstr ""
 
@@ -873,7 +935,7 @@ msgstr ""
 msgid "Send message"
 msgstr ""
 
-#: contents/ui/chat/Composer.qml:341 contents/ui/chat/ImageJobCard.qml:73
+#: contents/ui/chat/Composer.qml:341 contents/ui/chat/ImageJobCard.qml:74
 #: contents/ui/config/OpenCodeSettings.qml:169 contents/ui/ConfigVoice.qml:269
 msgid "Stop"
 msgstr ""
@@ -887,14 +949,18 @@ msgid "Stop the reply (Esc)"
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:26
-msgid "Esc stops it."
+msgid "Writing… Esc stops it."
+msgstr ""
+
+#: contents/ui/chat/ComposerStatus.qml:26
+msgid "Thinking… Esc stops it."
 msgstr ""
 
 #: contents/ui/chat/ComposerStatus.qml:28
 msgid "Reading aloud…"
 msgstr ""
 
-#: contents/ui/chat/ComposerStatus.qml:28 contents/ui/ConfigVoice.qml:276
+#: contents/ui/chat/ComposerStatus.qml:28 contents/ui/ConfigVoice.qml:277
 msgid "Making speech…"
 msgstr ""
 
@@ -981,43 +1047,43 @@ msgstr ""
 msgid "Continue: %1"
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:80
+#: contents/ui/chat/EmptyState.qml:81
 msgid "Chat with %1"
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:80
+#: contents/ui/chat/EmptyState.qml:81
 msgid "Start a conversation"
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:96
+#: contents/ui/chat/EmptyState.qml:98
 msgid "%1 agent · runs here, sends your messages to its model"
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:97
+#: contents/ui/chat/EmptyState.qml:99
 msgid "%1 · runs on this computer"
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:98
+#: contents/ui/chat/EmptyState.qml:100
 msgid "%1 · runs on your local network"
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:99
+#: contents/ui/chat/EmptyState.qml:101
 msgid "%1 · your messages are sent to its servers"
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:110
+#: contents/ui/chat/EmptyState.qml:112
 msgid ""
 "Ask a question, drop in a file, or start from one of these. Type / in the "
 "box for your templates."
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:122
+#: contents/ui/chat/EmptyState.qml:124
 msgid ""
 "Incognito: this chat is never saved, uses no memories and adds none. It is "
 "gone when you leave it."
 msgstr ""
 
-#: contents/ui/chat/EmptyState.qml:157
+#: contents/ui/chat/EmptyState.qml:159
 msgid "Start with %1"
 msgstr ""
 
@@ -1047,9 +1113,9 @@ msgid "Copy error"
 msgstr ""
 
 #: contents/ui/chat/ErrorActions.qml:106
-#: contents/ui/chat/MessageActions.qml:323 contents/ui/config/MemoryRow.qml:119
-#: contents/ui/config/MemoryRow.qml:121 contents/ui/config/ScheduleRow.qml:106
-#: contents/ui/config/ScheduleRow.qml:160
+#: contents/ui/chat/MessageActions.qml:323 contents/ui/config/MemoryRow.qml:120
+#: contents/ui/config/MemoryRow.qml:122 contents/ui/config/ScheduleRow.qml:107
+#: contents/ui/config/ScheduleRow.qml:162
 msgid "Delete"
 msgstr ""
 
@@ -1207,37 +1273,40 @@ msgstr ""
 msgid "Connect to %1"
 msgstr ""
 
-#: contents/ui/chat/FirstRunKey.qml:32
+#: contents/ui/chat/FirstRunKey.qml:33
 msgid ""
 "This program asks for a key. Paste it here; it is kept in KWallet, not in a "
 "file."
 msgstr ""
 
-#: contents/ui/chat/FirstRunKey.qml:33
+#: contents/ui/chat/FirstRunKey.qml:34
 msgid ""
 "Paste your key here. It is kept in KWallet, not in a file, and only sent to "
 "%1."
 msgstr ""
 
-#: contents/ui/chat/FirstRunKey.qml:42 contents/ui/chat/FirstRunKey.qml:45
+#: contents/ui/chat/FirstRunKey.qml:43 contents/ui/chat/FirstRunKey.qml:46
 msgid "Get a key"
 msgstr ""
 
-#: contents/ui/chat/FirstRunKey.qml:52 contents/ui/chat/FirstRunKey.qml:56
-#: contents/ui/voice/SttEngines.js:23 contents/ui/voice/TtsEngines.js:63
+#: contents/ui/chat/FirstRunKey.qml:53 contents/ui/chat/FirstRunKey.qml:57
+#: contents/ui/chat/SendController.qml:137
+#: contents/ui/chat/SendController.qml:140
+#: contents/ui/chat/SendController.qml:144 contents/ui/voice/SttEngines.js:23
+#: contents/ui/voice/TtsEngines.js:63
 msgid "API key"
 msgstr ""
 
-#: contents/ui/chat/FirstRunKey.qml:91
+#: contents/ui/chat/FirstRunKey.qml:93
 #: contents/ui/config/ScheduleHistory.qml:34
 msgid "Back"
 msgstr ""
 
-#: contents/ui/chat/FirstRunKey.qml:111
+#: contents/ui/chat/FirstRunKey.qml:113
 msgid "Save and continue"
 msgstr ""
 
-#: contents/ui/chat/FirstRunKey.qml:111
+#: contents/ui/chat/FirstRunKey.qml:113
 msgid "Check key"
 msgstr ""
 
@@ -1429,22 +1498,22 @@ msgstr ""
 msgid "The image could not be loaded."
 msgstr ""
 
-#: contents/ui/chat/ImageViewer.qml:69 contents/ui/chat/MessageImages.qml:184
+#: contents/ui/chat/ImageViewer.qml:70 contents/ui/chat/MessageImages.qml:184
 msgid "Copy image"
 msgstr ""
 
-#: contents/ui/chat/ImageViewer.qml:75 contents/ui/chat/MessageImages.qml:193
+#: contents/ui/chat/ImageViewer.qml:76 contents/ui/chat/MessageImages.qml:193
 msgid "Download"
 msgstr ""
 
-#: contents/ui/chat/ImageViewer.qml:82 contents/ui/chat/MessageActions.qml:180
+#: contents/ui/chat/ImageViewer.qml:83 contents/ui/chat/MessageActions.qml:180
 #: contents/ui/chat/MessageActions.qml:236
 #: contents/ui/chat/MessageActions.qml:252
 #: contents/ui/chat/MessageImages.qml:203
 msgid "Regenerate"
 msgstr ""
 
-#: contents/ui/chat/ImageViewer.qml:89 contents/ui/ScheduleDialog.qml:87
+#: contents/ui/chat/ImageViewer.qml:90 contents/ui/ScheduleDialog.qml:87
 msgid "Close"
 msgstr ""
 
@@ -1483,9 +1552,9 @@ msgstr ""
 msgid "Leave and discard"
 msgstr ""
 
-#: contents/ui/chat/MessageActions.qml:116 contents/ui/config/MemoryRow.qml:109
-#: contents/ui/config/MemoryRow.qml:111 contents/ui/config/ProviderRow.qml:80
-#: contents/ui/config/ScheduleRow.qml:87
+#: contents/ui/chat/MessageActions.qml:116 contents/ui/config/MemoryRow.qml:110
+#: contents/ui/config/MemoryRow.qml:112 contents/ui/config/ProviderRow.qml:82
+#: contents/ui/config/ScheduleRow.qml:88
 #: contents/ui/config/TemplatesEditor.qml:87
 msgid "Edit"
 msgstr ""
@@ -1551,7 +1620,7 @@ msgstr ""
 
 #: contents/ui/chat/MessageDelegate.qml:79
 #: contents/ui/chat/MessageDelegate.qml:81 contents/ui/chat/QuoteBlock.qml:24
-#: contents/ui/chat/QuoteChips.qml:29 contents/ui/chat/SenderName.qml:51
+#: contents/ui/chat/QuoteChips.qml:29 contents/ui/chat/SenderName.qml:52
 msgid "Assistant"
 msgstr ""
 
@@ -1629,15 +1698,15 @@ msgid ""
 "will see your connection."
 msgstr ""
 
-#: contents/ui/chat/MessageImages.qml:268
+#: contents/ui/chat/MessageImages.qml:269
 msgid "Save image"
 msgstr ""
 
-#: contents/ui/chat/MessageImages.qml:270
+#: contents/ui/chat/MessageImages.qml:271
 msgid "Images (*.png *.jpg *.webp *.gif)"
 msgstr ""
 
-#: contents/ui/chat/MessageImages.qml:280
+#: contents/ui/chat/MessageImages.qml:281
 msgid "Saved to %1"
 msgstr ""
 
@@ -1647,18 +1716,18 @@ msgid ""
 "mode. Start a new chat to use %1."
 msgstr ""
 
-#: contents/ui/chat/NoticeBanner.qml:55 contents/ui/chat/QuestionCard.qml:106
+#: contents/ui/chat/NoticeBanner.qml:56 contents/ui/chat/QuestionCard.qml:108
 #: contents/ui/chat/UndoNotice.qml:208
 msgid "Dismiss"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:53 contents/ui/chat/Notifier.qml:272
-#: contents/ui/chat/Notifier.qml:286
+#: contents/ui/chat/Notifier.qml:53 contents/ui/chat/Notifier.qml:155
+#: contents/ui/chat/Notifier.qml:313 contents/ui/chat/Notifier.qml:327
 msgid "Open chat"
 msgstr ""
 
 #: contents/ui/chat/Notifier.qml:107 contents/ui/chat/Notifier.qml:114
-#: contents/ui/chat/Notifier.qml:133
+#: contents/ui/chat/Notifier.qml:156
 msgid "Incognito chat"
 msgstr ""
 
@@ -1678,39 +1747,63 @@ msgstr ""
 msgid "A scheduled prompt is ready"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:133
+#: contents/ui/chat/Notifier.qml:156
 msgid "%1: input needed"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:138
+#: contents/ui/chat/Notifier.qml:162
 msgid "%1 asks to use %2"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:139 contents/ui/chat/PermissionButtons.qml:22
+#: contents/ui/chat/Notifier.qml:163 contents/ui/chat/PermissionButtons.qml:22
 msgid "Allow"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:139
+#: contents/ui/chat/Notifier.qml:163
 msgid "Deny"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:221
+#: contents/ui/chat/Notifier.qml:165
+msgid "The AI asks for permission. Open the chat to answer."
+msgstr ""
+
+#: contents/ui/chat/Notifier.qml:166
+msgid "%1 asks to use %2. Open the chat to see the whole request."
+msgstr ""
+
+#: contents/ui/chat/Notifier.qml:174
+msgid "The AI asks you a question. Open the chat to answer."
+msgstr ""
+
+#: contents/ui/chat/Notifier.qml:262
 msgid "Reply…"
 msgstr ""
 
-#: contents/ui/chat/Notifier.qml:222 contents/ui/chat/QuestionCard.qml:89
+#: contents/ui/chat/Notifier.qml:263 contents/ui/chat/QuestionCard.qml:91
 msgid "Type your answer…"
+msgstr ""
+
+#: contents/ui/chat/OpenCodeMode.qml:263
+msgid "OpenCode didn't accept the permission answer (HTTP %1)."
+msgstr ""
+
+#: contents/ui/chat/OpenCodeMode.qml:283
+msgid "OpenCode didn't accept the answer (HTTP %1)."
+msgstr ""
+
+#: contents/ui/chat/OpenCodeMode.qml:361
+msgid "Sync failed: %1"
 msgstr ""
 
 #: contents/ui/chat/OwnModelCheck.qml:9
 msgid "Give this chat its own model settings"
 msgstr ""
 
-#: contents/ui/chat/PendingFiles.qml:100 contents/ui/config/ProviderRow.qml:90
+#: contents/ui/chat/PendingFiles.qml:101 contents/ui/config/ProviderRow.qml:92
 msgid "Remove %1"
 msgstr ""
 
-#: contents/ui/chat/PendingFiles.qml:102
+#: contents/ui/chat/PendingFiles.qml:103
 msgid "Remove file"
 msgstr ""
 
@@ -1734,8 +1827,12 @@ msgstr ""
 msgid "Answering…"
 msgstr ""
 
-#: contents/ui/chat/PermissionDetail.qml:30
+#: contents/ui/chat/PermissionDetail.qml:31
 msgid "Wants to use %1"
+msgstr ""
+
+#: contents/ui/chat/PiChatSettings.qml:34
+msgid "Pi Agent"
 msgstr ""
 
 #: contents/ui/chat/PiChatSettings.qml:40
@@ -1755,6 +1852,10 @@ msgstr ""
 msgid ""
 "How hard the model thinks before answering: more is slower and costs more, "
 "but helps with hard tasks."
+msgstr ""
+
+#: contents/ui/chat/PiMode.qml:211
+msgid "Pi didn't accept the answer (HTTP %1)."
 msgstr ""
 
 #: contents/ui/chat/PrivacyBadge.qml:26
@@ -1868,9 +1969,9 @@ msgstr ""
 
 #: contents/ui/chat/ProjectEditor.qml:242
 #: contents/ui/chat/RememberPopup.qml:135
-#: contents/ui/config/ImageProviderEditor.qml:260
-#: contents/ui/config/MemoryRow.qml:143
-#: contents/ui/config/ProviderEditor.qml:174
+#: contents/ui/config/ImageProviderEditor.qml:261
+#: contents/ui/config/MemoryRow.qml:144
+#: contents/ui/config/ProviderEditor.qml:186
 #: contents/ui/config/TemplatesEditor.qml:128
 #: contents/ui/ScheduleDialog.qml:115
 msgid "Save"
@@ -1935,28 +2036,28 @@ msgstr ""
 msgid "Delete project and its chats…"
 msgstr ""
 
-#: contents/ui/chat/QuestionCard.qml:89
+#: contents/ui/chat/QuestionCard.qml:91
 msgid "Or type your own answer…"
 msgstr ""
 
-#: contents/ui/chat/QuestionCard.qml:100
+#: contents/ui/chat/QuestionCard.qml:102
 msgid "Submit"
 msgstr ""
 
-#: contents/ui/chat/QuestionCard.qml:128
+#: contents/ui/chat/QuestionCard.qml:131
 msgid "Answered: %1"
 msgstr ""
 
-#: contents/ui/chat/QuestionCard.qml:129
+#: contents/ui/chat/QuestionCard.qml:132
 msgid "Dismissed"
 msgstr ""
 
-#: contents/ui/chat/QuestionCard.qml:129
+#: contents/ui/chat/QuestionCard.qml:132
 msgid "Sending answer…"
 msgstr ""
 
 #: contents/ui/chat/QuoteBlock.qml:23 contents/ui/chat/QuoteChips.qml:28
-#: contents/ui/chat/SenderName.qml:46 contents/ui/ConfigPersonality.qml:102
+#: contents/ui/chat/SenderName.qml:47 contents/ui/ConfigPersonality.qml:102
 msgid "You"
 msgstr ""
 
@@ -1998,7 +2099,7 @@ msgstr ""
 msgid "What should the assistant remember?"
 msgstr ""
 
-#: contents/ui/chat/RememberPopup.qml:84 contents/ui/config/MemoryRow.qml:132
+#: contents/ui/chat/RememberPopup.qml:84 contents/ui/config/MemoryRow.qml:133
 msgid "%1 / %2"
 msgstr ""
 
@@ -2032,27 +2133,87 @@ msgstr ""
 msgid "Cancel rename"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:47
-msgid "%1 · queued"
+#: contents/ui/chat/ReplyEvents.qml:161
+msgid "The model returned an empty response."
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:47
-msgid "You · queued"
+#: contents/ui/chat/SendController.qml:104
+msgid "a valid OpenCode HTTP(S) URL"
+msgstr ""
+
+#: contents/ui/chat/SendController.qml:108
+msgid "OpenCode provider or agent"
+msgstr ""
+
+#: contents/ui/chat/SendController.qml:110
+msgid "OpenCode model or agent"
+msgstr ""
+
+#: contents/ui/chat/SendController.qml:112
+msgid "Cannot send yet. Configure: %1."
+msgstr ""
+
+#: contents/ui/chat/SendController.qml:118
+msgid "Provider configuration missing."
+msgstr ""
+
+#: contents/ui/chat/SendController.qml:122
+msgid ""
+"The provider \"%1\" isn't set up any more. Add it in Widget Settings → "
+"General → Providers, or pick another provider in this chat's settings."
+msgstr ""
+
+#: contents/ui/chat/SendController.qml:128
+msgid "provider"
+msgstr ""
+
+#: contents/ui/chat/SendController.qml:131
+msgid "base URL"
+msgstr ""
+
+#: contents/ui/chat/SendController.qml:134
+msgid "model"
+msgstr ""
+
+#: contents/ui/chat/SendController.qml:143
+msgid ""
+"Cannot send message with %1. Missing: %2. Please open Widget Settings "
+"(Configure KDE AI Chat) to set your API key or model."
+msgstr ""
+
+#: contents/ui/chat/SendController.qml:158
+msgid "Message is too large. Keep messages under 200,000 characters."
+msgstr ""
+
+#: contents/ui/chat/SendController.qml:164
+msgid "Please wait for attached files to finish loading before sending."
+msgstr ""
+
+#: contents/ui/chat/SendController.qml:187
+msgid "Send failed: %1"
 msgstr ""
 
 #: contents/ui/chat/SenderName.qml:48
-msgid "Something went wrong"
+msgid "%1 · queued"
+msgstr ""
+
+#: contents/ui/chat/SenderName.qml:48
+msgid "You · queued"
 msgstr ""
 
 #: contents/ui/chat/SenderName.qml:49
-msgid "Question"
+msgid "Something went wrong"
 msgstr ""
 
 #: contents/ui/chat/SenderName.qml:50
+msgid "Question"
+msgstr ""
+
+#: contents/ui/chat/SenderName.qml:51
 msgid "Permission request"
 msgstr ""
 
-#: contents/ui/chat/SenderName.qml:62
+#: contents/ui/chat/SenderName.qml:64
 msgid "Scheduled: %1"
 msgstr ""
 
@@ -2094,28 +2255,28 @@ msgid ""
 "text is kept."
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:121
-#: contents/ui/ChatSettingsDialog.qml:123
+#: contents/ui/ChatSettingsDialog.qml:122
+#: contents/ui/ChatSettingsDialog.qml:124
 msgid "Close chat info"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:147
+#: contents/ui/ChatSettingsDialog.qml:148
 msgid "This chat"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:208
+#: contents/ui/ChatSettingsDialog.qml:209
 msgid "Settings for this chat"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:236
+#: contents/ui/ChatSettingsDialog.qml:237
 msgid "Reset"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:245
+#: contents/ui/ChatSettingsDialog.qml:246
 msgid "Unsaved changes"
 msgstr ""
 
-#: contents/ui/ChatSettingsDialog.qml:249
+#: contents/ui/ChatSettingsDialog.qml:250
 msgid "Apply"
 msgstr ""
 
@@ -2424,7 +2585,7 @@ msgstr ""
 msgid "Template %1"
 msgstr ""
 
-#: contents/ui/chat/ToolCard.qml:79 contents/ui/chat/ToolCard.qml:115
+#: contents/ui/chat/ToolCard.qml:79 contents/ui/chat/ToolCard.qml:117
 msgid "Tool"
 msgstr ""
 
@@ -2440,15 +2601,15 @@ msgstr ""
 msgid "%1, %2"
 msgstr ""
 
-#: contents/ui/chat/ToolCard.qml:147
+#: contents/ui/chat/ToolCard.qml:151
 msgid "Input"
 msgstr ""
 
-#: contents/ui/chat/ToolCard.qml:161
+#: contents/ui/chat/ToolCard.qml:165
 msgid "Error"
 msgstr ""
 
-#: contents/ui/chat/ToolCard.qml:161
+#: contents/ui/chat/ToolCard.qml:165
 msgid "Output"
 msgstr ""
 
@@ -2508,19 +2669,33 @@ msgstr ""
 msgid "Choose a workspace folder"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:120
+#: contents/ui/chat/WorkspaceBar.qml:121
 msgid "%1 (folder from the project)"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:133
+#: contents/ui/chat/WorkspaceBar.qml:134
 msgid "Clear the workspace (No workspace)"
 msgstr ""
 
 #: contents/ui/chat/WorkspaceBar.qml:158
+msgid "(default)"
+msgstr ""
+
+#: contents/ui/chat/WorkspaceBar.qml:158
+msgid ""
+"Agent profile — uses model from opencode.json\n"
+"Currently: %1"
+msgstr ""
+
+#: contents/ui/chat/WorkspaceBar.qml:159
 msgid "Agent profile"
 msgstr ""
 
-#: contents/ui/chat/WorkspaceBar.qml:174
+#: contents/ui/chat/WorkspaceBar.qml:166
+msgid "Reload the agent list from OpenCode"
+msgstr ""
+
+#: contents/ui/chat/WorkspaceBar.qml:175
 msgid "Sync session history from OpenCode"
 msgstr ""
 
@@ -2602,7 +2777,7 @@ msgstr ""
 
 #: contents/ui/ConfigAppearance.qml:101
 #: contents/ui/config/ImageProviderEditor.qml:64
-#: contents/ui/config/ProviderEditor.qml:49
+#: contents/ui/config/ProviderEditor.qml:50
 #: contents/ui/config/ScheduleEditor.qml:86
 msgid "Name:"
 msgstr ""
@@ -2780,19 +2955,19 @@ msgstr ""
 msgid "No Avatar"
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:221
+#: contents/ui/config/AvatarPicker.qml:222
 msgid "This video can't be played; a plain icon is shown."
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:221
+#: contents/ui/config/AvatarPicker.qml:222
 msgid "This picture can't be read; no avatar is shown."
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:223
+#: contents/ui/config/AvatarPicker.qml:224
 msgid "Checking the file…"
 msgstr ""
 
-#: contents/ui/config/AvatarPicker.qml:224 contents/ui/ConfigPersonality.qml:63
+#: contents/ui/config/AvatarPicker.qml:225 contents/ui/ConfigPersonality.qml:63
 msgid "None"
 msgstr ""
 
@@ -3336,17 +3511,17 @@ msgid ""
 "settings above."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:154
+#: contents/ui/config/DictationSettings.qml:155
 msgid ""
 "Checks the settings above with a short recording that comes with the widget; "
 "no microphone needed."
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:158
+#: contents/ui/config/DictationSettings.qml:159
 msgid "Send the transcript right away"
 msgstr ""
 
-#: contents/ui/config/DictationSettings.qml:164
+#: contents/ui/config/DictationSettings.qml:165
 msgid ""
 "On: what you said is sent as soon as you stop talking. Off: it waits in the "
 "message box so you can check or change it first."
@@ -3388,15 +3563,15 @@ msgid ""
 "shown instead."
 msgstr ""
 
-#: contents/ui/config/IconSettings.qml:248
+#: contents/ui/config/IconSettings.qml:249
 msgid "A small file of up to 20 MB; a few seconds that repeat look best."
 msgstr ""
 
-#: contents/ui/config/IconSettings.qml:254
+#: contents/ui/config/IconSettings.qml:255
 msgid "Animate only while the pointer is on it"
 msgstr ""
 
-#: contents/ui/config/IconSettings.qml:261
+#: contents/ui/config/IconSettings.qml:262
 msgid ""
 "Keeps the panel calm and saves a little power: the animation stands still "
 "until you point at it."
@@ -3466,7 +3641,7 @@ msgid ""
 msgstr ""
 
 #: contents/ui/config/ImageProviderEditor.qml:116
-#: contents/ui/config/ProviderEditor.qml:81
+#: contents/ui/config/ProviderEditor.qml:82
 msgid "API key:"
 msgstr ""
 
@@ -3494,7 +3669,7 @@ msgstr ""
 #: contents/ui/config/ImageProviderEditor.qml:130
 #: contents/ui/config/OpenCodeSettings.qml:208
 #: contents/ui/config/PiSettings.qml:111
-#: contents/ui/config/ProviderEditor.qml:92
+#: contents/ui/config/ProviderEditor.qml:102
 msgid "Model:"
 msgstr ""
 
@@ -3504,7 +3679,7 @@ msgstr ""
 
 #: contents/ui/config/ImageProviderEditor.qml:145
 #: contents/ui/config/PiSettings.qml:100
-#: contents/ui/config/ProviderEditor.qml:103 contents/ui/ConfigStorage.qml:185
+#: contents/ui/config/ProviderEditor.qml:113 contents/ui/ConfigStorage.qml:185
 msgid "Refresh"
 msgstr ""
 
@@ -3515,7 +3690,7 @@ msgid ""
 msgstr ""
 
 #: contents/ui/config/ImageProviderEditor.qml:168
-#: contents/ui/config/ProviderEditor.qml:154
+#: contents/ui/config/ProviderEditor.qml:165
 msgid "Fetching models…"
 msgstr ""
 
@@ -3657,7 +3832,7 @@ msgid "Buttons at the top:"
 msgstr ""
 
 #: contents/ui/config/LayoutSettings.qml:132
-#: contents/ui/config/ScheduleRow.qml:97
+#: contents/ui/config/ScheduleRow.qml:98
 msgid "History"
 msgstr ""
 
@@ -3675,12 +3850,6 @@ msgstr ""
 #: contents/ui/config/LocalServers.qml:64
 msgid "asks for a key"
 msgstr ""
-
-#: contents/ui/config/LocalServers.qml:65
-msgid "%1 model"
-msgid_plural "%1 models"
-msgstr[0] ""
-msgstr[1] ""
 
 #: contents/ui/config/LocalServers.qml:84
 msgid "Local servers"
@@ -3716,15 +3885,15 @@ msgstr ""
 msgid "Could not look for local servers."
 msgstr ""
 
-#: contents/ui/config/LocalServers.qml:163
+#: contents/ui/config/LocalServers.qml:165
 msgid "In your list"
 msgstr ""
 
-#: contents/ui/config/LocalServers.qml:170
+#: contents/ui/config/LocalServers.qml:172
 msgid "Use"
 msgstr ""
 
-#: contents/ui/config/LocalServers.qml:173
+#: contents/ui/config/LocalServers.qml:175
 msgid "Use %1"
 msgstr ""
 
@@ -3878,27 +4047,27 @@ msgstr ""
 msgid "Off: never sent"
 msgstr ""
 
-#: contents/ui/config/MemoryRow.qml:71
+#: contents/ui/config/MemoryRow.qml:72
 msgid "pinned"
 msgstr ""
 
-#: contents/ui/config/MemoryRow.qml:71
+#: contents/ui/config/MemoryRow.qml:72
 msgid "off"
 msgstr ""
 
-#: contents/ui/config/MemoryRow.qml:81
+#: contents/ui/config/MemoryRow.qml:82
 msgid "Edit memory"
 msgstr ""
 
-#: contents/ui/config/MemoryRow.qml:99 contents/ui/config/MemoryRow.qml:101
+#: contents/ui/config/MemoryRow.qml:100 contents/ui/config/MemoryRow.qml:102
 msgid "Unpin"
 msgstr ""
 
-#: contents/ui/config/MemoryRow.qml:99
+#: contents/ui/config/MemoryRow.qml:100
 msgid "Pin"
 msgstr ""
 
-#: contents/ui/config/MemoryRow.qml:101
+#: contents/ui/config/MemoryRow.qml:102
 msgid "Pin: send it with every message, first"
 msgstr ""
 
@@ -3942,8 +4111,10 @@ msgid "The server answered but has no providers configured."
 msgstr ""
 
 #: contents/ui/config/OpenCodeSettings.qml:96
-msgid "Connected. %1 providers available."
-msgstr ""
+msgid "Connected. %1 provider available."
+msgid_plural "Connected. %1 providers available."
+msgstr[0] ""
+msgstr[1] ""
 
 #: contents/ui/config/OpenCodeSettings.qml:102
 msgid "Enter an http:// or https:// address."
@@ -4041,7 +4212,7 @@ msgid ""
 msgstr ""
 
 #: contents/ui/config/OpenCodeSettings.qml:221
-#: contents/ui/config/ProviderEditor.qml:114
+#: contents/ui/config/ProviderEditor.qml:124
 msgid "Variant:"
 msgstr ""
 
@@ -4052,8 +4223,8 @@ msgid ""
 "tasks, but is slower and costs more."
 msgstr ""
 
-#: contents/ui/config/OpenCodeSettings.qml:234
-#: contents/ui/config/PiSettings.qml:137
+#: contents/ui/config/OpenCodeSettings.qml:235
+#: contents/ui/config/PiSettings.qml:138
 msgid "Status:"
 msgstr ""
 
@@ -4288,8 +4459,10 @@ msgid "Pi listed no models."
 msgstr ""
 
 #: contents/ui/config/PiSettings.qml:68
-msgid "%1 providers available."
-msgstr ""
+msgid "%1 provider available."
+msgid_plural "%1 providers available."
+msgstr[0] ""
+msgstr[1] ""
 
 #: contents/ui/config/PiSettings.qml:75
 msgid "Asking Pi for its models…"
@@ -4360,125 +4533,131 @@ msgstr ""
 msgid "Key accepted by %1."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:54
+#: contents/ui/config/ProviderEditor.qml:55
 msgid "Any name you like; it is how this provider shows in lists."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:58
+#: contents/ui/config/ProviderEditor.qml:59
 msgid "API type:"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:59
+#: contents/ui/config/ProviderEditor.qml:60
 msgid "OpenAI-compatible"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:59
+#: contents/ui/config/ProviderEditor.qml:60
 msgid "Anthropic"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:64
+#: contents/ui/config/ProviderEditor.qml:65
 msgid ""
 "The \"language\" the provider's server speaks. Almost all services, and "
 "local programs like Ollama, use \"OpenAI-compatible\"; choose \"Anthropic\" "
 "only for Anthropic's own server."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:69
+#: contents/ui/config/ProviderEditor.qml:70
 msgid "Server URL:"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:76
+#: contents/ui/config/ProviderEditor.qml:77
 msgid ""
 "The web address of the provider's server, as given in its documentation "
 "(often ending in /v1). For a model on your own computer it starts with "
 "http://localhost."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:84
+#: contents/ui/config/ProviderEditor.qml:85
 msgid "Optional for local servers"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:84
+#: contents/ui/config/ProviderEditor.qml:85
 msgid "Stored in KWallet"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:88
+#: contents/ui/config/ProviderEditor.qml:89
 msgid ""
 "The password-like code your AI provider gives you (on its website, usually "
 "under \"API keys\"). It proves the requests are yours and is kept in KDE "
 "Wallet, your computer's password safe."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:89
+#: contents/ui/config/ProviderEditor.qml:90
 msgid ""
 "Anyone with this key can use your account, so it is never written into the "
 "settings file. Local servers usually need no key."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:110
+#: contents/ui/config/ProviderEditor.qml:95
+msgid ""
+"This address starts with http://, so your key and messages cross the network "
+"unencrypted. Use https:// if the provider offers it."
+msgstr ""
+
+#: contents/ui/config/ProviderEditor.qml:120
 msgid ""
 "The AI model to use with this provider. Refresh asks the provider which "
 "models it has."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:122
+#: contents/ui/config/ProviderEditor.qml:132
 msgid ""
 "Some models can think longer before answering. More thinking gives better "
 "answers to hard questions, but is slower and costs more."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:136
+#: contents/ui/config/ProviderEditor.qml:147
 msgid "Show all models (%1 hidden)"
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:142
+#: contents/ui/config/ProviderEditor.qml:153
 msgid ""
 "Only models you can chat with are listed. Turn this on to also see the "
 "others (for search, safety checks, speech or pictures)."
 msgstr ""
 
-#: contents/ui/config/ProviderEditor.qml:154
+#: contents/ui/config/ProviderEditor.qml:165
 msgid "Checking the key with the provider…"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:51
+#: contents/ui/config/ProviderRow.qml:52
 msgid "used by /image"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:58
+#: contents/ui/config/ProviderRow.qml:60
 msgid "no model set"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:59
+#: contents/ui/config/ProviderRow.qml:61
 msgid "no API key"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:60
+#: contents/ui/config/ProviderRow.qml:62
 msgid "switched off"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:61
+#: contents/ui/config/ProviderRow.qml:63
 msgid "model unavailable: %1"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:71
+#: contents/ui/config/ProviderRow.qml:73
 msgid "Use for /image"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:71
+#: contents/ui/config/ProviderRow.qml:73
 msgid "Use by default"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:81
+#: contents/ui/config/ProviderRow.qml:83
 msgid "Edit %1"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:89 contents/ui/config/ProviderRow.qml:98
+#: contents/ui/config/ProviderRow.qml:91 contents/ui/config/ProviderRow.qml:100
 #: contents/ui/config/TemplatesEditor.qml:94
 msgid "Remove"
 msgstr ""
 
-#: contents/ui/config/ProviderRow.qml:94
+#: contents/ui/config/ProviderRow.qml:96
 msgid "Remove this provider and its key?"
 msgstr ""
 
@@ -4508,8 +4687,10 @@ msgid "Could not fetch models from %1."
 msgstr ""
 
 #: contents/ui/config/ProvidersPanel.qml:264
-msgid "%1 models available."
-msgstr ""
+msgid "%1 model available."
+msgid_plural "%1 models available."
+msgstr[0] ""
+msgstr[1] ""
 
 #: contents/ui/config/ProvidersPanel.qml:264
 msgid "The provider returned no models."
@@ -4613,15 +4794,15 @@ msgstr ""
 msgid "Asking %1…"
 msgstr ""
 
-#: contents/ui/config/ScheduleDescribeBox.qml:102
+#: contents/ui/config/ScheduleDescribeBox.qml:103
 msgid "Or type your answer"
 msgstr ""
 
-#: contents/ui/config/ScheduleDescribeBox.qml:109
+#: contents/ui/config/ScheduleDescribeBox.qml:110
 msgid "Answer"
 msgstr ""
 
-#: contents/ui/config/ScheduleDescribeBox.qml:141
+#: contents/ui/config/ScheduleDescribeBox.qml:144
 msgid "Filled in: %1. Check the rules and the next runs below, then save."
 msgstr ""
 
@@ -4797,7 +4978,7 @@ msgstr[1] ""
 msgid "Nothing has run yet"
 msgstr ""
 
-#: contents/ui/config/ScheduleHistory.qml:72
+#: contents/ui/config/ScheduleHistory.qml:73
 msgid "planned for %1"
 msgstr ""
 
@@ -4888,7 +5069,7 @@ msgid ""
 msgstr ""
 
 #: contents/ui/config/SchedulePreview.qml:37
-#: contents/ui/config/ScheduleRow.qml:142
+#: contents/ui/config/ScheduleRow.qml:144
 msgid "Never runs"
 msgstr ""
 
@@ -4932,39 +5113,39 @@ msgstr ""
 msgid "Off: never runs"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:77
+#: contents/ui/config/ScheduleRow.qml:78
 msgid "a deleted chat"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:77
+#: contents/ui/config/ScheduleRow.qml:78
 msgid "In “%1”"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:77
+#: contents/ui/config/ScheduleRow.qml:78
 msgid "No chat chosen"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:83
+#: contents/ui/config/ScheduleRow.qml:84
 msgid "Finish…"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:115
+#: contents/ui/config/ScheduleRow.qml:116
 msgid "Brought over from the old scheduler. %1."
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:136
+#: contents/ui/config/ScheduleRow.qml:138
 msgid "Off"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:138
+#: contents/ui/config/ScheduleRow.qml:140
 msgid "No more runs"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:140
+#: contents/ui/config/ScheduleRow.qml:142
 msgid "Next: %1"
 msgstr ""
 
-#: contents/ui/config/ScheduleRow.qml:156
+#: contents/ui/config/ScheduleRow.qml:158
 msgid "Delete this schedule and its history?"
 msgstr ""
 
@@ -5175,6 +5356,11 @@ msgid_plural "%1 warnings"
 msgstr[0] ""
 msgstr[1] ""
 
+#: contents/ui/config/SetupCheck.qml:150
+msgctxt "%1 is a number of problems, %2 a number of warnings"
+msgid "%1, %2"
+msgstr ""
+
 #: contents/ui/config/SetupCheck.qml:161
 msgid ""
 "Looks at what your settings need on this computer (programs, servers, keys, "
@@ -5193,21 +5379,21 @@ msgstr ""
 msgid "Problem"
 msgstr ""
 
-#: contents/ui/config/SetupCheck.qml:212
+#: contents/ui/config/SetupCheck.qml:214
 msgid "Recreate timers"
 msgstr ""
 
-#: contents/ui/config/SetupCheck.qml:225
+#: contents/ui/config/SetupCheck.qml:227
 msgid "Hide what passed"
 msgstr ""
 
-#: contents/ui/config/SetupCheck.qml:226
+#: contents/ui/config/SetupCheck.qml:228
 msgid "Show what passed (1 check)"
 msgid_plural "Show what passed (%1 checks)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: contents/ui/config/SetupCheck.qml:236
+#: contents/ui/config/SetupCheck.qml:238
 msgid ""
 "The setup check found nothing wrong on this computer. The provider may be "
 "having trouble; try again in a moment."
@@ -5288,319 +5474,331 @@ msgid "Replace YOUR_ACCOUNT_ID in the address with your account id."
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:37
-msgid "%1 has no model chosen."
+msgid ""
+"%1 uses a plain http:// address to another computer, so its API key and your "
+"messages travel unencrypted."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:37
-msgid "Pick one in the provider's settings."
+#: contents/ui/config/SetupChecks.js:38
+msgid ""
+"Use an https:// address if the provider offers one; plain http is only safe "
+"on this computer or a network you trust."
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:39
-msgid "%1 answers at %2."
+msgid "%1 has no model chosen."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:40
-msgid "%1 answers at %2 and asks for a key."
+#: contents/ui/config/SetupChecks.js:39
+msgid "Pick one in the provider's settings."
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:41
-msgid "Nothing answers at %2, so %1 isn't running there."
+msgid "%1 answers at %2."
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:42
-msgid ""
-"Start %1, or correct the address. For Ollama, the command is: ollama serve"
+msgid "%1 answers at %2 and asks for a key."
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:43
-msgid "%1 at %2 didn't answer in time."
+msgid "Nothing answers at %2, so %1 isn't running there."
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:44
 msgid ""
-"Check that the computer at that address is on and the server isn't stuck."
+"Start %1, or correct the address. For Ollama, the command is: ollama serve"
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:45
-msgid "%1 answers at %2, but has no model list there (HTTP 404)."
+msgid "%1 at %2 didn't answer in time."
 msgstr ""
 
 #: contents/ui/config/SetupChecks.js:46
+msgid ""
+"Check that the computer at that address is on and the server isn't stuck."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:47
+msgid "%1 answers at %2, but has no model list there (HTTP 404)."
+msgstr ""
+
+#: contents/ui/config/SetupChecks.js:48
 msgid "Check the address: it usually ends in /v1."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:47
+#: contents/ui/config/SetupChecks.js:49
 msgid "%1 at %2 answered with an error (HTTP %3)."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:47
+#: contents/ui/config/SetupChecks.js:49
 msgid "Check the address and the server's log."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:48
+#: contents/ui/config/SetupChecks.js:50
 msgid "The computer named in %2 can't be found."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:48
+#: contents/ui/config/SetupChecks.js:50
 msgid "Correct the address of %1."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:49
+#: contents/ui/config/SetupChecks.js:51
 msgid "%1 can't be reached at %2: %3"
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:49
+#: contents/ui/config/SetupChecks.js:51
 msgid "Check the address and your network."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:51
+#: contents/ui/config/SetupChecks.js:53
 msgid "OpenCode answers at %1 (version %2)."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:52
+#: contents/ui/config/SetupChecks.js:54
 msgid "OpenCode answers at %1."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:53
+#: contents/ui/config/SetupChecks.js:55
 msgid "OpenCode is installed (%2) and starts by itself at %1 when you send."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:54
+#: contents/ui/config/SetupChecks.js:56
 msgid "OpenCode is installed and starts by itself at %1 when you send."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:55
+#: contents/ui/config/SetupChecks.js:57
 msgid "OpenCode isn't installed: there is no opencode program."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:56
+#: contents/ui/config/SetupChecks.js:58
 msgid "Install it (see opencode.ai), then check again."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:57
+#: contents/ui/config/SetupChecks.js:59
 msgid "Nothing answers at %1."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:58
+#: contents/ui/config/SetupChecks.js:60
 msgid "Start opencode serve there, or correct the server address above."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:59
+#: contents/ui/config/SetupChecks.js:61
 msgid "OpenCode at %1 didn't answer in time."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:59
+#: contents/ui/config/SetupChecks.js:61
 msgid "Check that the server isn't stuck."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:60
+#: contents/ui/config/SetupChecks.js:62
 msgid "Something answers at %1, but it isn't an OpenCode server (HTTP %2)."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:61
+#: contents/ui/config/SetupChecks.js:63
 msgid "Check the port in the server address."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:62
+#: contents/ui/config/SetupChecks.js:64
 msgid "The OpenCode server address isn't valid: %1"
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:63
+#: contents/ui/config/SetupChecks.js:65
 msgid "Use an address like http://127.0.0.1:4096."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:65
+#: contents/ui/config/SetupChecks.js:67
 msgid "Pi is installed (%2)."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:66
+#: contents/ui/config/SetupChecks.js:68
 msgid "Pi is installed."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:67
+#: contents/ui/config/SetupChecks.js:69
 msgid "Pi isn't installed: there is no pi program."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:68
+#: contents/ui/config/SetupChecks.js:70
 msgid "Install the Pi coding agent, then check again."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:69
+#: contents/ui/config/SetupChecks.js:71
 msgid "The Pi bridge is running."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:70
+#: contents/ui/config/SetupChecks.js:72
 msgid "The Pi bridge starts by itself when you send."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:71
+#: contents/ui/config/SetupChecks.js:73
 msgid "The Pi bridge can't start: %1."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:72
+#: contents/ui/config/SetupChecks.js:74
 msgid "Reinstall the widget, or see pi-bridge.log in ~/.local/share/kdeaichat."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:74
+#: contents/ui/config/SetupChecks.js:76
 msgid "PDF files can be attached."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:75
+#: contents/ui/config/SetupChecks.js:77
 msgid "PDF files can't be read: pdftotext is missing."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:76
+#: contents/ui/config/SetupChecks.js:78
 msgid "Install poppler-utils (Arch: poppler)."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:77
+#: contents/ui/config/SetupChecks.js:79
 msgid "Word files can be attached."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:78
+#: contents/ui/config/SetupChecks.js:80
 msgid "Word files are read with a simpler built-in reader: pandoc is missing."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:79
+#: contents/ui/config/SetupChecks.js:81
 msgid "Install pandoc for better results."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:81
+#: contents/ui/config/SetupChecks.js:83
 msgid "A dictation setting isn't valid: %1"
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:81
+#: contents/ui/config/SetupChecks.js:83
 msgid "Correct it in Settings → Voice."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:82
+#: contents/ui/config/SetupChecks.js:84
 msgid "The microphone is recorded with %1."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:83
+#: contents/ui/config/SetupChecks.js:85
 msgid "There is no recording program (pw-record, parecord or arecord)."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:84
+#: contents/ui/config/SetupChecks.js:86
 msgid "Install PipeWire's tools (pipewire-tools or pipewire-utils)."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:85
+#: contents/ui/config/SetupChecks.js:87
 msgid "Dictation has no speech server address."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:85 contents/ui/config/SetupChecks.js:99
+#: contents/ui/config/SetupChecks.js:87 contents/ui/config/SetupChecks.js:101
 msgid "Enter it in Settings → Voice."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:86
+#: contents/ui/config/SetupChecks.js:88
 msgid "Dictation with %1 is ready."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:88
+#: contents/ui/config/SetupChecks.js:90
 msgid "Speech Note isn't installed, so dictation can't listen."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:89
+#: contents/ui/config/SetupChecks.js:91
 msgid ""
 "Install Speech Note (see Settings → Voice), then download a speech model in "
 "it."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:90
+#: contents/ui/config/SetupChecks.js:92
 msgid ""
 "Speech Note isn't installed, so replies are read with the robotic system "
 "voice."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:91
+#: contents/ui/config/SetupChecks.js:93
 msgid ""
 "Install Speech Note (see Settings → Voice), then download a voice in it."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:92
+#: contents/ui/config/SetupChecks.js:94
 msgid "Speech Note has no speech-to-text model yet."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:93
+#: contents/ui/config/SetupChecks.js:95
 msgid "Open Speech Note and download a speech-to-text model in your language."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:94
+#: contents/ui/config/SetupChecks.js:96
 msgid ""
 "Speech Note has no voice yet, so replies are read with the robotic system "
 "voice."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:95
+#: contents/ui/config/SetupChecks.js:97
 msgid "Open Speech Note and download a voice in your language."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:96
+#: contents/ui/config/SetupChecks.js:98
 msgid "Speech Note could not be started: %1"
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:96
+#: contents/ui/config/SetupChecks.js:98
 msgid "Open Speech Note once by hand to see what it says."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:97
+#: contents/ui/config/SetupChecks.js:99
 msgid "Dictation with Speech Note is ready."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:98
+#: contents/ui/config/SetupChecks.js:100
 msgid "Read aloud with Speech Note is ready."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:99
+#: contents/ui/config/SetupChecks.js:101
 msgid "Read aloud has no valid speech server address."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:100
+#: contents/ui/config/SetupChecks.js:102
 msgid "Speech Dispatcher isn't installed, so the system voices may be silent."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:101
+#: contents/ui/config/SetupChecks.js:103
 msgid "Install speech-dispatcher and espeak-ng."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:102
+#: contents/ui/config/SetupChecks.js:104
 msgid "Read aloud with %1 is ready."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:104
+#: contents/ui/config/SetupChecks.js:106
 msgid "No schedule is waiting to run."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:105
+#: contents/ui/config/SetupChecks.js:107
 msgid "%1 schedules have their timers."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:106
+#: contents/ui/config/SetupChecks.js:108
 msgid "The schedule file can't be read."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:106
+#: contents/ui/config/SetupChecks.js:108
 msgid "Open Settings → Schedules to see what's wrong."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:107
+#: contents/ui/config/SetupChecks.js:109
 msgid "systemd's user service manager isn't available, so schedules can't run."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:108
+#: contents/ui/config/SetupChecks.js:110
 msgid "Schedules need systemctl --user (a systemd session)."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:109
+#: contents/ui/config/SetupChecks.js:111
 msgid "%1 schedules are missing their timer, so they won't run."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:110
+#: contents/ui/config/SetupChecks.js:112
 msgid "Press Recreate timers."
 msgstr ""
 
-#: contents/ui/config/SetupChecks.js:111
+#: contents/ui/config/SetupChecks.js:113
 msgid "One check failed: %1"
 msgstr ""
 
@@ -5974,23 +6172,23 @@ msgstr ""
 msgid "Enter an address that starts with http:// or https://."
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:130
+#: contents/ui/config/TtsOption.qml:131
 msgid "Saved in KWallet"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:130
+#: contents/ui/config/TtsOption.qml:131
 msgid "Not set"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:133
+#: contents/ui/config/TtsOption.qml:134
 msgid "Save key"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:133
+#: contents/ui/config/TtsOption.qml:134
 msgid "Remove key"
 msgstr ""
 
-#: contents/ui/config/TtsOption.qml:138
+#: contents/ui/config/TtsOption.qml:139
 msgid "Saved."
 msgstr ""
 
@@ -6074,28 +6272,32 @@ msgstr ""
 msgid "Say Hello"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:276
+#: contents/ui/ConfigVoice.qml:277
 msgid "Speaking…"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:284
+#: contents/ui/ConfigVoice.qml:285
 msgid ""
 "Plays a short greeting with the settings above, so you can hear them before "
 "saving."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:290
+#: contents/ui/ConfigVoice.qml:291
 msgid "Read every reply aloud when it is finished"
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:295
+#: contents/ui/ConfigVoice.qml:296
 msgid ""
 "Hands-free: each new reply is spoken without pressing the speaker button. "
 "Stop it with the stop button or Ctrl+Shift+S."
 msgstr ""
 
-#: contents/ui/ConfigVoice.qml:300
+#: contents/ui/ConfigVoice.qml:301
 msgid "Dictation"
+msgstr ""
+
+#: contents/ui/FullRepresentationContent.qml:86
+msgid "Drop files here to attach"
 msgstr ""
 
 #: contents/ui/FullRepresentationContent.qml:123
@@ -6143,8 +6345,10 @@ msgid "Removed plaintext copies of %1 API keys that were already in KWallet."
 msgstr ""
 
 #: contents/ui/store/Migration.qml:187
-msgid "Moved %1 chats into private files."
-msgstr ""
+msgid "Moved %1 chat into private files."
+msgid_plural "Moved %1 chats into private files."
+msgstr[0] ""
+msgstr[1] ""
 
 #: contents/ui/store/Wallet.qml:79
 msgid "API keys are stored in KWallet."
