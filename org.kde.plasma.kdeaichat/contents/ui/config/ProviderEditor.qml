@@ -9,6 +9,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import "../components" as Components
+import "../ProviderService.js" as ProviderService
 
 // i18n() is provided by Plasma at runtime.
 // qmllint disable unqualified
@@ -87,6 +88,15 @@ Kirigami.FormLayout {
     SettingHelp {
         text: i18n("The password-like code your AI provider gives you (on its website, usually under \"API keys\"). It proves the requests are yours and is kept in KDE Wallet, your computer's password safe.")
         details: i18n("Anyone with this key can use your account, so it is never written into the settings file. Local servers usually need no key.")
+    }
+    QQC2.Label {
+        objectName: "plainHttpWarning"
+        visible: editor.draftKey.trim() !== "" && ProviderService.isPlainHttpRemote(editor.draft.baseUrl)
+        text: i18n("This address starts with http://, so your key and messages cross the network unencrypted. Use https:// if the provider offers it.")
+        wrapMode: Text.Wrap
+        color: Kirigami.Theme.neutralTextColor
+        Layout.fillWidth: true
+        Layout.preferredWidth: Kirigami.Units.gridUnit * 20
     }
     RowLayout {
         Kirigami.FormData.label: i18n("Model:")

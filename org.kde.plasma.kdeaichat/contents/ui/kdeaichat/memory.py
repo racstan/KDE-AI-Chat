@@ -53,9 +53,9 @@ MAX_IDS_PER_CALL = 1000
 MAX_STORE_BYTES = 16 * 1024 * 1024
 SCOPES = ("all", "project", "chat")
 
-_MEMORY_ID = re.compile(r"^m-[0-9a-f]{16}$")
-_PROJECT_ID = re.compile(r"^p-[A-Za-z0-9_-]{1,64}$")
-_CHAT_ID = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
+_MEMORY_ID = re.compile(r"^m-[0-9a-f]{16}\Z")
+_PROJECT_ID = re.compile(r"^p-[A-Za-z0-9_-]{1,64}\Z")
+_CHAT_ID = re.compile(r"^[A-Za-z0-9._:-]{1,128}\Z")
 
 
 def memory_path() -> str:

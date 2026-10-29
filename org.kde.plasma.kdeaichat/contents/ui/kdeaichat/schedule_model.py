@@ -16,11 +16,11 @@ from typing import Any, Dict, List, Optional
 
 from kdeaichat import schedule_cron
 
-ID_RE = re.compile(r"^[A-Za-z0-9-]{1,64}$")
-CHAT_ID_RE = re.compile(r"^[A-Za-z0-9._:%-]{1,128}$")
-TIME_RE = re.compile(r"^([01][0-9]|2[0-3]):([0-5][0-9])$")
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-DATETIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$")
+ID_RE = re.compile(r"^[A-Za-z0-9-]{1,64}\Z")
+CHAT_ID_RE = re.compile(r"^[A-Za-z0-9._:%-]{1,128}\Z")
+TIME_RE = re.compile(r"^([01][0-9]|2[0-3]):([0-5][0-9])\Z")
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}\Z")
+DATETIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?\Z")
 
 KINDS = ("once", "daily", "weekly", "monthly", "hourly", "minutes", "cron")
 HOUR_STEPS = (1, 2, 3, 4, 6, 8, 12)

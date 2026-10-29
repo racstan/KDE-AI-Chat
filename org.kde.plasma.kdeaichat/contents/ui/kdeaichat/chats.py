@@ -10,12 +10,12 @@ import re
 import shutil
 from typing import Any, Dict
 
-_FILE_NAME = re.compile(r"^chat-[A-Za-z0-9._%-]{1,400}\.ini$")
+_FILE_NAME = re.compile(r"^chat-[A-Za-z0-9._%-]{1,400}\.ini\Z")
 # A file kept as evidence when it cannot be read: only the index, its backup or a chat file.
-_DAMAGEABLE = re.compile(r"^(index\.ini|index\.ini\.bak|chat-[A-Za-z0-9._%-]{1,400}\.ini)$")
-_STAMP = re.compile(r"^\d{8}-\d{6}$")
+_DAMAGEABLE = re.compile(r"^(index\.ini|index\.ini\.bak|chat-[A-Za-z0-9._%-]{1,400}\.ini)\Z")
+_STAMP = re.compile(r"^\d{8}-\d{6}\Z")
 # chat/Incognito.qml: an incognito chat's id. Such a chat is never stored.
-_INCOGNITO = re.compile(r"^s-incognito-[A-Za-z0-9._-]{1,100}$")
+_INCOGNITO = re.compile(r"^s-incognito-[A-Za-z0-9._-]{1,100}\Z")
 
 
 def data_root() -> str:
@@ -32,7 +32,7 @@ def _chat_dir(payload: Dict[str, Any]) -> str:
     """The requested folder, which must be a direct child of chats_root()."""
     root = os.path.realpath(chats_root())
     directory = os.path.realpath(str(payload.get("directory", "")))
-    if os.path.dirname(directory) != root or not re.match(r"^applet-[A-Za-z0-9._-]{1,64}$", os.path.basename(directory)):
+    if os.path.dirname(directory) != root or not re.match(r"^applet-[A-Za-z0-9._-]{1,64}\Z", os.path.basename(directory)):
         raise ValueError("chat directory must be chats/applet-<id>")
     return directory
 

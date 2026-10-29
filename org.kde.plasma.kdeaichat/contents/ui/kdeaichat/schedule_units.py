@@ -21,7 +21,7 @@ from kdeaichat.schedule_calendar import SERVICE_TEMPLATE, TIMER_PREFIX, service_
 from kdeaichat.schedule_rules import has_future, is_finished
 
 Systemctl = Callable[[List[str]], int]
-_TIMER_FILE = re.compile(r"^" + re.escape(TIMER_PREFIX) + r"([A-Za-z0-9-]{1,64})\.timer$")
+_TIMER_FILE = re.compile(r"^" + re.escape(TIMER_PREFIX) + r"([A-Za-z0-9-]{1,64})\.timer\Z")
 
 
 def unit_dir() -> str:

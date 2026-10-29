@@ -8,7 +8,7 @@ const path = require("path");
 const source = fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.kdeaichat/contents/ui/ProviderService.js"), "utf8")
     .replace(/^\s*\.pragma\s+library\s*$/m, "");
 const ctx = {};
-vm.runInNewContext(source + "\nthis.exports = {PRESETS, LEGACY, IMAGE_SERVICES, imageProviders, defaultImageProvider, presetById, parseProviders, serializeProviders, newProviderId, legacyProviders, getProviderConfig, getProviderDisplayName, getSupportedProviders, defaultFirstOrder, sortDefaultFirst};", ctx);
+vm.runInNewContext(source + "\nthis.exports = {PRESETS, LEGACY, IMAGE_SERVICES, imageProviders, defaultImageProvider, presetById, parseProviders, serializeProviders, newProviderId, legacyProviders, getProviderConfig, getProviderDisplayName, getSupportedProviders, defaultFirstOrder, sortDefaultFirst, isPlainHttpRemote};", ctx);
 const P = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 
@@ -146,6 +146,13 @@ const tests = {
         assert.strictEqual(P.defaultImageProvider(null), "");
     },
 
+    isPlainHttpRemote() {
+        for (const url of ["http://192.168.1.5:8000/v1", "http://example.com/v1", "HTTP://api.example.com", "http://10.0.0.2"])
+            assert.strictEqual(P.isPlainHttpRemote(url), true, url);
+        for (const url of ["https://example.com/v1", "http://localhost:11434/v1", "http://127.0.0.1:1234", "http://127.1.2.3/v1",
+                           "http://[::1]:8080/v1", "http://foo.localhost/v1", "", null, "ftp://example.com"])
+            assert.strictEqual(P.isPlainHttpRemote(url), false, String(url));
+    },
 };
 
 let failed = 0;

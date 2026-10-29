@@ -30,8 +30,8 @@ from kdeaichat.common import atomic_write_text
 from kdeaichat.schedule_model import CHAT_ID_RE
 
 INBOX = "inbox"
-_APPLET_DIR = re.compile(r"^applet-[A-Za-z0-9._-]{1,64}$")
-_INBOX_FILE = re.compile(r"^(run|notice)-[0-9]{13}-[A-Za-z0-9-]{1,64}(-[0-9]+)?\.ini$")
+_APPLET_DIR = re.compile(r"^applet-[A-Za-z0-9._-]{1,64}\Z")
+_INBOX_FILE = re.compile(r"^(run|notice)-[0-9]{13}-[A-Za-z0-9-]{1,64}(-[0-9]+)?\.ini\Z")
 
 
 def file_name_for_id(chat_id: str) -> str:

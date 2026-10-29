@@ -17,7 +17,7 @@ from kdeaichat import chats
 ENGINES = ("speechnote", "remote")
 DEFAULT_ENGINE = "speechnote"
 WALLET_ENTRY = "stt-remote"
-_LANGUAGE = re.compile(r"^(auto|[a-z]{2,3}(-[A-Za-z]{2,4})?)$")
+_LANGUAGE = re.compile(r"^(auto|[a-z]{2,3}(-[A-Za-z]{2,4})?)\Z")
 
 
 class SettingsError(ValueError):

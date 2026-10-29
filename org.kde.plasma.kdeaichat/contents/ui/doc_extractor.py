@@ -32,7 +32,7 @@ def sweep_stale_clips(folder=None, now=None):
     try:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from kdeaichat import private_payload
-        return private_payload.sweep_stale(folder or clip_dir(), re.compile(r"^kdeaichat_clip_.+$"), CLIP_MAX_AGE, now or 0.0)
+        return private_payload.sweep_stale(folder or clip_dir(), re.compile(r"^kdeaichat_clip_.+\Z"), CLIP_MAX_AGE, now or 0.0)
     except Exception:
         return 0
 

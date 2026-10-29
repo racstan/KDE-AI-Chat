@@ -270,3 +270,20 @@ function isHttpUrlAllowed(url) {
     var authority = value.substring(value.indexOf("://") + 3).split(/[\/?#]/, 1)[0];
     return authority !== "" && !/[\s<>"'`]/.test(authority) && authority.indexOf("@") < 0;
 }
+
+// True for a plain http:// address of a computer other than this one (not localhost, 127.x, ::1):
+// a key and the messages sent there travel unencrypted.
+function isPlainHttpRemote(url) {
+    var value = String(url || "").trim();
+    if (!/^http:\/\//i.test(value))
+        return false;
+    var host = value.substring(7).split(/[\/?#]/, 1)[0].toLowerCase();
+    if (host.charAt(0) === "[")
+        host = host.substring(1, host.indexOf("]") < 0 ? host.length : host.indexOf("]"));
+    else
+        host = host.replace(/:\d*$/, "");
+    if (host === "" || host === "localhost" || host === "::1" || /^127\.\d+\.\d+\.\d+$/.test(host)
+            || host === "0:0:0:0:0:0:0:1" || /\.localhost$/.test(host))
+        return false;
+    return true;
+}
