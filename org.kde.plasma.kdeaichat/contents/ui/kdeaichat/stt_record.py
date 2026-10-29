@@ -140,7 +140,7 @@ def dictate(settings: Dict[str, Any], transcribe: Callable[[str, Dict[str, Any]]
             return {"type": "stt_error", "error": "No recorder found (pw-record, parecord or arecord)", "code": "no_recorder"}
         log_path = os.path.join(folder, "recorder.log")
         try:
-            with open(log_path, "wb") as log:
+            with os.fdopen(os.open(log_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "wb") as log:
                 proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=log)
         except OSError as e:
             return {"type": "stt_error", "error": "Can't start %s: %s" % (argv[0], e.strerror or e), "code": "no_recorder"}
@@ -179,8 +179,7 @@ def stop(cancel: bool = False) -> Dict[str, Any]:
     if not ours or not folder.startswith(runtime_dir() + os.sep):
         return {"type": "stt_stopped", "recording": False}
     if cancel:
-        with open(os.path.join(folder, "cancel"), "w", encoding="ascii"):
-            pass
+        os.close(os.open(os.path.join(folder, "cancel"), os.O_WRONLY | os.O_CREAT, 0o600))
     try:
         os.kill(pid, signal.SIGINT)
     except OSError:

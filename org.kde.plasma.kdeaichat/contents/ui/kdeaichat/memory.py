@@ -43,7 +43,7 @@ import time
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional
 
-from kdeaichat import chats
+from kdeaichat import chats, common
 from kdeaichat.common import as_bool, atomic_write_json
 
 MAX_TEXT = 4000
@@ -64,7 +64,7 @@ def memory_path() -> str:
 
 def _private_folder() -> str:
     folder = os.path.dirname(memory_path())
-    os.makedirs(folder, mode=0o700, exist_ok=True)
+    common.ensure_private_dir(folder)
     os.chmod(folder, 0o700)
     return folder
 

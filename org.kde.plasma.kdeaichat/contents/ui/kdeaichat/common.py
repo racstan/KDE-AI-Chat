@@ -55,6 +55,41 @@ def safe_path(value: Any, *, allow_empty: bool = False) -> str:
     return normalized
 
 
+def ensure_private_dir(path: str) -> str:
+    """Create `path` (and missing parents) and make the folder itself 0700, even when it already existed
+    with looser permissions (made by an older version or another program). Returns `path`."""
+    os.makedirs(path, mode=0o700, exist_ok=True)
+    try:
+        if os.stat(path).st_uid == os.getuid():
+            os.chmod(path, 0o700)
+    except OSError:
+        pass
+    return path
+
+
+@contextmanager
+def private_log(path: str, max_bytes: int = 0):
+    """Open a log file for appending, created 0600 in a 0700 folder (an existing one is tightened too).
+    With `max_bytes`, a log already bigger than that is first moved to `<path>.1` (one old file is kept)."""
+    ensure_private_dir(os.path.dirname(path))
+    if max_bytes:
+        try:
+            if os.path.getsize(path) > max_bytes:
+                os.replace(path, path + ".1")
+                os.chmod(path + ".1", 0o600)
+        except OSError:
+            pass
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "ab") as log:
+            fd = -1
+            yield log
+    finally:
+        if fd >= 0:
+            os.close(fd)
+
+
 def atomic_write_text(path: str, content: str, mode: int = 0o600) -> None:
     """Atomically write a private text file and preserve its permissions."""
     folder = os.path.dirname(path)

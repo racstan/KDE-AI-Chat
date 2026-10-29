@@ -191,5 +191,8 @@ def read_v1(path: str, max_bytes: int) -> Any:
 def backup_v1(path: str, backup: str) -> None:
     """Copy (not move) the old file: the old daemon still reads it until it is removed."""
     if not os.path.exists(backup):
-        shutil.copy2(path, backup)
-        os.chmod(backup, 0o600)
+        with open(path, "rb") as src:
+            data = src.read()
+        fd = os.open(backup, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "wb") as dst:
+            dst.write(data)

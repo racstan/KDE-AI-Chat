@@ -11,7 +11,7 @@ import re
 from typing import Any, Dict
 from urllib.parse import urlsplit
 
-from kdeaichat import chats
+from kdeaichat import chats, common
 
 # "speechnote" is run by the widget through kdeaichat/speechnote.py; "remote" is the OpenAI-compatible speech server.
 ENGINES = ("speechnote", "remote")
@@ -47,7 +47,7 @@ def runtime_dir() -> str:
     """Private folder for recordings and the dictation state (tmpfs when there is a runtime dir)."""
     base = os.environ.get("XDG_RUNTIME_DIR") or ""
     folder = os.path.join(base, "kdeaichat") if base and os.path.isdir(base) else os.path.join(chats.data_root(), "run")
-    os.makedirs(folder, mode=0o700, exist_ok=True)
+    common.ensure_private_dir(folder)
     try:
         os.chmod(folder, 0o700)
     except OSError:
