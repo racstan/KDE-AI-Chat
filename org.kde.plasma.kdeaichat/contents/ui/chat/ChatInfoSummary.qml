@@ -87,7 +87,7 @@ ColumnLayout {
 
     Stat {
         visible: summary.stats.models.length > 0
-        label: i18np("Model", "Models", summary.stats.models.length)
+        label: i18ncp("Chat info: the models used in this chat", "Model", "Models", summary.stats.models.length)
         valueName: "modelsValue"
         value: summary.stats.models.join("\n")
     }
