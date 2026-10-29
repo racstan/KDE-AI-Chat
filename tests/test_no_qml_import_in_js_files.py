@@ -31,6 +31,8 @@ WATCHED_FILES = (
     "config/StorageFormat.js",
     "chat/Privacy.js",
     "chat/DirectToolRunner.js",
+    "mcp/McpDefs.js",
+    "config/McpForm.js",
     "chat/Starters.js",
     "chat/DisplayPath.js",
     "chat/FirstRun.js",
