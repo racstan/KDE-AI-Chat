@@ -74,6 +74,29 @@ TestCase {
         compare(JSON.parse(makeStore(dir).loadProjects())[0].name, "Later");
     }
 
+    // A restore or an import writes chats while the widget is open: freshChats finds the new ones
+    // (messages stay on disk) and leaves those the widget already has alone.
+    function test_fresh_chats_written_by_someone_else_are_found_lazily() {
+        var dir = freshDir();
+        var widget = makeStore(dir);
+        widget.save([chat("s-1", "Mine", ["hi"])], true);
+        var outside = makeStore(dir);  // the helper's index writes look the same on disk
+        outside.save([chat("s-1", "Mine", ["hi"]), chat("imp-claude-c1", "Imported", ["a", "b"])], true);
+
+        var mine = widget.loadAll(true);
+        compare(mine.length, 2);  // the widget reread the folder: now nothing is fresh
+        compare(widget.freshChats(mine).length, 0);
+
+        var known = [mine[0].value === "s-1" ? mine[0] : mine[1]];
+        var fresh = widget.freshChats(known);
+        compare(fresh.length, 1);
+        compare(fresh[0].value, "imp-claude-c1");
+        compare(fresh[0].text, "Imported");
+        compare(fresh[0].messagesUnloaded, true);
+        compare(fresh[0].messages.length, 0);
+        compare(widget.loadMessages("imp-claude-c1").length, 2);
+    }
+
     function test_empty_folder_has_no_index() {
         var s = makeStore(freshDir());
         verify(!s.hasIndex());

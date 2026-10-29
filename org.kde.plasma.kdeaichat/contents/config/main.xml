@@ -471,6 +471,10 @@
     <entry name="walletKeysRevision" type="Int">
       <default>0</default>
     </entry>
+    <!-- Raised by Settings -> Storage after a restore or an import wrote chats to disk; the chat list reloads (chat/HistoryRecovery.qml). -->
+    <entry name="chatsReloadRevision" type="Int">
+      <default>0</default>
+    </entry>
     <entry name="firstRunDismissed" type="Bool">
       <default>false</default>
     </entry>

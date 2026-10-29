@@ -300,6 +300,9 @@ Item {
     // Writes a new index from the chat files (IndexRebuild.qml). callback(count) when done.
     function rebuildIndex(callback) { rebuilder.run(callback); }
 
+    // Chats on disk that are not in `sessions` yet (after a restore or an import), as chat list entries.
+    function freshChats(sessions) { return rebuilder.freshChats(sessions); }
+
     IndexRebuild { id: rebuilder; chatStore: store }
 
     // Schedules a save of `sessions`; immediate writes now (if ready).
