@@ -7,6 +7,7 @@ import QtQuick
 import "../ProviderService.js" as ProviderService
 import "../Security.js" as Sec
 import "../backends/DirectBackend.js" as DirectBackend
+import "../backends/DirectCache.js" as DirectCache
 import "../backends/DirectStream.js" as DirectStream
 import "../backends/DirectTools.js" as DirectTools
 import "MessageContent.js" as MessageContent
@@ -216,6 +217,7 @@ QtObject {
             "maxTokens": direct.responseMaxTokens(ctx.sessionId, DirectBackend.DEFAULT_MAX_TOKENS),
             "variantSend": ctx.variantSend,
             "images": ImageExtract,
+            "cache": DirectCache,
             "stream": chat.plasmoid.configuration.disableStreaming !== true,
             "timeoutMs": chat.plasmoid.configuration.requestTimeout > 0 ? chat.plasmoid.configuration.requestTimeout * 1000 : 0,
             "xhrFactory": direct.xhrFactory || function() { return new XMLHttpRequest(); },

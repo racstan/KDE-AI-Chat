@@ -84,6 +84,7 @@ jobs:
                       "org.kde.plasma.kdeaichat/contents/ui/store/MemoryWatch.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/backends/DirectBackend.js",
                       "org.kde.plasma.kdeaichat/contents/ui/backends/DirectStream.js",
+                      "org.kde.plasma.kdeaichat/contents/ui/backends/DirectCache.js",
                       "org.kde.plasma.kdeaichat/contents/ui/backends/DirectTools.js",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/DirectToolRounds.qml",
                       "org.kde.plasma.kdeaichat/contents/ui/chat/DirectToolRunner.qml",

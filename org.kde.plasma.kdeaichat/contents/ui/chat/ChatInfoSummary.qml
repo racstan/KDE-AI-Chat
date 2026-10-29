@@ -81,6 +81,20 @@ ColumnLayout {
     }
 
     Stat {
+        visible: summary.stats.hasCache
+        label: i18n("Read from cache")
+        valueName: "cacheReadValue"
+        value: Stats.formatCount(summary.stats.cacheRead)
+    }
+
+    Stat {
+        visible: summary.stats.hasCache && summary.stats.cacheWrite > 0
+        label: i18n("Written to cache")
+        valueName: "cacheWriteValue"
+        value: Stats.formatCount(summary.stats.cacheWrite)
+    }
+
+    Stat {
         visible: summary.stats.hasCost
         label: i18n("Total cost")
         valueName: "costValue"

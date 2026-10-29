@@ -23,6 +23,18 @@ const tests = {
         assert.deepStrictEqual(plain(S.summarize(null, null)), s);
     },
 
+    sums_cache_tokens_and_hides_them_when_never_reported() {
+        const s = plain(S.summarize([
+            {role: "assistant", content: "a", tokens: {input: 100, output: 5, cache: {read: 64, write: 0}}},
+            {role: "assistant", content: "b", tokens: {input: 200, output: 5, cache: {read: 150, write: 30}}},
+            {role: "assistant", content: "c", tokens: {input: 7, output: 1}},
+        ], {}));
+        assert.strictEqual(s.hasCache, true);
+        assert.strictEqual(s.cacheRead, 214);
+        assert.strictEqual(s.cacheWrite, 30);
+        assert.strictEqual(plain(S.summarize([{role: "assistant", content: "a", tokens: {input: 1, output: 1}}], {})).hasCache, false);
+    },
+
     sums_tokens_and_cost_from_the_replies() {
         const s = plain(S.summarize([
             {role: "user", content: "a", at: 1000},

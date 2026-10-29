@@ -10,11 +10,11 @@
 
 // messages: the chat's message list. session: {createdAt, updatedAt} (ms).
 // Returns {messages, replies, repliesWithUsage, inputTokens, outputTokens,
-// hasTokens, cost, hasCost, models, createdAt, lastActive} where times are ms
+// hasTokens, cacheRead, cacheWrite, hasCache (prompt-cache tokens, a part of the input), cost, hasCost, models, createdAt, lastActive} where times are ms
 // or 0 when unknown.
 function summarize(messages, session) {
     var list = messages || [];
-    var stats = {"messages": 0, "replies": 0, "repliesWithUsage": 0, "inputTokens": 0, "outputTokens": 0,
+    var stats = {"messages": 0, "replies": 0, "repliesWithUsage": 0, "inputTokens": 0, "outputTokens": 0, "cacheRead": 0, "cacheWrite": 0, "hasCache": false,
                  "hasTokens": false, "cost": 0, "hasCost": false, "models": [], "createdAt": 0, "lastActive": 0};
     var firstAt = 0, lastAt = 0;
     for (var i = 0; i < list.length; i++) {
@@ -38,6 +38,12 @@ function summarize(messages, session) {
             stats.hasTokens = true;
             stats.inputTokens += Number(m.tokens.input) || 0;
             stats.outputTokens += Number(m.tokens.output) || 0;
+            var cache = m.tokens.cache;
+            if (cache && (Number(cache.read) > 0 || Number(cache.write) > 0)) {
+                stats.hasCache = true;
+                stats.cacheRead += Number(cache.read) || 0;
+                stats.cacheWrite += Number(cache.write) || 0;
+            }
         }
         if (m.cost !== undefined && m.cost !== null && isFinite(Number(m.cost)) && Number(m.cost) > 0) {
             stats.hasCost = true;

@@ -41,6 +41,7 @@ WATCHED_FILES = (
     "chat/Activity.js",
     "backends/DirectBackend.js",
     "backends/DirectStream.js",
+    "backends/DirectCache.js",
     "backends/DirectTools.js",
     "backends/OpenCodeBackend.js",
     "backends/OpenCodeAgents.js",
