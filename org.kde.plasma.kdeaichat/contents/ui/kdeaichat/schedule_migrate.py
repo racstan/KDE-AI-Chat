@@ -16,7 +16,6 @@ time, so nothing fires for a time before the upgrade.
 import datetime as dt
 import json
 import os
-import shutil
 from typing import Any, Dict, List, Optional, Tuple
 
 from kdeaichat import schedule_cron
