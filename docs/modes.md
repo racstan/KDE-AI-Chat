@@ -33,7 +33,7 @@ You set up providers in [Providers](providers.md). The widget sends your message
 
 ## OpenCode mode
 
-1. Install OpenCode and choose **Through OpenCode** in Settings → Connection.
+1. Install OpenCode (see [opencode.ai](https://opencode.ai/); for example `curl -fsSL https://opencode.ai/install | bash`) and choose **Through OpenCode** in Settings → Connection.
 2. Set the **Server address** (keep the suggested one unless you started OpenCode on another port). Press **Start** to run it in the background, or **Check** to see whether it answers. **Stop** only stops a server that this widget started.
 3. Choose the **Provider**, **Model** and **Variant** for new OpenCode chats. The list comes from OpenCode itself, which keeps its own keys.
 
@@ -46,7 +46,7 @@ In an OpenCode chat you can pick the agent and the folder it works in. The agent
 
 ## Pi mode
 
-1. Install Pi and choose **Through Pi** in Settings → Connection.
+1. Install Pi (see [its project page](https://github.com/earendil-works/pi); with Node.js: `npm install -g @earendil-works/pi-coding-agent`), set it up with your provider by running `pi` once in a terminal, and choose **Through Pi** in Settings → Connection.
 2. Choose the **Provider**, **Model** and **Thinking** level for new Pi chats. The list comes from Pi itself.
 
 The widget starts a small helper that runs one Pi per chat, in the chat's own folder. It stops by itself when idle.
