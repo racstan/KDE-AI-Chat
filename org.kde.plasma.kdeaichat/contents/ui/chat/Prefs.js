@@ -132,7 +132,8 @@ var appearancePageDefaults = {
 };
 var chatPageDefaults = {
     "contextMessageLimit": -1, "autoNameChats": true, "allowAskUser": true,
-    "openCodeWorkspaceCwd": "", "perChatModelSettings": false, "perChatPriority": "chat"
+    "openCodeWorkspaceCwd": "", "perChatModelSettings": false, "perChatPriority": "chat",
+    "warnModelSwitchCache": true
 };
 
 // Sets each `cfg_<key>` of `page` to its value in `values`.

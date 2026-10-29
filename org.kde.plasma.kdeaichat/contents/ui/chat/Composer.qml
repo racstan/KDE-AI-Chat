@@ -54,6 +54,12 @@ ColumnLayout {
         return quoteChips.take();
     }
 
+    // A chat's settings were saved (ChatSettingsDraft.save): the status line may
+    // say that the provider's cache starts over (CommandRunner.noteModelSwitch).
+    function noteModelSwitch(sessionId, before, after) {
+        runner.noteModelSwitch(sessionId, before, after);
+    }
+
     // Starts editing the last message you wrote (Ctrl+E), if
     // there is one and no reply is being written. Returns whether it did.
     function editLastMessage() {

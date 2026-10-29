@@ -386,12 +386,14 @@ QtObject {
             overrides.openCodeProvider = ocProviderName;
             overrides.openCodeModel = ocModelName;
         }
+        var was = rootRef.effectiveConfig(sessionId).model;
         if (typeof rootRef.setSessionOverrides === "function")
             rootRef.setSessionOverrides(sessionId, overrides);
         else if (typeof rootRef.setSessionProperty === "function") {
             for (var key in overrides)
                 rootRef.setSessionProperty(sessionId, key, overrides[key]);
         }
+        if (rootRef.composerRef) rootRef.composerRef.noteModelSwitch(sessionId, was, rootRef.effectiveConfig(sessionId).model);
         dirty = false;
         return true;
     }

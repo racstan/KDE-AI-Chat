@@ -313,6 +313,11 @@
     <entry name="perChatPriority" type="String">
       <default>chat</default>
     </entry>
+    <!-- Whether switching a chat's model says, in the status line above the
+         message box, that the provider's cache starts over (CommandRunner.qml). -->
+    <entry name="warnModelSwitchCache" type="Bool">
+      <default>true</default>
+    </entry>
 
     <entry name="chatSessionsJson" type="String">
       <default>[]</default>

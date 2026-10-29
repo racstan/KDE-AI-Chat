@@ -234,9 +234,28 @@ Item {
             return;
         }
         prepare(false);
+        show(i18n("This chat now uses %1.", value === "" ? i18n("the default variant") : value));
+        // A model change in a chat with messages may replace this with its own note (noteModelSwitch, via choose).
         picker.choose(kind, value);
         prepared = false;
-        show(picker.note !== "" ? picker.note : i18n("This chat now uses %1.", value === "" ? i18n("the default variant") : value));
+        if (picker.note !== "")
+            show(picker.note);
+    }
+
+    // The shared check for a chat's saved settings (ChatSettingsDraft.save, through
+    // Composer.noteModelSwitch): the picker above the box, /model and Chat info all
+    // save there. A chat with messages whose model really changed says here that the
+    // provider's cache starts over. Nothing for an empty chat, for the same model, or
+    // when warnModelSwitchCache is off (main.xml: its default is on, so only false is off).
+    function noteModelSwitch(sessionId, before, after) {
+        var config = chat.plasmoid ? chat.plasmoid.configuration : ({});
+        if (config.warnModelSwitchCache === false || before === after || sessionId !== chat.currentSessionId)
+            return;
+        var earlier = (chat.messages || []).some(function(m) {
+            return !!m && (m.role === "user" || m.role === "assistant" || m.role === "opencode_assistant");
+        });
+        if (earlier)
+            show(i18n("Switching models starts the provider's cache over, so the next message may use more input tokens."));
     }
 
     Timer {
