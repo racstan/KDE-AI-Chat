@@ -11,6 +11,7 @@ TestCase {
     property var helperCalls: []
     property var keyfile: ({})
     property bool walletWritesFail: false
+    property bool walletWritesVanish: false   // KWallet says OK but keeps nothing
     property var walletFolder: ({})
 
     function i18n(text) {
@@ -31,7 +32,8 @@ TestCase {
         case "passwordList": onReply(Object.assign({}, walletFolder)); break;
         case "writePassword":
             if (walletWritesFail) { onReply(-1); break; }
-            walletFolder[args[2]] = args[3]; onReply(0); break;
+            if (!walletWritesVanish) walletFolder[args[2]] = args[3];
+            onReply(0); break;
         case "removeFolder": onReply(true); break;
         case "removeEntry": delete walletFolder[args[2]]; onReply(0); break;
         default: onError("unexpected " + member);
@@ -84,6 +86,7 @@ TestCase {
     function init() {
         keyfile = {};
         walletWritesFail = false;
+        walletWritesVanish = false;
     }
 
     function test_keys_move_to_wallet_and_plaintext_is_cleared() {
@@ -123,6 +126,16 @@ TestCase {
         var config = makeConfig({mistralApiKey: "m-plain", customProvidersJson: "[]"});
         var env = setup(config, {});
         walletWritesFail = true;
+        compare(migrateKeys(env), 0);
+        compare(config.mistralApiKey, "m-plain");
+        verify(helperCalls.indexOf("remove_legacy_keyfile") === -1);
+    }
+
+    function test_plaintext_kept_when_the_key_does_not_read_back_from_wallet() {
+        keyfile = {"openai": "o-file"};
+        var config = makeConfig({mistralApiKey: "m-plain", customProvidersJson: "[]"});
+        var env = setup(config, {});
+        walletWritesVanish = true;
         compare(migrateKeys(env), 0);
         compare(config.mistralApiKey, "m-plain");
         verify(helperCalls.indexOf("remove_legacy_keyfile") === -1);

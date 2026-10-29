@@ -142,10 +142,21 @@ QtObject {
                 return;
             }
             wallet.writeMany(toWrite, function(ok) {
-                if (ok)
-                    clearPlaintext();
-                else if (callback)
-                    callback(0);
+                if (!ok) {
+                    if (callback) callback(0);
+                    return;
+                }
+                // Read the keys back from KWallet; the plaintext goes only if every one is there as written.
+                wallet.load(function(loadedOk, stored) {
+                    var written = Object.keys(toWrite);
+                    var same = loadedOk && written.every(function(id) { return String((stored || {})[id] || "").trim() === toWrite[id]; });
+                    if (same) {
+                        clearPlaintext();
+                    } else {
+                        console.warn("KDE AI Chat: keys did not read back from KWallet; the plaintext copies were kept.");
+                        if (callback) callback(0);
+                    }
+                });
             });
         });
     }
