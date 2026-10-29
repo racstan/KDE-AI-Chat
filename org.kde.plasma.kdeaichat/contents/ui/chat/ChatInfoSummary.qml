@@ -82,14 +82,14 @@ ColumnLayout {
 
     Stat {
         visible: summary.stats.hasCache
-        label: i18n("Read from cache")
+        label: i18n("Read from cache") // qmllint disable unqualified
         valueName: "cacheReadValue"
         value: Stats.formatCount(summary.stats.cacheRead)
     }
 
     Stat {
         visible: summary.stats.hasCache && summary.stats.cacheWrite > 0
-        label: i18n("Written to cache")
+        label: i18n("Written to cache") // qmllint disable unqualified
         valueName: "cacheWriteValue"
         value: Stats.formatCount(summary.stats.cacheWrite)
     }
