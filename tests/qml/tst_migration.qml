@@ -11,6 +11,7 @@ TestCase {
     property var helperCalls: []
     property var keyfile: ({})
     property bool walletWritesFail: false
+    property bool walletWritesVanish: false   // KWallet says OK but keeps nothing
     property var walletFolder: ({})
 
     function i18n(text) {
@@ -31,7 +32,8 @@ TestCase {
         case "passwordList": onReply(Object.assign({}, walletFolder)); break;
         case "writePassword":
             if (walletWritesFail) { onReply(-1); break; }
-            walletFolder[args[2]] = args[3]; onReply(0); break;
+            if (!walletWritesVanish) walletFolder[args[2]] = args[3];
+            onReply(0); break;
         case "removeFolder": onReply(true); break;
         case "removeEntry": delete walletFolder[args[2]]; onReply(0); break;
         default: onError("unexpected " + member);
@@ -84,6 +86,7 @@ TestCase {
     function init() {
         keyfile = {};
         walletWritesFail = false;
+        walletWritesVanish = false;
     }
 
     function test_keys_move_to_wallet_and_plaintext_is_cleared() {
@@ -128,6 +131,16 @@ TestCase {
         verify(helperCalls.indexOf("remove_legacy_keyfile") === -1);
     }
 
+    function test_plaintext_kept_when_the_key_does_not_read_back_from_wallet() {
+        keyfile = {"openai": "o-file"};
+        var config = makeConfig({mistralApiKey: "m-plain", customProvidersJson: "[]"});
+        var env = setup(config, {});
+        walletWritesVanish = true;
+        compare(migrateKeys(env), 0);
+        compare(config.mistralApiKey, "m-plain");
+        verify(helperCalls.indexOf("remove_legacy_keyfile") === -1);
+    }
+
     function test_chats_move_to_files_once() {
         var sessions = [
             {value: "s-1", text: "One", updatedAt: 2, messages: [{role: "user", content: "hi"}, {role: "assistant", content: "hello"}]},
@@ -162,6 +175,30 @@ TestCase {
         env.migration.migrateChats(sessions, function(result) { ok = result; });
         verify(!ok);
         compare(config.chatSessionsJson, JSON.stringify(sessions));
+    }
+
+    function test_failed_chat_migration_is_tried_again_next_start() {
+        var sessions = [{value: "s-1", text: "One", updatedAt: 2, messages: [{role: "user", content: "hi"}]}];
+        var config = makeConfig({customProvidersJson: "[]", chatSessionsJson: JSON.stringify(sessions)});
+        var env = setup(config, {});
+        var real = env.store;
+        // A store whose read-back does not match what was written.
+        env.migration.chatStore = {ready: true, directory: real.directory, hasIndex: function() { return real.hasIndex(); },
+            save: function(s, now) { real.save(s, now); }, loadAll: function() { return []; },
+            writeBackup: function(n, j) { real.writeBackup(n, j); }, discardIndex: function() { real.discardIndex(); }};
+        var ok = null;
+        env.migration.migrateChats(sessions, function(result) { ok = result; });
+        verify(!ok);
+        verify(env.migration.chatMigrationFailed);
+        compare(config.chatSessionsJson, JSON.stringify(sessions), "the old history is kept");
+        verify(!real.hasIndex(), "no index is left, so the next start migrates again");
+
+        // Next start: a working store.
+        env.migration.chatStore = real;
+        env.migration.migrateChats(sessions, function(result) { ok = result; });
+        verify(ok);
+        compare(config.chatSessionsJson, "");
+        compare(real.loadAll().length, 1);
     }
 
     function test_provider_list_is_built_once_from_old_settings() {

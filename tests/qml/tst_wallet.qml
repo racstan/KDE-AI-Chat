@@ -124,7 +124,7 @@ TestCase {
 
     function test_legacy_folder_moves_and_is_removed_after_check() {
         var fake = makeFake({folders: {
-            "KaiChat": {"kai-chat-openrouter-api-key": "or-old", "kai-chat-mistral-api-key": "m-old", "junk": "x"},
+            "KaiChat": {"kai-chat-openrouter-api-key": "or-old", "kai-chat-mistral-api-key": "m-old"},
             "KDEAIChat": {"mistral": "m-new"}
         }});
         var w = makeWallet(fake);
@@ -135,6 +135,22 @@ TestCase {
         compare(fake.folders["KDEAIChat"]["openrouter"], "or-old");
         compare(fake.folders["KDEAIChat"]["mistral"], "m-new");
         verify(!fake.folders.hasOwnProperty("KaiChat"));
+        compare(fake.opened, fake.closed);
+    }
+
+    function test_legacy_folder_is_kept_while_an_entry_was_not_copied() {
+        var fake = makeFake({folders: {
+            "KaiChat": {"kai-chat-openrouter-api-key": "or-old", "junk": "x", "kai-chat-qwen-api-key": ""},
+            "KDEAIChat": {}
+        }});
+        var w = makeWallet(fake);
+        var moved = null;
+        w.migrateLegacyFolder(function(n) { moved = n; });
+        tryVerify(function() { return moved !== null; });
+        compare(moved, 1);
+        compare(fake.folders["KDEAIChat"]["openrouter"], "or-old");
+        verify(fake.folders.hasOwnProperty("KaiChat"), "the old folder stays while something is left in it");
+        compare(JSON.stringify(Object.keys(fake.folders["KaiChat"]).sort()), JSON.stringify(["junk", "kai-chat-qwen-api-key"]));
         compare(fake.opened, fake.closed);
     }
 

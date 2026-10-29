@@ -20,6 +20,7 @@ QtObject {
     property var memoryStore: null     // store/MemoryStore.qml (loaded)
 
     property string notice: ""
+    property int skippedCount: 0       // old lines that were malformed and left behind
     readonly property int maxText: 4000
 
     // Memory texts from one old text: one per line, bullets and numbers removed.
@@ -88,24 +89,34 @@ QtObject {
                 if (callback) callback(false, 0);
                 return;
             }
+            var skipped = Number(result.skipped || 0);
             memoryStore.load(function(loadedOk) {
                 // Every item has an id (new, or of the memory it matched), and each is in the list read back.
                 var ids = (result.added || []).concat(result.existing || []);
                 var stored = {};
                 (memoryStore.list || []).forEach(function(m) { stored[m.id] = true; });
-                var verified = loadedOk && ids.length === items.length && ids.every(function(id) { return stored[id] === true; });
+                var verified = loadedOk && ids.length + skipped === items.length && ids.every(function(id) { return stored[id] === true; });
                 if (!verified) {
                     console.warn("KDE AI Chat: old memory could not be verified; it was kept.");
                     if (callback) callback(false, 0);
                     return;
                 }
                 var moved = (result.added || []).length;
+                if (skipped > 0) {
+                    // Keep the old text so nothing is lost; the good lines are already in (re-adding them adds nothing).
+                    skippedCount = skipped;
+                    console.warn("KDE AI Chat: skipped", skipped, "malformed old memory lines; the old memory was kept.");
+                    if (moved > 0)
+                        notice = i18np("Moved %1 remembered note into the new memory list.", "Moved %1 remembered notes into the new memory list.", moved); // qmllint disable unqualified
+                    if (callback) callback(false, moved);
+                    return;
+                }
                 var changed = migration._clearOld(sessions);
                 console.info("KDE AI Chat: moved", items.length, "old memory lines into the memory list (", moved, "new )");
                 if (moved > 0)
                     notice = i18np("Moved %1 remembered note into the new memory list.", "Moved %1 remembered notes into the new memory list.", moved); // qmllint disable unqualified
                 if (callback) callback(changed, moved);
             });
-        });
+        }, {"skipInvalid": true});
     }
 }

@@ -165,6 +165,22 @@ Item {
         _writtenIndex = json;
     }
 
+    // Forgets the index (and its backup), so hasIndex() is false again and the
+    // old history is migrated on the next start. Used when a migration failed.
+    function discardIndex() {
+        var names = ["index.ini", "index.ini.bak"];
+        for (var i = 0; i < names.length; i++) {
+            var index = _open(names[i]);
+            index.setValue("version", "");
+            index.setValue("sessions", "");
+            index.sync();
+            index.destroy();
+        }
+        _writtenIndex = "";
+        _written = {};
+        _pending = null;
+    }
+
     // Stores `json` under the key "data" in <directory>/<fileName>.
     function writeBackup(fileName, json) {
         _write(fileName, "data", json);

@@ -190,3 +190,12 @@ def test_helper_dispatches_memory_commands(data_home):
     assert json.loads(result.stdout)["memories"][0]["text"] == "über tea ☕"
     result = helper("memory_add", {"items": [{"text": "x", "scope": "nope"}]})
     assert result.returncode == 1
+
+
+def test_add_skip_invalid_keeps_the_good_items_and_counts_the_bad(data_home, capsys):
+    items = [{"text": "Good"}, {"text": "bad chat", "scope": "chat", "chatId": "bad id!"}, {"text": "nul\x00"}, "nope"]
+    with pytest.raises(ValueError):
+        memory.COMMANDS["memory_add"]({"items": items})
+    out = run(capsys, "memory_add", {"items": items, "skipInvalid": True})
+    assert len(out["added"]) == 1 and out["skipped"] == 3
+    assert [m["text"] for m in out["memories"]] == ["Good"]

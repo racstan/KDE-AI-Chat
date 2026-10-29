@@ -85,7 +85,11 @@ def cleanup_legacy(run=None) -> Dict[str, Any]:
 
 def cmd_schedules_startup(payload: Dict[str, Any]) -> None:
     legacy = cleanup_legacy()
-    units = schedule_store.sync_all(ensure_enabled=legacy["changed"])
+    try:
+        units = schedule_store.sync_all(ensure_enabled=legacy["changed"])
+    except schedule_store.LegacyScheduleError as e:
+        print(json.dumps({"ok": False, "legacy": legacy, "migrationError": str(e)}))
+        return
     print(json.dumps({"ok": not units["errors"], "legacy": legacy, "units": units}))
 
 

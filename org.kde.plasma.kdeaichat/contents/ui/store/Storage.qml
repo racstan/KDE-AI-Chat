@@ -46,7 +46,7 @@ Item {
     }
 
     function save(sessions, immediate, changed) {
-        if (!_chatMigrationSettled) {
+        if (!_chatMigrationSettled || migration.chatMigrationFailed) {
             _savePending = true;
             return;
         }
@@ -60,7 +60,9 @@ Item {
         var sessions = currentSessions();
         if (sessions)
             migration.migrateChats(sessions, null);
-        if (_savePending) {
+        // A failed migration keeps saves held: writing the chat store now would
+        // stop the old history from being migrated on the next start.
+        if (_savePending && !migration.chatMigrationFailed) {
             _savePending = false;
             savesReleased();
         }

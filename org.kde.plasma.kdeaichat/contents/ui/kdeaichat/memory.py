@@ -201,15 +201,23 @@ def cmd_memory_add(payload: Dict[str, Any]) -> None:
         taken = {m["id"] for m in memories}
         by_key = {_key(m): m["id"] for m in memories}
         added, existing = [], []
+        skip_invalid = payload.get("skipInvalid") is True
+        skipped = 0
         for raw in items:
-            if not isinstance(raw, dict):
-                raise ValueError("each item must be an object")
-            memory = {"text": clean_text(raw.get("text"))}
-            memory.update(_scope_fields(raw))
-            memory["pinned"] = as_bool(raw.get("pinned"), False)
-            memory["enabled"] = as_bool(raw.get("enabled"), True)
-            memory["created"] = _created(raw.get("created"))
-            memory["sourceChatId"] = _id(raw.get("sourceChatId"), _CHAT_ID, "chat id", allow_empty=True)
+            try:
+                if not isinstance(raw, dict):
+                    raise ValueError("each item must be an object")
+                memory = {"text": clean_text(raw.get("text"))}
+                memory.update(_scope_fields(raw))
+                memory["pinned"] = as_bool(raw.get("pinned"), False)
+                memory["enabled"] = as_bool(raw.get("enabled"), True)
+                memory["created"] = _created(raw.get("created"))
+                memory["sourceChatId"] = _id(raw.get("sourceChatId"), _CHAT_ID, "chat id", allow_empty=True)
+            except ValueError:
+                if not skip_invalid:
+                    raise
+                skipped += 1
+                continue
             key = _key(memory)
             if key in by_key:
                 existing.append(by_key[key])
@@ -225,7 +233,10 @@ def cmd_memory_add(payload: Dict[str, Any]) -> None:
             added.append(memory_id)
         if added:
             _save(memories)
-    _print({"added": added, "existing": existing, "memories": memories})
+    result = {"added": added, "existing": existing, "memories": memories}
+    if skip_invalid:
+        result["skipped"] = skipped
+    _print(result)
 
 
 def cmd_memory_update(payload: Dict[str, Any]) -> None:

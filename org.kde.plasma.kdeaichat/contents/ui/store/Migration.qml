@@ -49,6 +49,9 @@ QtObject {
 
     // What happened, for a one-line notice. Empty when nothing was moved.
     property string notice: ""
+    // True when moving the old chat history failed; it stays in the config and
+    // the chat store is emptied again, so the next start tries again.
+    property bool chatMigrationFailed: false
 
     function _say(text) {
         notice = notice ? notice + " " + text : text;
@@ -139,10 +142,21 @@ QtObject {
                 return;
             }
             wallet.writeMany(toWrite, function(ok) {
-                if (ok)
-                    clearPlaintext();
-                else if (callback)
-                    callback(0);
+                if (!ok) {
+                    if (callback) callback(0);
+                    return;
+                }
+                // Read the keys back from KWallet; the plaintext goes only if every one is there as written.
+                wallet.load(function(loadedOk, stored) {
+                    var written = Object.keys(toWrite);
+                    var same = loadedOk && written.every(function(id) { return String((stored || {})[id] || "").trim() === toWrite[id]; });
+                    if (same) {
+                        clearPlaintext();
+                    } else {
+                        console.warn("KDE AI Chat: keys did not read back from KWallet; the plaintext copies were kept.");
+                        if (callback) callback(0);
+                    }
+                });
             });
         });
     }
@@ -177,7 +191,10 @@ QtObject {
             ok = check[i].value === sessions[i].value
                 && (check[i].messages || []).length === (sessions[i].messages || []).length;
         if (!ok) {
-            console.warn("KDE AI Chat: chat migration could not be verified; the old history was kept.");
+            console.warn("KDE AI Chat: chat migration could not be verified; the old history was kept and will be tried again next start.");
+            chatStore.discardIndex();
+            chatMigrationFailed = true;
+            _say(i18n("Your old chats could not be moved, so changes are not saved until the widget restarts and tries again.")); // qmllint disable unqualified
             if (callback) callback(false);
             return;
         }

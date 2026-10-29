@@ -24,6 +24,8 @@ Item {
     property bool loaded: false
     property bool busy: false
     property string error: ""
+    // Why the old (pre-1.4.0) schedules could not be brought over; "" when fine.
+    property string migrationError: ""
 
     Store.HelperRunner {
         id: runner
@@ -61,6 +63,7 @@ Item {
             loaded = true;
             if (data.ok) {
                 schedules = data.schedules || [];
+                migrationError = data.migrationError || "";
                 error = "";
             } else {
                 error = data.error || "";

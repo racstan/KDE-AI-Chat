@@ -37,8 +37,14 @@ Item {
             var list = memories.slice();
             var out = {};
             if (command === "memory_add") {
-                var added = [], existing = [];
+                var added = [], existing = [], skipped = 0;
+                var badItem = function(item) { return item.scope === "chat" && !/^[A-Za-z0-9_-]+$/.test(String(item.chatId)); };
+                if (!payload.skipInvalid && payload.items.some(badItem)) {
+                    Qt.callLater(function() { onDone("Error: invalid chat id", 1, ""); });
+                    return;
+                }
                 payload.items.forEach(function(item) {
+                    if (badItem(item)) { skipped++; return; }
                     var m = {id: item.id || ("m-" + String(++helper.counter).padStart(16, "0")), text: String(item.text).trim(),
                              scope: item.scope || "all", projectId: item.scope === "project" ? item.projectId : "",
                              chatId: item.scope === "chat" ? item.chatId : "", pinned: item.pinned === true,
@@ -49,6 +55,7 @@ Item {
                     added.push(m.id);
                 });
                 out = {added: added, existing: existing};
+                if (payload.skipInvalid) out.skipped = skipped;
                 if (!dropAdds)
                     memories = list;
             } else if (command === "memory_update") {
@@ -338,6 +345,21 @@ Item {
             tryVerify(function() { return result !== null; });
             compare(result.moved, 2);
             verify(store.list.every(function(m) { return m.enabled; }), "memory was on");
+        }
+
+        function test_migration_skips_a_bad_memory_and_keeps_the_old_source() {
+            config.userMemory = "I live in Pune";
+            var sessions = [{value: "bad id!", chatMemory: "Broken one"}, {value: "b", chatMemory: "Call me Ana"}];
+            migration.skippedCount = 0;
+            var result = null;
+            migration.migrate(sessions, function(changed, moved) { result = {changed: changed, moved: moved}; });
+            tryVerify(function() { return result !== null; });
+            compare(result.moved, 2, "the good ones were migrated");
+            compare(result.changed, false, "old source kept");
+            compare(migration.skippedCount, 1);
+            compare(config.userMemory, "I live in Pune");
+            compare(sessions[0].chatMemory, "Broken one");
+            compare(store.list.map(function(m) { return m.text; }).join("|"), "I live in Pune|Call me Ana");
         }
 
         function test_migration_with_nothing_to_move_only_tidies() {

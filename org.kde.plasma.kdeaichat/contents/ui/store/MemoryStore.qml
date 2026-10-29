@@ -84,8 +84,10 @@ QtObject {
     }
 
     // Adds items in batches; callback(ok, {added, existing}) once all are in
-    // (ok false and nothing more sent after a batch fails).
-    function addMany(items, callback) {
+    // (ok false and nothing more sent after a batch fails). With
+    // options.skipInvalid a malformed item is skipped instead of failing its
+    // batch; result.skipped counts them.
+    function addMany(items, callback, options) {
         var batches = [];
         var batch = [], size = 0;
         (items || []).forEach(function(item) {
@@ -100,19 +102,21 @@ QtObject {
         });
         if (batch.length > 0)
             batches.push(batch);
-        var added = [], existing = [];
+        var added = [], existing = [], skipped = 0;
+        var skipInvalid = options && options.skipInvalid === true;
         function step(i) {
             if (i >= batches.length) {
-                if (callback) callback(true, {"added": added, "existing": existing});
+                if (callback) callback(true, {"added": added, "existing": existing, "skipped": skipped});
                 return;
             }
-            _run("memory_add", {"items": batches[i]}, function(ok, result) {
+            _run("memory_add", skipInvalid ? {"items": batches[i], "skipInvalid": true} : {"items": batches[i]}, function(ok, result) {
                 if (!ok) {
                     if (callback) callback(false, {"added": added, "existing": existing});
                     return;
                 }
                 added = added.concat(result.added || []);
                 existing = existing.concat(result.existing || []);
+                skipped += Number(result.skipped || 0);
                 step(i + 1);
             });
         }
