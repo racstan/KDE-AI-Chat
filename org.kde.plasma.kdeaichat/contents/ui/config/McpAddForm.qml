@@ -52,6 +52,7 @@ ColumnLayout {
         QQC2.TextField {
             id: nameField
             objectName: "mcpNameField"
+            Accessible.name: i18n("Server name")
             Kirigami.FormData.label: i18n("Name:")
             Layout.fillWidth: true
             placeholderText: i18n("For example: files")
@@ -83,6 +84,7 @@ ColumnLayout {
         QQC2.TextField {
             id: commandField
             objectName: "mcpCommandField"
+            Accessible.name: i18n("Command")
             visible: !form.isUrl
             Kirigami.FormData.label: i18n("Command:")
             Layout.fillWidth: true
@@ -96,6 +98,7 @@ ColumnLayout {
         QQC2.TextArea {
             id: argsField
             objectName: "mcpArgsField"
+            Accessible.name: i18n("Arguments")
             visible: !form.isUrl
             Kirigami.FormData.label: i18n("Arguments:")
             Layout.fillWidth: true
@@ -110,6 +113,7 @@ ColumnLayout {
         QQC2.TextField {
             id: cwdField
             objectName: "mcpCwdField"
+            Accessible.name: i18n("Folder")
             visible: !form.isUrl
             Kirigami.FormData.label: i18n("Folder:")
             Layout.fillWidth: true
@@ -123,6 +127,7 @@ ColumnLayout {
         QQC2.TextField {
             id: urlField
             objectName: "mcpUrlField"
+            Accessible.name: i18n("Server address")
             visible: form.isUrl
             Kirigami.FormData.label: i18n("Address:")
             Layout.fillWidth: true

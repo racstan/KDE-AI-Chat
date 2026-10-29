@@ -52,6 +52,7 @@ ColumnLayout {
 
             QQC2.TextField {
                 objectName: editor.prefix + "Name" + row.index
+                Accessible.name: editor.nameHint
                 Layout.preferredWidth: Kirigami.Units.gridUnit * 7
                 Layout.minimumWidth: 0
                 placeholderText: editor.nameHint
@@ -64,6 +65,7 @@ ColumnLayout {
             }
             QQC2.TextField {
                 objectName: editor.prefix + "Value" + row.index
+                Accessible.name: i18n("Value")
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 placeholderText: i18n("Value")

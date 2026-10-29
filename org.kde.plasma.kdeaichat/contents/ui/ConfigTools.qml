@@ -191,6 +191,7 @@ KCM.SimpleKCM {
             QQC2.SpinBox {
                 id: roundsBox
                 objectName: "maxRoundsBox"
+                Accessible.name: i18n("Most tool rounds per reply")
                 Kirigami.FormData.label: i18n("Most tool rounds per reply:")
                 from: 1
                 to: 50
