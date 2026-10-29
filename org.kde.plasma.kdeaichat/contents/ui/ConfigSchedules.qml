@@ -132,6 +132,14 @@ KCM.SimpleKCM {
                 text: scheduleService.error
             }
 
+            Kirigami.InlineMessage {
+                objectName: "migrationError"
+                Layout.fillWidth: true
+                visible: scheduleService.migrationError !== ""
+                type: Kirigami.MessageType.Warning
+                text: i18n("Your old schedules could not be brought over, so they are not running. The old file was not changed. Reason: %1", scheduleService.migrationError)
+            }
+
             Kirigami.PlaceholderMessage {
                 objectName: "noSchedules"
                 Layout.fillWidth: true

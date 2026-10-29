@@ -38,6 +38,10 @@ def backup_path() -> str:
     return os.path.join(chats.data_root(), "schedules.v1.json")
 
 
+class LegacyScheduleError(Exception):
+    """The old schedules.json could not be migrated; it was left untouched (message: the short reason)."""
+
+
 def empty_store() -> Dict[str, Any]:
     return {"version": 2, "settings": {"historyLimit": DEFAULT_HISTORY_LIMIT}, "schedules": []}
 
@@ -68,8 +72,11 @@ def _migrate_locked(now: dt.datetime) -> Dict[str, Any]:
         store = empty_store()
         atomic_write_json(store_path(), store)
         return store
-    store, states = schedule_migrate.migrate_data(
-        schedule_migrate.read_v1(legacy, MAX_SCHEDULE_STORE_BYTES), now)
+    try:
+        store, states = schedule_migrate.migrate_data(
+            schedule_migrate.read_v1(legacy, MAX_SCHEDULE_STORE_BYTES), now)
+    except Exception as e:   # malformed old file: report it, leave it alone, try again next time
+        raise LegacyScheduleError(str(e)[:200] or type(e).__name__) from e
     schedule_migrate.backup_v1(legacy, backup_path())
     limit = history_limit(store["settings"])
     for sid, state in states.items():
@@ -117,7 +124,11 @@ def _describe(schedule: Dict[str, Any], now: dt.datetime, count: int = 3) -> Dic
 
 def cmd_schedules_list(payload: Dict[str, Any]) -> None:
     now = now_local()
-    store = load_store(now)
+    try:
+        store = load_store(now)
+    except LegacyScheduleError as e:
+        _out({"ok": True, "schedules": [], "settings": empty_store()["settings"], "migrationError": str(e)})
+        return
     out: List[Dict[str, Any]] = []
     for s in store["schedules"]:
         item = dict(s)
@@ -223,7 +234,11 @@ def sync_all(ensure_enabled: bool = True) -> Dict[str, Any]:
 
 
 def cmd_schedules_sync(payload: Dict[str, Any]) -> None:
-    units = sync_all(ensure_enabled=True)
+    try:
+        units = sync_all(ensure_enabled=True)
+    except LegacyScheduleError as e:
+        _out({"ok": False, "migrationError": str(e)})
+        return
     _out({"ok": not units["errors"], "units": units})
 
 
