@@ -164,7 +164,8 @@ Item {
             compare(composer.input.text, "");
             compare(calls("overrides").length, 1);
             compare(chat.effectiveConfig("a").model, "acme/chat-small");
-            compare(notice(), "This chat now uses acme/chat-small.");
+            // The chat has messages, so the switch says what it costs (tst_model_switch_notice.qml).
+            compare(notice(), "New model: the cache starts over, so the next message may cost more.");
         }
 
         function test_7_model_with_an_unlisted_name_applies_it_as_typed() {

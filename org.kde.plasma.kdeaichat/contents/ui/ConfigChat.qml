@@ -32,6 +32,7 @@ KCM.SimpleKCM {
     property alias cfg_perChatModelSettings: perChatSwitch.checked
     // "chat" or "main" (see chat/EffectiveConfig.js).
     property string cfg_perChatPriority: "chat"
+    property alias cfg_warnModelSwitchCache: warnModelSwitchCheck.checked
     property alias cfg_sendKey: behaviour.sendKey
     property alias cfg_autoScroll: behaviour.autoScroll
     property alias cfg_timeFormat: behaviour.timeFormat
@@ -187,6 +188,17 @@ KCM.SimpleKCM {
                 text: chatWinsRadio.checked
                     ? i18n("A chat that has its own settings uses them; anything it leaves empty comes from the main settings.")
                     : i18n("The main settings are used. A chat's own settings only fill in what the main settings leave empty, such as a model.")
+            }
+
+            QQC2.CheckBox {
+                id: warnModelSwitchCheck
+                objectName: "warnModelSwitchCheck"
+                Kirigami.FormData.label: i18n("Switching models:")
+                text: i18n("Warn that switching models resets the provider's cache")
+            }
+
+            Config.SettingHelp {
+                text: i18n("A provider keeps the start of a conversation cached, so later messages cost fewer input tokens. Switching a chat to another model starts that cache over, so the next message may use more input tokens. The warning shows in the status line above the message box for a few seconds.")
             }
 
             Kirigami.Separator {
