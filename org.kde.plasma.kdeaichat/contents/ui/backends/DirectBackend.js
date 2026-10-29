@@ -3,7 +3,7 @@
 // Direct API backend: talks to an OpenAI-compatible or Anthropic endpoint with the user's key and
 // reports progress as backend events:
 //   {type: "start"} | {type: "text_delta", delta} | {type: "reasoning_delta", delta}
-//   {type: "usage", input, output, cost?}   as the provider reported it, never an estimate
+//   {type: "usage", input, output, cost?, cacheRead?, cacheWrite?}   as the provider reported it, never an estimate
 //   {type: "images", items}                images the model sent (options.images = chat/ImageExtract.js; items: see it)
 //   {type: "tool_calls", calls, thinking}   the model asked for tools (DirectTools.js), before "done"
 //   {type: "error", message, status}        the request failed; "done" follows
@@ -102,7 +102,7 @@ function _retryReason(status, text, body) {
 // options: {type, baseUrl, apiKey, model, headers, system, messages, maxTokens, stream, streamUsage,
 //           variantSend, tools, plainMessages}  (streamUsage: false: no stream_options.include_usage;
 //           variantSend: the chosen model variant's request fragment, Variants.sendFor, {} for none;
-//           tools: DirectTools.toolDefinitions; plainMessages: the messages without tool calls, for a
+//           cache: backends/DirectCache.js (prompt-cache marks, optional); tools: DirectTools.toolDefinitions; plainMessages: the messages without tool calls, for a
 //           model that refuses tools)
 function buildRequest(options) {
     var tools = options.tools && options.tools.length > 0 && !rejectsTools(options) ? options.tools : null;
@@ -145,6 +145,8 @@ function buildRequest(options) {
         if (Object.prototype.hasOwnProperty.call(extra, name) && extra[name])
             headers[name] = String(extra[name]);
     }
+    if (options.cache)
+        body = options.cache.apply(body, options);
     return {"url": url, "headers": headers, "body": body};
 }
 
@@ -174,16 +176,20 @@ function _openAiUsage(usage) {
                  "output": usage.completion_tokens || usage.output_tokens || 0};
     if (usage.cost !== undefined && usage.cost !== null && isFinite(Number(usage.cost)) && Number(usage.cost) >= 0)
         event.cost = Number(usage.cost);
+    var d = usage.prompt_tokens_details || {};  // cached prompt tokens, a part of input (OpenRouter: writes too)
+    if (typeof d.cached_tokens === "number") event.cacheRead = d.cached_tokens;
+    if (typeof d.cache_write_tokens === "number") event.cacheWrite = d.cache_write_tokens;
     return event;
 }
 
-// Anthropic reports cached prompt tokens next to input_tokens; the prompt the
-// model read is all of them. Fields a message doesn't carry stay out of the event.
+// Anthropic reports cached prompt tokens next to input_tokens (input = all of them).
 function _anthropicUsage(usage) {
     var event = {"type": "usage"};
     if (usage.input_tokens !== undefined)
         event.input = usage.input_tokens + (usage.cache_read_input_tokens || 0) + (usage.cache_creation_input_tokens || 0);
     if (usage.output_tokens !== undefined) event.output = usage.output_tokens;
+    if (usage.cache_read_input_tokens !== undefined) event.cacheRead = usage.cache_read_input_tokens;
+    if (usage.cache_creation_input_tokens !== undefined) event.cacheWrite = usage.cache_creation_input_tokens;
     return event;
 }
 
@@ -260,7 +266,6 @@ function _handleFullResponse(type, obj, think, emit, collector, images) {
     _emitImages(message, images, emit);
     if (obj.usage) emit(_openAiUsage(obj.usage));
 }
-
 
 // Sends one request. options as for buildRequest, plus:
 //   xhrFactory()  returns a new XMLHttpRequest;  thinkFactory(emit)  DirectStream.createThinkSplitter

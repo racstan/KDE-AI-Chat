@@ -84,7 +84,7 @@ Item {
                 {role: "user", content: "Where?", at: created},
                 {role: "assistant", model: "gpt-4o", content: "Lisbon", at: created + 1000, tokens: {input: 30, output: 212}, cost: 0.001},
                 {role: "user", content: "And then?", at: created + 2000},
-                {role: "assistant", model: "gpt-4o", content: "Porto", at: created + 3000, tokens: {input: 1260, output: 14}, cost: 0.0005},
+                {role: "assistant", model: "gpt-4o", content: "Porto", at: created + 3000, tokens: {input: 1260, output: 14, cache: {read: 1000, write: 200}}, cost: 0.0005},
                 {role: "assistant", model: "claude-sonnet", content: "Faro", at: active, tokens: {input: 7, output: 1}}
             ];
             wait(10);
@@ -133,6 +133,8 @@ Item {
             compare(value("outputValue").text, "227");
             compare(value("costValue").text, "$0.00150");
             verify(value("costValue").visible);
+            compare(value("cacheReadValue").text, "1,000");
+            compare(value("cacheWriteValue").text, "200");
             compare(value("modelsValue").text, "gpt-4o\nclaude-sonnet");
             compare(value("createdValue").text, new Date(created).toLocaleString(Qt.locale(), Locale.ShortFormat));
             compare(value("lastValue").text, new Date(active).toLocaleString(Qt.locale(), Locale.ShortFormat));

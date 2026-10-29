@@ -135,6 +135,8 @@ QtObject {
             var usage = Object.assign({}, chat.currentStreamUsage);
             if (event.input !== undefined) usage.input = event.input;
             if (event.output !== undefined) usage.output = event.output;
+            if (event.cacheRead !== undefined) usage.cacheRead = event.cacheRead;
+            if (event.cacheWrite !== undefined) usage.cacheWrite = event.cacheWrite;
             if (event.cost !== undefined) usage.cost = (usage.cost || 0) + event.cost;
             chat.currentStreamUsage = usage;
         } else if (event.type === "error") {
@@ -153,6 +155,8 @@ QtObject {
                 reply = chat.imageStore.takeInlineImages(chat.currentSessionId, reply);
                 if (chat.currentStreamUsage.input !== undefined || chat.currentStreamUsage.output !== undefined)
                     reply.tokens = {"input": chat.currentStreamUsage.input || 0, "output": chat.currentStreamUsage.output || 0};
+                if (reply.tokens && (chat.currentStreamUsage.cacheRead !== undefined || chat.currentStreamUsage.cacheWrite !== undefined))
+                    reply.tokens.cache = {"read": chat.currentStreamUsage.cacheRead || 0, "write": chat.currentStreamUsage.cacheWrite || 0};
                 if (chat.currentStreamUsage.cost)
                     reply.cost = chat.currentStreamUsage.cost;
                 msgs[chat.currentStreamIndex] = reply;

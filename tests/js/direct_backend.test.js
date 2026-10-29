@@ -231,7 +231,7 @@ const tests = {
         ]);
         xhr.play();
         assert.deepStrictEqual(plain(events.filter(e => e.type === "usage")), [
-            {type: "usage", input: 240, output: 1},
+            {type: "usage", input: 240, output: 1, cacheRead: 200, cacheWrite: 30},
             {type: "usage", output: 42},
         ]);
     },
