@@ -50,6 +50,8 @@ ColumnLayout {
 
     // The chats, the open one with the messages on screen (it may not be saved yet).
     function _chats() {
+        if (chat && chat.messageLoader)
+            chat.messageLoader.ensureAll();  // chats not opened yet are read from disk
         var list = chat ? chat.sessions || [] : [];
         var at = chat ? chat.sessionIndexById(chat.currentSessionId) : -1;
         if (at < 0)

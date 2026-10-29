@@ -103,7 +103,7 @@ function latestOther(sessions, currentId) {
         var s = list[i];
         if (!s || s.value === currentId || s.archived || !s.text)
             continue;
-        if (Array.isArray(s.messages) && s.messages.length === 0)
+        if (s.messagesUnloaded ? s.messageCount === 0 : (Array.isArray(s.messages) && s.messages.length === 0))
             continue;
         var when = s.updatedAt || s.createdAt || 0;
         if (best === null || when > best.when)

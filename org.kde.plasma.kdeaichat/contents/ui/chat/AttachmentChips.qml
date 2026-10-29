@@ -17,12 +17,22 @@ Flow {
     // Your messages' chips sit at the right.
     property bool alignRight: false
 
+    // The attachments with `stored`: the file:// address of their saved copy ("" when none).
+    readonly property var shown: (attachments || []).map(function(att) { return Object.assign({"stored": chips.storedUrl(att)}, att); })
+
+    // file:// address of the attachment's saved copy in the chat folder ("" when it has none).
+    function storedUrl(att) {
+        var dir = chips.chat && chips.chat.chatStore ? String(chips.chat.chatStore.directory || "") : "";
+        return dir !== "" && att && /^attachments\/[A-Za-z0-9._-]+\/[0-9a-f]{64}\.[a-z0-9]{1,8}$/.test(String(att.file || ""))
+            ? "file://" + encodeURI(dir + "/" + att.file) : "";
+    }
+
     layoutDirection: alignRight ? Qt.RightToLeft : Qt.LeftToRight
 
     spacing: Kirigami.Units.smallSpacing
 
     Repeater {
-        model: chips.attachments
+        model: chips.shown
 
         delegate: QQC2.AbstractButton {
             id: chip
@@ -37,6 +47,10 @@ Flow {
             QQC2.ToolTip.visible: hovered && !!modelData.path
             QQC2.ToolTip.text: modelData.path ? Paths.tilde(modelData.path, StandardPaths.writableLocation(StandardPaths.HomeLocation)) : ""
             onClicked: {
+                if (modelData.stored !== "") {
+                    Qt.openUrlExternally(modelData.stored);
+                    return;
+                }
                 var safe = Sec.validateFilePath(modelData.path || "");
                 if (safe)
                     Qt.openUrlExternally(Sec.fileUrl(safe));
@@ -63,7 +77,8 @@ Flow {
                     fillMode: Image.PreserveAspectCrop
                     source: !chip.isImage ? "" : chip.modelData.content
                         ? "data:" + (chip.modelData.mimeType || "image/png") + ";base64," + chip.modelData.content
-                        : (chip.modelData.path ? "file://" + chip.modelData.path : "")
+                        : (chip.modelData.stored !== "" ? chip.modelData.stored
+                           : (chip.modelData.path ? "file://" + chip.modelData.path : ""))
                 }
 
                 Kirigami.Icon {

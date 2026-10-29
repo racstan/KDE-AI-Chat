@@ -95,6 +95,7 @@ PlasmoidItem {
     property string privacyNotice: storage.notice
     readonly property var wallet: storage.wallet
     readonly property var chatStore: storage.chatStore
+    readonly property var messageLoader: sessionManager.messagesRef  // reads a chat's messages when needed (chat/SessionMessages.qml)
     readonly property var memoryStore: storage.memoryStore  // memories; chat.memory picks those sent (chat/Memory.qml)
     readonly property Chat.Memory memory: Chat.Memory { chat: root }
     // Look, layout and behaviour options (chat/ChatPrefs.qml; defaults change nothing).
@@ -264,7 +265,6 @@ PlasmoidItem {
 
     Chat.ImageStore { id: images; chat: root }   // images of replies, kept as files in the chat's folder
     readonly property var imageStore: images
-
     function nowTime(ts) { return TimeFormat.nowTime(ts); }
 
     // Chats (chat/Sessions.qml).
@@ -342,7 +342,7 @@ PlasmoidItem {
     function removeAttachedFile(index) { attachmentList.removeAttachedFile(index); }
     function attachFile(fileUrl) { attachmentList.attachFile(fileUrl); }
     function checkClipboardForAttachments() { attachmentList.checkClipboardForAttachments(); }
-    function buildMessageContent(text, attachments, apiType, quotes, agent) { return MessageContent.build(text, attachments, apiType, quotes, agent); }
+    function buildMessageContent(text, attachments, apiType, quotes, agent) { return MessageContent.build(text, messageLoader.resolve(attachments), apiType, quotes, agent); }
     function writeExportFile(filePath, content) { helperCommands.writeExportFile(filePath, content); }
 
     // The mode, provider and model a chat really uses (chat/ModeSync.qml, rules in

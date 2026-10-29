@@ -59,12 +59,33 @@ Item {
         }
     }
 
+    // A chat whose messages were not read: the job already appended the run to its file (the widget
+    // never writes such a chat), so only the list entry is updated. Returns "added" or "present".
+    function mergeUnloaded(idx, session, entry) {
+        var count = entry.messages.filter(function(m) { return m && typeof m === "object" && (m.role === "user" || m.role === "assistant"); }).length;
+        var newSessionId = String((entry.sessionUpdates || {}).openCodeSessionId || "");
+        if (count === 0 && (!newSessionId || session.openCodeSessionId))
+            return "present";
+        if (count > 0) {
+            session.messageCount = (session.messageCount || 0) + count;
+            session.updatedAt = Date.now();
+        }
+        if (newSessionId && !session.openCodeSessionId)
+            session.openCodeSessionId = newSessionId;
+        var updated = chat.sessions.slice();
+        updated[idx] = session;
+        chat.sessions = updated;
+        return count > 0 ? "added" : "present";
+    }
+
     // Merges one run into its chat. Returns "added", "present", "gone" or "later".
     function merge(entry) {
         var idx = chat.sessionIndexById(String(entry.chatId || ""));
         if (idx < 0)
             return "gone";
         var session = Object.assign({}, chat.sessions[idx]);
+        if (session.messagesUnloaded)
+            return mergeUnloaded(idx, session, entry);
         var isOpen = session.value === chat.currentSessionId;
         if (isOpen && chat.loading)
             return "later";
