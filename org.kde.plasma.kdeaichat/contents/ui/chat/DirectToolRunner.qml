@@ -120,7 +120,7 @@ QtObject {
     function run(ctx, call, bubbleId, done) {
         var entry = DirectTools.lookupTool(ctx.toolRegistry, call.name);
         if (!entry) {
-            var known = ctx.toolRegistry ? ctx.toolRegistry.list.map(function(t) { return t.name; }) : [];
+            const known = ctx.toolRegistry ? ctx.toolRegistry.list.map(function(t) { return t.name; }) : [];
             done("Unknown tool: " + call.name + ". " + (known.length === 0 ? "Only ask_user is available." : "Available tools: ask_user, " + known.join(", ") + "."), true);
             return;
         }
@@ -161,7 +161,7 @@ QtObject {
         if (exitCode !== 0)
             return null;
         try {
-            var keys = JSON.parse(stdout).keys;
+            const keys = JSON.parse(stdout).keys;
             return Array.isArray(keys) ? keys.map(String) : null;
         } catch (e) {
             return null;
