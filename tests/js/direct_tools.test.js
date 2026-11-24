@@ -11,7 +11,7 @@ const read = name => fs.readFileSync(path.join(__dirname, "../../org.kde.plasma.
 const ctx = {};
 vm.runInNewContext(read("DirectBackend.js") + "\n" + read("DirectStream.js") + "\n" + read("DirectTools.js")
     + "\nthis.exports = {send, buildRequest, rejectsTools, createThinkSplitter, toolDefinitions, createCollector, askUserQuestion,"
-    + " assistantMessage, resultMessages, historyMessages, hasToolRounds, parseArgs, ASK_USER, MAX_ROUNDS};", ctx);
+    + " assistantMessage, resultMessages, historyMessages, hasToolRounds, parseArgs, cleanSchema, describeCall, toolSummary, ASK_USER, MAX_ROUNDS};", ctx);
 const T = ctx.exports;
 const plain = x => JSON.parse(JSON.stringify(x));
 
@@ -51,6 +51,65 @@ const tests = {
         const anth = plain(T.toolDefinitions("anthropic", {askUser: true}));
         assert.strictEqual(anth[0].name, "ask_user");
         assert.strictEqual(anth[0].input_schema.type, "object");
+    },
+
+    bridge_tools_follow_ask_user_in_both_formats() {
+        const tools = [
+            {name: "files__read", description: "Read a file", inputSchema: {type: "object", properties: {path: {type: "string"}}, required: ["path"]}},
+            {name: "web_search", description: "Search the web", inputSchema: {type: "object", properties: {query: {type: "string"}}}},
+        ];
+        const openai = plain(T.toolDefinitions("openai", {askUser: true, tools}));
+        assert.deepStrictEqual(openai.map(d => d.function.name), ["ask_user", "files__read", "web_search"]);
+        assert.strictEqual(openai[1].type, "function");
+        assert.strictEqual(openai[1].function.description, "Read a file");
+        assert.deepStrictEqual(openai[1].function.parameters.required, ["path"]);
+        const anth = plain(T.toolDefinitions("anthropic", {askUser: false, tools}));
+        assert.deepStrictEqual(anth.map(d => d.name), ["files__read", "web_search"]);
+        assert.deepStrictEqual(anth[0].input_schema.required, ["path"]);
+        assert.ok(!("function" in anth[0]));
+    },
+
+    bridge_tool_schemas_are_fixed_up_and_descriptions_capped() {
+        const defs = plain(T.toolDefinitions("openai", {tools: [
+            {name: "a", description: "x".repeat(5000), inputSchema: null},
+            {name: "b", inputSchema: {type: "string"}},
+            {name: "c", inputSchema: {type: "object"}},
+            {name: "d", inputSchema: {type: "object", properties: [1]}},
+            {name: "e", inputSchema: [1, 2]},
+            {name: "ask_user", description: "clash"},
+            {name: "a", description: "again"},
+            {name: ""},
+        ]}));
+        assert.deepStrictEqual(defs.map(d => d.function.name), ["a", "b", "c", "d", "e"]);
+        assert.strictEqual(defs[0].function.description.length, 1000);
+        assert.strictEqual(defs[1].function.description, "");
+        for (const d of defs) {
+            assert.strictEqual(d.function.parameters.type, "object");
+            assert.deepStrictEqual(d.function.parameters.properties, {});
+        }
+        const keep = {type: "object", properties: {q: {type: "string"}}, additionalProperties: false};
+        assert.deepStrictEqual(plain(T.cleanSchema(keep)), keep);
+    },
+
+    approval_text_names_the_tool_and_shows_pretty_arguments() {
+        const card = T.describeCall("files__read", {path: "/etc/hosts", deep: {a: 1}});
+        assert.strictEqual(card.tool, "files__read");
+        assert.strictEqual(card.arguments, JSON.stringify({path: "/etc/hosts", deep: {a: 1}}, null, 2));
+        assert.strictEqual(card.short, "{\"path\":\"/etc/hosts\",\"deep\":{\"a\":1}}");
+        assert.strictEqual(T.describeCall("t", {text: "z".repeat(200)}).short, "");
+        assert.strictEqual(T.describeCall("t", {}).arguments, "{}");
+        assert.strictEqual(T.describeCall("t", null).arguments, "{}");
+        const long = T.describeCall("t", {text: "y".repeat(9000)});
+        assert.ok(long.arguments.length < 4100);
+        assert.ok(long.arguments.endsWith("(shortened)"));
+    },
+
+    summary_of_a_bridge_call_reads_well() {
+        const msg = {toolRounds: [{text: "", calls: [{id: "c1", name: "web_search", args: {query: "plasma"}}, askCall]}],
+                     tools: {c1: {output: "3 results"}}};
+        const lines = T.toolSummary(msg).split("\n");
+        assert.strictEqual(lines[0], "[used the web_search tool with {\"query\":\"plasma\"}: 3 results]");
+        assert.strictEqual(lines[1], "[asked \"Which one?\"]");
     },
 
     request_carries_tools_only_when_given() {

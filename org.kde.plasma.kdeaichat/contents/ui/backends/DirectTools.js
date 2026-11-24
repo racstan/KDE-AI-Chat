@@ -17,11 +17,31 @@ var NO_RESULT = "No result: the request was stopped before the tool finished.";
 var ASK_USER_DESCRIPTION = "Ask the user a question and wait for the answer. Use it when you need a decision or a missing detail "
     + "that you can't work out yourself. The answer is returned as the result. Give short options when the answers are few.";
 
-// options: {askUser: bool}. [] when no tool is offered.
+var MAX_TOOL_DESCRIPTION = 1000;
+var MAX_APPROVAL_TEXT = 4000;
+
+// A tool's input schema made safe to send: always an object schema ("type": "object"),
+// with "properties" an object. Anything else becomes an empty object schema.
+function cleanSchema(schema) {
+    if (!schema || typeof schema !== "object" || Array.isArray(schema) || schema.type !== "object")
+        return {"type": "object", "properties": {}};
+    var out = Object.assign({}, schema);
+    if (!out.properties || typeof out.properties !== "object" || Array.isArray(out.properties))
+        out.properties = {};
+    return out;
+}
+
+// options: {askUser: bool, tools: [{name, description, inputSchema}]} (tools from the tool bridge,
+// listed after ask_user). [] when no tool is offered.
 function toolDefinitions(type, options) {
     var defs = [];
+    var anth = type === "anthropic";
+    function add(name, description, schema) {
+        defs.push(anth ? {"name": name, "description": description, "input_schema": schema}
+                       : {"type": "function", "function": {"name": name, "description": description, "parameters": schema}});
+    }
     if (options && options.askUser) {
-        var schema = {
+        add(ASK_USER, ASK_USER_DESCRIPTION, {
             "type": "object",
             "properties": {
                 "question": {"type": "string", "description": "The question to show the user."},
@@ -29,11 +49,39 @@ function toolDefinitions(type, options) {
                 "allow_typed": {"type": "boolean", "description": "Let the user type their own answer. Default true."}
             },
             "required": ["question"]
-        };
-        defs.push(type === "anthropic" ? {"name": ASK_USER, "description": ASK_USER_DESCRIPTION, "input_schema": schema}
-                                       : {"type": "function", "function": {"name": ASK_USER, "description": ASK_USER_DESCRIPTION, "parameters": schema}});
+        });
+    }
+    var extra = options && Array.isArray(options.tools) ? options.tools : [];
+    var seen = {};
+    seen[ASK_USER] = true;
+    for (var i = 0; i < extra.length; i++) {
+        var tool = extra[i] || {};
+        var name = String(tool.name || "");
+        if (name === "" || seen[name])
+            continue;
+        seen[name] = true;
+        add(name, String(tool.description || "").substring(0, MAX_TOOL_DESCRIPTION), cleanSchema(tool.inputSchema));
     }
     return defs;
+}
+
+// A tool call as the permission card shows it: {tool, arguments, short}. `arguments` is pretty
+// JSON, capped; `short` is the same on one line when that is under 120 characters, else "".
+function describeCall(name, args) {
+    var text, oneLine;
+    try { text = JSON.stringify(args || {}, null, 2); oneLine = JSON.stringify(args || {}); } catch (e) { text = "{}"; oneLine = "{}"; }
+    if (text.length > MAX_APPROVAL_TEXT)
+        text = text.substring(0, MAX_APPROVAL_TEXT) + "\n… (shortened)";
+    return {"tool": String(name || ""), "arguments": text, "short": oneLine.length < 120 ? oneLine : ""};
+}
+
+// " with {...}" for a call's summary line: the arguments as one line, cut short.
+function _briefArgs(args) {
+    var text = "";
+    try { text = JSON.stringify(args || {}); } catch (e) { text = ""; }
+    if (text === "" || text === "{}")
+        return "";
+    return " with " + (text.length > 120 ? text.substring(0, 119) + "…" : text);
 }
 
 function parseArgs(raw) {
@@ -216,7 +264,7 @@ function toolSummary(msg) {
         for (var c = 0; c < rounds[r].calls.length; c++) {
             var call = rounds[r].calls[c];
             var tool = (msg.tools || {})[call.id] || {};
-            var what = call.name === ASK_USER ? "asked \"" + String((call.args || {}).question || "") + "\"" : "used the " + call.name + " tool";
+            var what = call.name === ASK_USER ? "asked \"" + String((call.args || {}).question || "") + "\"" : "used the " + call.name + " tool" + _briefArgs(call.args);
             lines.push("[" + what + (tool.output ? ": " + String(tool.output).substring(0, 500) : "") + "]");
         }
     }
