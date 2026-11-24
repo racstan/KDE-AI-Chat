@@ -4,6 +4,7 @@
 // Right-click opens Copy / Read aloud.
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Templates as T
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import "../Security.js" as Sec
@@ -56,11 +57,11 @@ TextEdit {
     }
 
     // Right-click: Copy and Read aloud (the selection, or the whole message).
-    property QQC2.Menu openMenu: null
+    property T.Menu openMenu: null
     TapHandler {
         acceptedButtons: Qt.RightButton
         onTapped: function(eventPoint) {
-            var menu = contextMenu.createObject(block) as QQC2.Menu;
+            var menu = contextMenu.createObject(block) as T.Menu;
             block.openMenu = menu;
             menu.closed.connect(function() { block.openMenu = null; menu.destroy(); });
             menu.popup(block, eventPoint.position.x, eventPoint.position.y);

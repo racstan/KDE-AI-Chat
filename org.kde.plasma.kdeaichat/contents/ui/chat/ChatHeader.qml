@@ -10,6 +10,7 @@ pragma ComponentBehavior: Bound
 import QtCore
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Templates as T
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
@@ -247,7 +248,7 @@ RowLayout {
             property Connections submenuItem: Connections {
                 target: moreMenu.opened ? moreMenu.itemAt(1) : null
                 function onHoveredChanged() {
-                    const item = moreMenu.itemAt(1) as QQC2.MenuItem;
+                    const item = moreMenu.itemAt(1) as T.MenuItem;
                     if (item && item.hovered && item.enabled && !projectMenu.opened)
                         item.click();
                 }

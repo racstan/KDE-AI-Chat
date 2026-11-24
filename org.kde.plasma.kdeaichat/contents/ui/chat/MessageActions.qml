@@ -11,6 +11,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Templates as T
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
@@ -179,7 +180,7 @@ RowLayout {
             icon.name: "view-refresh"
             text: i18n("Regenerate")
             onClicked: {
-                var menu = regenerateMenu.createObject(regenerate) as QQC2.Menu;
+                var menu = regenerateMenu.createObject(regenerate) as T.Menu;
                 menu.closed.connect(menu.destroy);
                 menu.popup(regenerate, 0, regenerate.height);
             }

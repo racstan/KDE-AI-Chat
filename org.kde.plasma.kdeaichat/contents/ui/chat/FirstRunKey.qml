@@ -62,6 +62,10 @@ ColumnLayout {
         id: modelBox
         objectName: "firstRunModel"
         visible: keyStep.ctl.modelsReady
+        // Plasma's combo box sizes itself from its items, which loops here;
+        // the width comes from the layout and the height from the key field.
+        implicitWidth: Kirigami.Units.gridUnit * 12
+        implicitHeight: keyField.implicitHeight
         Layout.fillWidth: true
         model: keyStep.ctl.models
         enabled: !keyStep.ctl.busy
