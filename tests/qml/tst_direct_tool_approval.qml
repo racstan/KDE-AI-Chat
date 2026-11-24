@@ -83,6 +83,10 @@ Item {
                 var parsed = JSON.parse(body);
                 root.bridgeCalls.push({"path": path, "body": parsed, "auth": x.auth, "timeout": x.timeout});
                 var answer = root.bridgeAnswer(path, parsed, root.bridgeCalls.length);
+                if (answer.timeout) {
+                    x.ontimeout();
+                    return;
+                }
                 x.status = answer.status;
                 x.responseText = JSON.stringify(answer.data || {});
                 x.readyState = 4;
@@ -473,6 +477,16 @@ Item {
             compare(callsTo("/call").length, 2);
             compare(chat.messages[1].tools["call_1"].status, "error");
             verify(root.xhrs[1].sent.messages[2].content.indexOf("did not answer") >= 0);
+        }
+
+        function test_a_call_that_times_out_is_not_run_again() {
+            root.bridgeHandler = function(path) { return path === "/call" ? {"timeout": true} : null; };
+            callAndWait();
+            press("Allow");
+            compare(callsTo("/call").length, 1, "an approved call runs once, even when it is slow");
+            compare(root.helperCalls.length, 1, "the bridge is not restarted");
+            compare(chat.messages[1].tools["call_1"].status, "error");
+            verify(root.xhrs[1].sent.messages[2].content.indexOf("did not finish in time") >= 0);
         }
 
         function test_a_bridge_that_does_not_start_never_blocks_the_chat() {

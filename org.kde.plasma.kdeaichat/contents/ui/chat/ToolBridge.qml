@@ -86,23 +86,26 @@ QtObject {
         });
     }
 
-    // POSTs JSON to the bridge; done({status, data}). status 0: no answer (connection error or timeout).
+    // POSTs JSON to the bridge; done({status, data, timedOut}). status 0: no answer (connection error or timeout);
+    // timedOut: the bridge took too long (it is still there, and the call may still be running).
     function _post(path, body, timeoutMs, done) {
         var xhr = bridge.xhrFactory ? bridge.xhrFactory() : new XMLHttpRequest();
         var finished = false;
+        var started = Date.now();
+        var timedOut = false;
         function finish(status, text) {
             if (finished)
                 return;
             finished = true;
             var data = null;
             try { data = JSON.parse(text); } catch (e) { data = null; }
-            done({"status": status, "data": data});
+            done({"status": status, "data": data, "timedOut": status === 0 && (timedOut || Date.now() - started >= timeoutMs - 500)});
         }
         xhr.open("POST", bridge.connection.baseUrl + path);
         xhr.setRequestHeader("Authorization", "Bearer " + bridge.connection.token);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.timeout = timeoutMs;
-        xhr.ontimeout = function() { finish(0, ""); };
+        xhr.ontimeout = function() { timedOut = true; finish(0, ""); };
         xhr.onerror = function() { finish(0, ""); };
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4)
@@ -207,6 +210,8 @@ QtObject {
         function give(text, isError) { callback(text, isError); }
         function failure(res) {
             var detail = res.data && res.data.error ? String(res.data.error) : "";
+            if (res.timedOut)
+                return i18n("The tool did not finish in time. It may still be running.");
             if (res.status === 0)
                 return i18n("The tool bridge did not answer.");
             return detail !== "" ? detail : i18n("The tool failed (HTTP %1).", res.status);
@@ -222,7 +227,8 @@ QtObject {
                     give(out.output, out.isError);
                     return;
                 }
-                var gone = res.status === 0 || res.status === 401 || res.status === 404;
+                // A timeout is not retried: the tool may have run, and running it again was not approved.
+                var gone = (res.status === 0 && !res.timedOut) || res.status === 401 || res.status === 404;
                 if (!gone || retried) {
                     give(failure(res), true);
                     return;
