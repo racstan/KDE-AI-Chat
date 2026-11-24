@@ -318,6 +318,10 @@ def format_result(result: Dict[str, Any]) -> "tuple[str, bool]":
             parts.append(f"[{kind}: {item.get('mimeType') or 'unknown type'}, {size} KB]")
         elif kind == "resource":
             resource = item.get("resource") if isinstance(item.get("resource"), dict) else {}
+            if isinstance(resource.get("text"), str):
+                has_text = True
+                parts.append(resource["text"])
+                continue
             parts.append(f"[resource: {resource.get('uri') or 'unnamed'}, {resource.get('mimeType') or 'unknown type'}]")
         elif kind == "resource_link":
             parts.append(f"[resource: {item.get('uri') or 'unnamed'}, {item.get('mimeType') or 'unknown type'}]")
