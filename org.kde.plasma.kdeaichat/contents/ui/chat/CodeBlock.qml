@@ -83,7 +83,7 @@ Rectangle {
             }
         }
 
-        QQC2.ScrollView {
+        PC3.ScrollView {
             Layout.fillWidth: true
             Layout.preferredHeight: Math.min(codeText.implicitHeight, Kirigami.Units.gridUnit * 18)
             Layout.leftMargin: Kirigami.Units.largeSpacing

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **The widget loads again with Qt 6.10.** Qt 6.10 reads `final` as a keyword, and one function used it as a name, so the whole widget showed "Sorry! There was an error loading KDE AI Chat".
+- **A big widget on the desktop shows the chat** ([#13](https://github.com/racstan/KDE-AI-Chat/issues/13)). The widget used to stay a large icon however big it was made. Now, on the desktop, it shows the chat itself once it is bigger than about 20 × 22 grid units, and the icon when smaller; in a panel it is always the icon. The chat on the desktop can be smaller than the popup and has no resize grip (Plasma's own handles resize it).
+- **The chat follows the Plasma theme** ([#15](https://github.com/racstan/KDE-AI-Chat/issues/15)). The Send button, the setup list, menus, fields and other controls in the chat were drawn in the application colour scheme, so with a Plasma theme in other colours they stood out (a light Send button and white rows on a dark popup). They now use Plasma's own controls, and Send is filled with the theme's accent colour. The settings window keeps the application style.
+
 ## [1.4.1] - 2026-10-29
 
 Fixes from a review of the 1.4.0 release.

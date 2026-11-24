@@ -60,7 +60,7 @@ QQC2.Popup {
             text: i18n("Memories go with your messages when they are relevant. Change them in Settings → Memory.")
         }
 
-        QQC2.ScrollView {
+        PC3.ScrollView {
             Layout.fillWidth: true
             Layout.preferredHeight: Kirigami.Units.gridUnit * 6
             Layout.topMargin: Kirigami.Units.smallSpacing

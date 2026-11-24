@@ -4,12 +4,12 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls as QQC2
+import org.kde.plasma.components as PC3
 
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
 
-QQC2.Menu {
+PC3.Menu {
     id: moveMenu
 
     // The widget root (main.qml) or a stand-in with `projects`.
@@ -23,7 +23,7 @@ QQC2.Menu {
     title: i18n("Move to project")
     icon.name: "folder-move"
 
-    QQC2.MenuItem {
+    PC3.MenuItem {
         objectName: "noProjectItem"
         text: i18n("No project")
         checkable: true
@@ -31,11 +31,11 @@ QQC2.Menu {
         onTriggered: moveMenu.chat.projects.moveChat(moveMenu._id, "")
     }
 
-    QQC2.MenuSeparator {}
+    PC3.MenuSeparator {}
 
     Instantiator {
         model: moveMenu.chat ? moveMenu.chat.projects.list : []
-        delegate: QQC2.MenuItem {
+        delegate: PC3.MenuItem {
             required property var modelData
             objectName: "projectItem"
             text: modelData.name
@@ -47,9 +47,9 @@ QQC2.Menu {
         onObjectRemoved: function(index, object) { moveMenu.removeItem(object); }
     }
 
-    QQC2.MenuSeparator {}
+    PC3.MenuSeparator {}
 
-    QQC2.MenuItem {
+    PC3.MenuItem {
         objectName: "newProjectItem"
         text: i18n("New project…")
         icon.name: "list-add"

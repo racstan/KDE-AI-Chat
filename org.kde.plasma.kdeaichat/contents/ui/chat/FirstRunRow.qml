@@ -1,11 +1,11 @@
 // One choice on the first-run setup's first screen: an icon, a name and a
 // line of detail. The whole row is the button.
 import QtQuick
-import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PC3
 
-QQC2.ItemDelegate {
+PC3.ItemDelegate {
     id: row
 
     property string title: ""
@@ -28,14 +28,14 @@ QQC2.ItemDelegate {
             Layout.fillWidth: true
             spacing: 0
 
-            QQC2.Label {
+            PC3.Label {
                 objectName: "firstRunRowTitle"
                 text: row.title
                 elide: Text.ElideRight
                 Layout.fillWidth: true
             }
 
-            QQC2.Label {
+            PC3.Label {
                 visible: row.detail !== ""
                 text: row.detail
                 opacity: 0.7

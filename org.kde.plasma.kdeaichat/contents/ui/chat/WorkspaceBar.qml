@@ -136,7 +136,7 @@ RowLayout {
         onClicked: bar.choose("")
     }
 
-    QQC2.ComboBox {
+    PC3.ComboBox {
         id: agentSelectorCombo
         visible: bar.chat.openCodeMode
         implicitWidth: Kirigami.Units.gridUnit * 7

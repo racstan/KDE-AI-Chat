@@ -11,6 +11,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Templates as T
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
@@ -179,7 +180,7 @@ RowLayout {
             icon.name: "view-refresh"
             text: i18n("Regenerate")
             onClicked: {
-                var menu = regenerateMenu.createObject(regenerate) as QQC2.Menu;
+                var menu = regenerateMenu.createObject(regenerate) as T.Menu;
                 menu.closed.connect(menu.destroy);
                 menu.popup(regenerate, 0, regenerate.height);
             }
@@ -247,18 +248,18 @@ RowLayout {
 
     Component {
         id: regenerateMenu
-        QQC2.Menu {
-            QQC2.MenuItem {
+        PC3.Menu {
+            PC3.MenuItem {
                 text: i18n("Regenerate")
                 icon.name: "view-refresh"
                 onTriggered: actions.regenerate("")
             }
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 text: i18n("Longer")
                 icon.name: "format-list-ordered"
                 onTriggered: actions.regenerate("Please provide a longer, more detailed and comprehensive response.")
             }
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 text: i18n("Shorter")
                 icon.name: "format-list-unordered"
                 onTriggered: actions.regenerate("Please provide a shorter, more concise and brief response.")

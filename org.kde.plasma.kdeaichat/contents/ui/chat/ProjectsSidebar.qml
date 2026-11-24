@@ -79,7 +79,7 @@ ColumnLayout {
         model: sidebar.rows
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+        QQC2.ScrollBar.vertical: PC3.ScrollBar {}
 
         delegate: Rectangle {
             id: row
@@ -185,14 +185,14 @@ ColumnLayout {
                 }
             }
 
-            QQC2.Menu {
+            PC3.Menu {
                 id: projectMenu
-                QQC2.MenuItem {
+                PC3.MenuItem {
                     text: i18n("Edit project…")
                     icon.name: "document-edit"
                     onTriggered: sidebar.projects.openEditor(row.modelData.view, "")
                 }
-                QQC2.MenuItem {
+                PC3.MenuItem {
                     text: i18n("New chat in this project")
                     icon.name: "list-add"
                     onTriggered: {
@@ -200,14 +200,14 @@ ColumnLayout {
                         sidebar.projects.newChat();
                     }
                 }
-                QQC2.MenuSeparator {}
-                QQC2.MenuItem {
+                PC3.MenuSeparator {}
+                PC3.MenuItem {
                     objectName: "deleteProjectItem"
                     text: i18n("Delete project (keeps its chats)")
                     icon.name: "edit-delete"
                     onTriggered: sidebar.projects.remove(row.modelData.view)
                 }
-                QQC2.MenuItem {
+                PC3.MenuItem {
                     objectName: "deleteProjectWithChatsItem"
                     text: i18n("Delete project and its chats…")
                     icon.name: "edit-delete"

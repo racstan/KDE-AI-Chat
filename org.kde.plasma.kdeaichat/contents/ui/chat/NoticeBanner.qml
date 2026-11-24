@@ -34,7 +34,7 @@ Rectangle {
         id: row
         anchors.fill: parent
         anchors.margins: Kirigami.Units.smallSpacing
-        QQC2.Label {
+        PC3.Label {
             textFormat: Text.PlainText
             Layout.fillWidth: true
             wrapMode: Text.Wrap

@@ -147,7 +147,7 @@ Rectangle {
             clip: true
             cacheBuffer: 5000
 
-            QQC2.ScrollBar.vertical: QQC2.ScrollBar {
+            QQC2.ScrollBar.vertical: PC3.ScrollBar {
             }
 
             delegate: Rectangle {

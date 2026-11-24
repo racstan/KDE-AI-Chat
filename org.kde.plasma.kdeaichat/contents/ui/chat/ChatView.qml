@@ -278,7 +278,7 @@ Item {
             }
         }
 
-        QQC2.ScrollBar.vertical: QQC2.ScrollBar {
+        QQC2.ScrollBar.vertical: PC3.ScrollBar {
             id: scrollBar
             onPressedChanged: if (!pressed) list.userMoved()
             onPositionChanged: if (pressed) list.userMoved()

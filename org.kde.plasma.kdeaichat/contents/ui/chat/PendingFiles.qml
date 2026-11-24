@@ -11,7 +11,7 @@ import org.kde.plasma.components as PC3
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
 
-QQC2.ScrollView {
+PC3.ScrollView {
     id: pending
 
     property var chat: null

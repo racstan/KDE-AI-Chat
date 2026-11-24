@@ -91,7 +91,7 @@ QtObject {
     }
 
     // Sets `title` on chat `sessionId` if its name is still automatic.
-    function applyAutoTitle(sessionId, title, final) {
+    function applyAutoTitle(sessionId, title, isFinal) {
         var idx = chat.sessionIndexById(sessionId);
         if (idx < 0)
             return false;
@@ -100,7 +100,7 @@ QtObject {
         if (!ChatTitle.isDefaultTitle(current) && !(chat.sessions[idx].autoTitle && current === chat.sessions[idx].autoTitle))
             return false;
         var updated = chat.sessions.slice();
-        updated[idx] = Object.assign({}, updated[idx], {"text": title, "autoTitle": final ? "" : title});
+        updated[idx] = Object.assign({}, updated[idx], {"text": title, "autoTitle": isFinal ? "" : title});
         chat.sessions = updated;
         if (isCurrent)
             chat.currentSessionTitle = title;
