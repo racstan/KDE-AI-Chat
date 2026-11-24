@@ -188,9 +188,11 @@ KCM.SimpleKCM {
             QQC2.ScrollView {
                 Kirigami.FormData.label: i18n("Servers:")
                 Layout.preferredWidth: Kirigami.Units.gridUnit * 28
-                Layout.preferredHeight: Kirigami.Units.gridUnit * 10
+                implicitHeight: Kirigami.Units.gridUnit * 10
 
                 QQC2.TextArea {
+                    Keys.onTabPressed: nextItemInFocusChain(true).forceActiveFocus(Qt.TabFocusReason)
+                    Keys.onBacktabPressed: nextItemInFocusChain(false).forceActiveFocus(Qt.BacktabFocusReason)
                     id: serversArea
                     objectName: "serversArea"
                     Accessible.name: i18n("MCP servers as JSON")
