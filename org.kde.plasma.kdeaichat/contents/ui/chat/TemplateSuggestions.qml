@@ -84,7 +84,7 @@ QQC2.Popup {
         boundsBehavior: Flickable.StopAtBounds
         onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
 
-        delegate: QQC2.ItemDelegate {
+        delegate: PC3.ItemDelegate {
             id: item
 
             required property var modelData

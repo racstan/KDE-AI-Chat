@@ -1,8 +1,8 @@
 // Last screen of the first-run setup: the provider works; an optional test message.
 import QtQuick
-import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PC3
 
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
@@ -23,7 +23,7 @@ ColumnLayout {
         Layout.fillWidth: true
     }
 
-    QQC2.Label {
+    PC3.Label {
         Layout.fillWidth: true
         wrapMode: Text.Wrap
         text: testStep.ctl.savedLocal
@@ -31,7 +31,7 @@ ColumnLayout {
             : i18n("%1 · %2. Your messages are sent to its servers.", testStep.ctl.savedName, testStep.ctl.savedModel)
     }
 
-    QQC2.Label {
+    PC3.Label {
         Layout.fillWidth: true
         wrapMode: Text.Wrap
         opacity: 0.8
@@ -43,7 +43,7 @@ ColumnLayout {
         Layout.topMargin: Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
 
-        QQC2.Button {
+        PC3.Button {
             objectName: "firstRunSendTest"
             highlighted: true
             text: i18n("Send a test message")
@@ -51,7 +51,7 @@ ColumnLayout {
             onClicked: testStep.ctl.sendTest()
         }
 
-        QQC2.Button {
+        PC3.Button {
             objectName: "firstRunFinish"
             text: i18n("Start chatting")
             onClicked: testStep.ctl.finish()

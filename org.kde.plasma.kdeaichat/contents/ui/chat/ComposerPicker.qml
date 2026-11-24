@@ -223,7 +223,7 @@ QQC2.Popup {
             }
         }
 
-        QQC2.TextField {
+        PC3.TextField {
             id: filterField
             objectName: "pickerFilter"
             visible: picker.perChat
@@ -265,9 +265,9 @@ QQC2.Popup {
             model: picker.perChat ? picker.matches : []
             currentIndex: 0
             boundsBehavior: Flickable.StopAtBounds
-            QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+            QQC2.ScrollBar.vertical: PC3.ScrollBar {}
 
-            delegate: QQC2.ItemDelegate {
+            delegate: PC3.ItemDelegate {
                 id: entry
 
                 required property var modelData
@@ -286,7 +286,7 @@ QQC2.Popup {
                         Layout.preferredWidth: Kirigami.Units.iconSizes.small
                         Layout.preferredHeight: Kirigami.Units.iconSizes.small
                     }
-                    QQC2.Label { textFormat: Text.PlainText
+                    PC3.Label { textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: entry.modelData.id
                         elide: Text.ElideMiddle

@@ -247,18 +247,18 @@ RowLayout {
 
     Component {
         id: regenerateMenu
-        QQC2.Menu {
-            QQC2.MenuItem {
+        PC3.Menu {
+            PC3.MenuItem {
                 text: i18n("Regenerate")
                 icon.name: "view-refresh"
                 onTriggered: actions.regenerate("")
             }
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 text: i18n("Longer")
                 icon.name: "format-list-ordered"
                 onTriggered: actions.regenerate("Please provide a longer, more detailed and comprehensive response.")
             }
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 text: i18n("Shorter")
                 icon.name: "format-list-unordered"
                 onTriggered: actions.regenerate("Please provide a shorter, more concise and brief response.")

@@ -316,7 +316,8 @@ ColumnLayout {
             }
         }
 
-        QQC2.Button {
+        // The accent-filled button in the Plasma theme's colours (#15).
+        PrimaryButton {
             id: sendButton
             objectName: "sendButton"
             icon.name: composer.chat.loading ? "list-add" : "document-send"
@@ -324,7 +325,6 @@ ColumnLayout {
             Layout.minimumWidth: Kirigami.Units.gridUnit * 5
             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
             enabled: composer.chat.attachmentsReadyToSend() && (composer.chat.chatInputText.trim() !== "" || composer.chat.attachedFiles.length > 0)
-            highlighted: true
             Accessible.name: text
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.text: composer.chat.loading ? i18n("Send this after the current reply finishes") : i18n("Send message")

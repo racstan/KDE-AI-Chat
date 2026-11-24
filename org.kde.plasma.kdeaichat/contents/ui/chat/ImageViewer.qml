@@ -5,6 +5,7 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PC3
 // i18n() is provided by Plasma at runtime.
 // qmllint disable unqualified
 
@@ -48,7 +49,7 @@ QQC2.Popup {
             sourceSize.height: 2048
         }
 
-        QQC2.Label {
+        PC3.Label {
             textFormat: Text.PlainText
             objectName: "viewerCaption"
             Layout.fillWidth: true
@@ -65,19 +66,19 @@ QQC2.Popup {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
 
-            QQC2.Button {
+            PC3.Button {
                 objectName: "viewerCopy"
                 text: i18n("Copy image")
                 icon.name: "edit-copy"
                 onClicked: viewer.copyRequested()
             }
-            QQC2.Button {
+            PC3.Button {
                 objectName: "viewerDownload"
                 text: i18n("Download")
                 icon.name: "document-save"
                 onClicked: viewer.downloadRequested()
             }
-            QQC2.Button {
+            PC3.Button {
                 objectName: "viewerRegenerate"
                 visible: viewer.canRegenerate
                 text: i18n("Regenerate")
@@ -85,7 +86,7 @@ QQC2.Popup {
                 onClicked: { viewer.close(); viewer.regenerateRequested(); }
             }
             Item { Layout.fillWidth: true }
-            QQC2.Button {
+            PC3.Button {
                 objectName: "viewerClose"
                 text: i18n("Close")
                 icon.name: "dialog-close"

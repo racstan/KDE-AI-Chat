@@ -2,8 +2,8 @@
 // (ScheduleDialog.qml) over the chat, with this chat already chosen. It
 // covers the chat view until saved or cancelled. `chat` is the widget root.
 import QtQuick
-import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PC3
 import ".." as Ui
 import "../config" as Config
 
@@ -41,7 +41,7 @@ Rectangle {
         id: scheduleService
     }
 
-    QQC2.ScrollView {
+    PC3.ScrollView {
         id: scroll
         anchors.fill: parent
         anchors.margins: Kirigami.Units.largeSpacing

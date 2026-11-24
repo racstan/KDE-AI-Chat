@@ -184,6 +184,8 @@ Chat.AccentArea {
         // decides: a panel at the bottom right grows the popup up and left.
         growsUp: repRoot.panelEdge === PlasmaCore.Types.BottomEdge || (repRoot.sideEdge && repRoot.popupUpward)
         growsLeft: repRoot.panelEdge === PlasmaCore.Types.RightEdge || (!repRoot.sideEdge && repRoot.popupLeftward)
+        // On the desktop Plasma's own handles resize the widget.
+        visible: !root.chatInline // qmllint disable unqualified
         z: 1001
     }
 

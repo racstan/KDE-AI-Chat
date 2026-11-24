@@ -14,6 +14,7 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PC3
 import "../ProviderService.js" as ProviderService
 import "../config" as Config
 import "../config/LocalServers.js" as LocalServers
@@ -250,7 +251,7 @@ Item {
         contentWidth: width
         contentHeight: Math.max(height, card.implicitHeight + Kirigami.Units.largeSpacing * 2)
         boundsBehavior: Flickable.StopAtBounds
-        QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+        QQC2.ScrollBar.vertical: PC3.ScrollBar {}
 
         ColumnLayout {
             id: card

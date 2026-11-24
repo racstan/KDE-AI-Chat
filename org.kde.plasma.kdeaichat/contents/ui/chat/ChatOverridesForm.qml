@@ -122,7 +122,7 @@ ColumnLayout {
         label: i18n("Provider")
         help: i18n("The AI service this chat talks to.") // qmllint disable unqualified
 
-        QQC2.ComboBox {
+        PC3.ComboBox {
             Accessible.name: i18n("Provider") // qmllint disable unqualified
             id: providerCombo
             Layout.fillWidth: true
@@ -149,7 +149,7 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
 
-            QQC2.ComboBox {
+            PC3.ComboBox {
                 Accessible.name: i18n("Model") // qmllint disable unqualified
                 id: modelCombo
                 Layout.fillWidth: true
@@ -212,7 +212,7 @@ ColumnLayout {
         label: i18n("Provider")
         help: i18n("The AI service OpenCode uses for this chat. Empty: OpenCode's default.") // qmllint disable unqualified
 
-        QQC2.ComboBox {
+        PC3.ComboBox {
             Accessible.name: i18n("Provider") // qmllint disable unqualified
             id: ocProviderCombo
             Layout.fillWidth: true
@@ -229,7 +229,7 @@ ColumnLayout {
         label: i18n("Model")
         help: i18n("The AI model OpenCode uses for this chat. Empty: OpenCode's default.") // qmllint disable unqualified
 
-        QQC2.ComboBox {
+        PC3.ComboBox {
             Accessible.name: i18n("Model") // qmllint disable unqualified
             id: ocModelCombo
             Layout.fillWidth: true
@@ -246,7 +246,7 @@ ColumnLayout {
         label: i18n("Agent")
         help: i18n("OpenCode's way of working, for example \"build\" to make changes or \"plan\" to only suggest them.") // qmllint disable unqualified
 
-        QQC2.ComboBox {
+        PC3.ComboBox {
             Accessible.name: i18n("Agent") // qmllint disable unqualified
             id: agentCombo
             Layout.fillWidth: true
@@ -385,7 +385,7 @@ ColumnLayout {
         label: i18n("Response length")
         help: i18n("How long the answers in this chat should be. \"Default\" lets the model decide.") // qmllint disable unqualified
 
-        QQC2.ComboBox {
+        PC3.ComboBox {
             Accessible.name: i18n("Response length") // qmllint disable unqualified
             id: responseLengthCombo
             Layout.fillWidth: true

@@ -176,7 +176,7 @@ ColumnLayout {
         Keys.onEnterPressed: panel.open(panel.found.results[currentIndex])
         Keys.onEscapePressed: searchField.forceActiveFocus()
 
-        QQC2.ScrollBar.vertical: QQC2.ScrollBar {
+        QQC2.ScrollBar.vertical: PC3.ScrollBar {
             id: resultScroll
         }
 
