@@ -88,6 +88,7 @@ The widget works out of the box. Some features need a small tool; if one is miss
 - [Getting started](docs/getting-started.md): your first chat in a few minutes
 - [Providers](docs/providers.md): AI services, local servers, custom providers and API keys
 - [Modes](docs/modes.md): direct, OpenCode and Pi
+- [Tools](docs/tools.md): MCP servers, web search and web pages in direct chats
 - [Chats](docs/chats.md): history, search, projects, incognito, commands and more
 - [Memory and personality](docs/memory-and-personality.md)
 - [Schedules](docs/schedules.md)

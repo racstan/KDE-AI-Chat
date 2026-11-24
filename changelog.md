@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Tools in direct chats: your MCP servers, web search and reading web pages** ([#3](https://github.com/racstan/KDE-AI-Chat/issues/3), [#5](https://github.com/racstan/KDE-AI-Chat/issues/5)). A new **Settings → Tools** page takes your MCP servers in the common `mcpServers` JSON format (local servers started with a command, and remote Streamable HTTP servers), a web search (SearXNG, Brave Search or Tavily; keys go to KWallet, folder `KDEAIChat-tools`) and `fetch_url`, which reads one public web page as text and refuses addresses on your computer or home network. **Every tool call shows a card first**: Allow, Always allow (that tool from now on; the page can clear the list) or Reject. The tools run in a small local helper process that only the widget can talk to and that stops after ten minutes without use. Scheduled runs get no tools. See [Tools](docs/tools.md).
+
 ### Fixed
 - **The widget loads again with Qt 6.10.** Qt 6.10 reads `final` as a keyword, and one function used it as a name, so the whole widget showed "Sorry! There was an error loading KDE AI Chat".
 - **A big widget on the desktop shows the chat** ([#13](https://github.com/racstan/KDE-AI-Chat/issues/13)). The widget used to stay a large icon however big it was made. Now, on the desktop, it shows the chat itself once it is bigger than about 20 × 22 grid units, and the icon when smaller; in a panel it is always the icon. The chat on the desktop can be smaller than the popup and has no resize grip (Plasma's own handles resize it).
