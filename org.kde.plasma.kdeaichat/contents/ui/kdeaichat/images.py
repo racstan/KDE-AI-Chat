@@ -20,12 +20,10 @@ Commands (payload is JSON; ``directory`` is chats/applet-<id>):
 """
 import base64
 import http.client
-import ipaddress
 import json
 import os
 import re
 import shutil
-import socket
 import ssl
 import tempfile
 import urllib.error
@@ -33,7 +31,7 @@ import urllib.request
 from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urljoin, urlsplit
 
-from kdeaichat import chats
+from kdeaichat import chats, net_guard
 from kdeaichat.common import safe_path
 
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
@@ -120,28 +118,8 @@ def _read_staging(payload: Dict[str, Any]) -> bytes:
     return base64.b64decode(value.replace("\\", ""), validate=True)
 
 
-def _global_address(host: str, port: int) -> str:
-    """An address of ``host`` that is public (never loopback, private, link-local...)."""
-    infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
-    for info in infos:
-        address = info[4][0]
-        if ipaddress.ip_address(address.split("%")[0]).is_global:
-            return address
-    raise ValueError("the address is not a public one")
-
-
-class _GuardedHTTPS(http.client.HTTPSConnection):
-    """Connects only to a public address, chosen at connect time (so DNS cannot change it later)."""
-
-    def connect(self) -> None:
-        address = _global_address(self.host, self.port)
-        sock = socket.create_connection((address, self.port), self.timeout)
-        self.sock = self._context.wrap_socket(sock, server_hostname=self.host)  # type: ignore[attr-defined]
-
-
-class _GuardedHandler(urllib.request.HTTPSHandler):
-    def https_open(self, req):  # type: ignore[no-untyped-def]
-        return self.do_open(_GuardedHTTPS, req, context=self._context)
+_global_address = net_guard.global_address
+_GuardedHandler = net_guard.GuardedHTTPSHandler
 
 
 def valid_image_url(url: str) -> bool:

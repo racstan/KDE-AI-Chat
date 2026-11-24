@@ -14,7 +14,7 @@ Overrides (tests and the dev sandbox): ``KDEAICHAT_WALLET_FOLDER`` (default
 import json
 import os
 import subprocess
-from typing import Any, List
+from typing import Any, List, Optional
 
 SERVICE = "org.kde.kwalletd6"
 PATH = "/modules/kwalletd6"
@@ -31,8 +31,11 @@ class WalletUnavailable(Exception):
         self.reason = reason
 
 
-def folder() -> str:
+def default_folder() -> str:
     return os.environ.get("KDEAICHAT_WALLET_FOLDER") or "KDEAIChat"
+
+
+folder = default_folder
 
 
 def _call(method: str, signature: str = "", *args: Any) -> Any:
@@ -53,21 +56,58 @@ def _call(method: str, signature: str = "", *args: Any) -> Any:
     return data[0] if data else None
 
 
-def read_key(provider_id: str) -> str:
-    """The stored key ("" when there is none). Raises WalletUnavailable."""
+def tools_folder() -> str:
+    """The folder for the web-search keys (``<folder>-tools``)."""
+    return default_folder() + "-tools"
+
+
+def _open_wallet(must_be_open: bool) -> "tuple[str, int]":
     wallet = _call("networkWallet") or "kdewallet"
-    if _call("isOpen", "s", wallet) is not True:
+    if must_be_open and _call("isOpen", "s", wallet) is not True:
         raise WalletUnavailable("wallet locked")
     handle = _call("open", "sxs", wallet, 0, APP_ID)
     if not isinstance(handle, int) or handle < 0:
         raise WalletUnavailable("wallet locked")
+    return wallet, handle
+
+
+def _close(handle: int) -> None:
     try:
-        if _call("hasEntry", "isss", handle, folder(), provider_id, APP_ID) is not True:
+        _call("close", "ibs", handle, False, APP_ID)
+    except WalletUnavailable:
+        pass
+
+
+def read_key(provider_id: str, folder: Optional[str] = None) -> str:
+    """The stored key ("" when there is none). Raises WalletUnavailable.
+
+    ``folder`` defaults to the provider-key folder.
+    """
+    where = folder if folder is not None else default_folder()
+    _, handle = _open_wallet(True)
+    try:
+        if _call("hasEntry", "isss", handle, where, provider_id, APP_ID) is not True:
             return ""
-        value = _call("readPassword", "isss", handle, folder(), provider_id, APP_ID)
+        value = _call("readPassword", "isss", handle, where, provider_id, APP_ID)
         return value.strip() if isinstance(value, str) else ""
     finally:
-        try:
-            _call("close", "ibs", handle, False, APP_ID)
-        except WalletUnavailable:
-            pass
+        _close(handle)
+
+
+def write_key(entry: str, value: str, folder: Optional[str] = None) -> bool:
+    """Stores ``value`` (an empty one removes the entry). True when it worked.
+
+    Raises WalletUnavailable. The wallet may ask the user to unlock it. Like
+    read_key, the value goes to busctl as one argv element and nowhere else.
+    """
+    where = folder if folder is not None else default_folder()
+    _, handle = _open_wallet(False)
+    try:
+        if not value:
+            _call("removeEntry", "isss", handle, where, entry, APP_ID)
+            return True
+        if _call("hasFolder", "iss", handle, where, APP_ID) is not True:
+            _call("createFolder", "iss", handle, where, APP_ID)
+        return _call("writePassword", "issss", handle, where, entry, value, APP_ID) == 0
+    finally:
+        _close(handle)

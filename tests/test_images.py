@@ -13,7 +13,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "org.kde.plasma.kdeaichat", "contents", "ui"))
 
-from kdeaichat import chats, images  # noqa: E402
+from kdeaichat import chats, images, net_guard  # noqa: E402
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 32
@@ -163,10 +163,10 @@ def test_only_public_addresses_are_used():
     for host in ("localhost", "127.0.0.1"):
         with pytest.raises(ValueError):
             images._global_address(host, 443)
-    with patch.object(images.socket, "getaddrinfo", return_value=[(2, 1, 6, "", ("10.0.0.5", 443)), (2, 1, 6, "", ("192.168.1.2", 443))]):
+    with patch.object(net_guard.socket, "getaddrinfo", return_value=[(2, 1, 6, "", ("10.0.0.5", 443)), (2, 1, 6, "", ("192.168.1.2", 443))]):
         with pytest.raises(ValueError):
             images._global_address("internal.example", 443)
-    with patch.object(images.socket, "getaddrinfo", return_value=[(2, 1, 6, "", ("10.0.0.5", 443)), (2, 1, 6, "", ("93.184.216.34", 443))]):
+    with patch.object(net_guard.socket, "getaddrinfo", return_value=[(2, 1, 6, "", ("10.0.0.5", 443)), (2, 1, 6, "", ("93.184.216.34", 443))]):
         assert images._global_address("mixed.example", 443) == "93.184.216.34"
 
 
