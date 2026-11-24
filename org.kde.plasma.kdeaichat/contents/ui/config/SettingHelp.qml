@@ -22,7 +22,7 @@ QQC2.Label {
     wrapMode: Text.Wrap
     textFormat: Text.PlainText
     font: Kirigami.Theme.smallFont
-    color: Kirigami.Theme.disabledTextColor
+    color: Kirigami.Theme.textColor
     Accessible.role: Accessible.StaticText
     Accessible.description: details
 
