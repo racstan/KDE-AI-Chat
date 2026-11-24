@@ -130,7 +130,7 @@ Rectangle {
             Layout.fillWidth: true
         }
 
-        QQC2.ScrollView {
+        PC3.ScrollView {
             id: scroll
 
             Layout.fillWidth: true

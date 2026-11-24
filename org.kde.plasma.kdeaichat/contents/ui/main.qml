@@ -5,6 +5,7 @@ import "ProviderService.js" as ProviderService
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.plasma5support 2.0 as P5Support
 import org.kde.plasma.plasmoid
+import org.kde.plasma.core as PlasmaCore
 import QtCore
 import "Security.js" as Sec
 import "store" as Store
@@ -414,21 +415,21 @@ PlasmoidItem {
     }
 
     Plasmoid.title: plasmoid.configuration.appDisplayName || "KDE AI Chat"
-    // Panels and the desktop show the compact icon; standalone hosts such as
-    // plasmawindowed (used by scripts/dev-run.sh) open the chat directly.
-    preferredRepresentation: Qt.application.name === "plasmawindowed" ? fullRepresentation : compactRepresentation
-    onHistoryOnlyModeChanged: {
-        if (!historyOnlyMode) {
-            root.focusInput();
-            Qt.callLater(function() { root.scrollToBottom(true); });
-        }
+    // #13: icon in panels, the chat on the desktop once bigger than the switch size (plasmawindowed: always).
+    readonly property bool standaloneHost: Qt.application.name === "plasmawindowed"
+    readonly property bool inPanel: Plasmoid.formFactor === PlasmaCore.Types.Horizontal || Plasmoid.formFactor === PlasmaCore.Types.Vertical
+    switchWidth: standaloneHost ? -1 : (inPanel ? 100000 : Kirigami.Units.gridUnit * 20)
+    switchHeight: standaloneHost ? -1 : (inPanel ? 100000 : Kirigami.Units.gridUnit * 22)
+    preferredRepresentation: standaloneHost ? fullRepresentation : null
+    property bool chatInline: false // the chat is in the widget itself (desktop), not a popup
+    onHistoryOnlyModeChanged: if (!historyOnlyMode) {
+        root.focusInput();
+        Qt.callLater(function() { root.scrollToBottom(true); });
     }
-    onExpandedChanged: {
-        if (root.expanded) {
-            root.triggerInitialLoad();
-            root.focusInput();
-            Qt.callLater(root.scrollToBottom);
-        }
+    onExpandedChanged: if (root.expanded) {
+        root.triggerInitialLoad();
+        root.focusInput();
+        Qt.callLater(root.scrollToBottom);
     }
     Component.onCompleted: {
         // Build a usable prompt immediately; the deferred system-information
@@ -529,18 +530,15 @@ PlasmoidItem {
     fullRepresentation: Item {
         implicitWidth: root.popupPreferredWidth
         implicitHeight: root.popupPreferredHeight
-        Layout.minimumWidth: 500
-        Layout.minimumHeight: 620
+        Layout.minimumWidth: root.chatInline ? Kirigami.Units.gridUnit * 20 : 500
+        Layout.minimumHeight: root.chatInline ? Kirigami.Units.gridUnit * 22 : 620
         Layout.preferredWidth: root.popupPreferredWidth
         Layout.preferredHeight: root.popupPreferredHeight
-        Component.onCompleted: {
+        Component.onCompleted: root.focusInput()
+        onParentChanged: root.chatInline = parent === root // Plasma puts an inline chat in the widget
+        onVisibleChanged: if (visible) {
             root.focusInput();
-        }
-        onVisibleChanged: {
-            if (visible) {
-                root.focusInput();
-                Qt.callLater(root.scrollToBottom);
-            }
+            Qt.callLater(root.scrollToBottom);
         }
         // No background or colours of its own: the Plasma popup draws the
         // background and the content follows the Plasma colour scheme.

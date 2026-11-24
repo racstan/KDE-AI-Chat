@@ -11,7 +11,7 @@ MAIN_XML = os.path.join(REPO, "org.kde.plasma.kdeaichat", "contents", "config", 
 REMOVED_COMMANDS = (
     "toggle_schedule", "update_schedule_history_status", "migrate_history", "write_history", "read_history",
     "delete_schedule", "add_schedule", "get_memory_usage", "get_voice_token", "setup_voice_services",
-    "delete_voice_setup", "delete_venv_setup", "privacy_report", "opencode_server_status", "pi_bridge_stop",
+    "delete_voice_setup", "delete_venv_setup", "privacy_report", "opencode_server_status", "pi_bridge_stop", "tools_bridge_stop",
     # Phase 5: the polling scheduler daemon and its trigger files are gone (schedules are systemd timers).
     "poll_pending_triggers", "setup_scheduler_service", "save_all_schedules",
     # The widget's own speech engines (faster-whisper, Parakeet, whisper.cpp, Kokoro, Piper, custom commands) are gone.

@@ -3,9 +3,9 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PC3
 
 // i18n() and i18np() come from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
@@ -35,7 +35,7 @@ ColumnLayout {
             opacity: 0.8
             Layout.fillWidth: true
         }
-        QQC2.BusyIndicator {
+        PC3.BusyIndicator {
             visible: choose.ctl.scanning
             running: choose.ctl.scanning
             Layout.preferredHeight: Kirigami.Units.iconSizes.small
@@ -81,7 +81,7 @@ ColumnLayout {
     }
 
     // ── Privacy and the way out ───────────────────────────────────────
-    QQC2.Label {
+    PC3.Label {
         objectName: "firstRunPrivacy"
         Layout.fillWidth: true
         Layout.topMargin: Kirigami.Units.smallSpacing
@@ -94,7 +94,7 @@ ColumnLayout {
         onLinkActivated: link => Qt.openUrlExternally(link)
     }
 
-    QQC2.Label {
+    PC3.Label {
         objectName: "firstRunSkip"
         Layout.fillWidth: true
         linkColor: Kirigami.Theme.linkColor

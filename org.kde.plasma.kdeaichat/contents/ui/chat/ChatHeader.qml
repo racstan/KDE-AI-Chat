@@ -10,6 +10,7 @@ pragma ComponentBehavior: Bound
 import QtCore
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Templates as T
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
@@ -247,7 +248,7 @@ RowLayout {
             property Connections submenuItem: Connections {
                 target: moreMenu.opened ? moreMenu.itemAt(1) : null
                 function onHoveredChanged() {
-                    const item = moreMenu.itemAt(1) as QQC2.MenuItem;
+                    const item = moreMenu.itemAt(1) as T.MenuItem;
                     if (item && item.hovered && item.enabled && !projectMenu.opened)
                         item.click();
                 }
@@ -267,13 +268,13 @@ RowLayout {
             onHoveredChanged: if (!hovered) Qt.callLater(moreHover.closeIfLeft)
         }
 
-        QQC2.Menu {
+        PC3.Menu {
             id: moreMenu
             // No fade: it is there (and gone) at once.
             enter: null
             exit: null
 
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 text: i18n("Rename chat")
                 icon.name: "document-edit"
                 onTriggered: {
@@ -290,9 +291,9 @@ RowLayout {
                 chat: header.chat
                 enabled: !header.inIncognito
             }
-            QQC2.MenuSeparator {
+            PC3.MenuSeparator {
             }
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 text: i18n("Jump to first message")
                 icon.name: "go-top"
                 onTriggered: {
@@ -303,17 +304,17 @@ RowLayout {
                     }
                 }
             }
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 text: i18n("Jump to previous message")
                 icon.name: "go-up"
                 onTriggered: header.chat.jumpOneMessageAbove()
             }
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 text: i18n("Jump to next message")
                 icon.name: "go-down"
                 onTriggered: header.chat.jumpOneMessageBelow()
             }
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 text: i18n("Jump to latest message")
                 icon.name: "go-bottom"
                 onTriggered: {
@@ -321,22 +322,22 @@ RowLayout {
                     header.chat.scrollToBottom(true);
                 }
             }
-            QQC2.MenuSeparator {
+            PC3.MenuSeparator {
             }
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 objectName: "scheduleMessageItem"
                 text: i18n("Schedule a message…")
                 icon.name: "view-calendar"
                 enabled: !header.inIncognito  // nothing can be scheduled into an incognito chat
                 onTriggered: header.scheduleRequested()
             }
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 text: i18n("Export chat…")
                 icon.name: "document-export"
                 enabled: !header.chat.loading && header.chat.messages.length > 0
                 onTriggered: header.exportRequested(header.exportFileName())
             }
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 text: i18n("Clear chat")
                 icon.name: "edit-clear-all"
                 enabled: !header.chat.loading && header.chat.messages.length > 0

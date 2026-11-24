@@ -26,6 +26,7 @@ To use another mode, start a new chat. Chat info shows the mode of the open chat
 You set up providers in [Providers](providers.md). The widget sends your messages and the earlier messages of the chat to the provider you chose. Direct chats can also:
 
 - let the AI **ask you a question** in the chat and wait for your answer (switch this off in Settings → Chat → **Let the AI ask me questions**);
+- use **tools**: your MCP servers, a web search and reading web pages, each call only after you allow it (see [Tools](tools.md));
 - show pictures that models send back, and make pictures with `/image` (see [Pictures](pictures.md)).
 
 ![The AI asks a question in the chat](media/chat-ask-light.png)

@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PC3
 
 Rectangle {
     id: block
@@ -33,7 +34,7 @@ Rectangle {
         contentWidth: width
         contentHeight: edit.implicitHeight
         boundsBehavior: Flickable.StopAtBounds
-        QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+        QQC2.ScrollBar.vertical: PC3.ScrollBar {}
 
         TextEdit {
             id: edit

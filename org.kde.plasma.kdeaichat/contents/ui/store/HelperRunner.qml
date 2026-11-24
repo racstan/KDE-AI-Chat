@@ -23,7 +23,7 @@ P5Support.DataSource {
     // Commands with no private text in their payload; everything else is private.
     property var argvCommands: ["desktop_status", "storage_usage", "local_servers_scan", "ask_inbox_take",
                                 "read_legacy_keyfile", "remove_legacy_keyfile", "prepare_chat_dir",
-                                "speechnote_status", "get_pi_models"]
+                                "speechnote_status", "get_pi_models", "tools_bridge_start", "tools_key_status"]
     // Tests: where private payload files go (default: the runtime folder).
     property string privateDir: {
         var dir = String(StandardPaths.writableLocation(StandardPaths.RuntimeLocation) || "");

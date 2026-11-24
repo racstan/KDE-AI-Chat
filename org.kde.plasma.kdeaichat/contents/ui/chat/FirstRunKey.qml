@@ -3,9 +3,9 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PC3
 
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
 // qmllint disable unqualified
@@ -25,7 +25,7 @@ ColumnLayout {
         Layout.fillWidth: true
     }
 
-    QQC2.Label {
+    PC3.Label {
         textFormat: Text.PlainText
         Layout.fillWidth: true
         wrapMode: Text.Wrap
@@ -34,7 +34,7 @@ ColumnLayout {
             : i18n("Paste your key here. It is kept in KWallet, not in a file, and only sent to %1.", keyStep.ctl.choice ? keyStep.ctl.choice.name : "")
     }
 
-    QQC2.Label {
+    PC3.Label {
         objectName: "getKeyLink"
         visible: !!keyStep.ctl.choice && keyStep.ctl.choice.keyUrl !== ""
         Layout.fillWidth: true
@@ -58,10 +58,14 @@ ColumnLayout {
         Component.onCompleted: forceActiveFocus()
     }
 
-    QQC2.ComboBox {
+    PC3.ComboBox {
         id: modelBox
         objectName: "firstRunModel"
         visible: keyStep.ctl.modelsReady
+        // Plasma's combo box sizes itself from its items, which loops here;
+        // the width comes from the layout and the height from the key field.
+        implicitWidth: Kirigami.Units.gridUnit * 12
+        implicitHeight: keyField.implicitHeight
         Layout.fillWidth: true
         model: keyStep.ctl.models
         enabled: !keyStep.ctl.busy
@@ -74,7 +78,7 @@ ColumnLayout {
         }
     }
 
-    QQC2.Label {
+    PC3.Label {
         textFormat: Text.PlainText
         objectName: "firstRunStatus"
         visible: keyStep.ctl.status !== ""
@@ -88,7 +92,7 @@ ColumnLayout {
         Layout.fillWidth: true
         spacing: Kirigami.Units.smallSpacing
 
-        QQC2.Button {
+        PC3.Button {
             objectName: "firstRunBack"
             text: i18n("Back")
             icon.name: "go-previous"
@@ -100,14 +104,14 @@ ColumnLayout {
             Layout.fillWidth: true
         }
 
-        QQC2.BusyIndicator {
+        PC3.BusyIndicator {
             visible: keyStep.ctl.busy
             running: keyStep.ctl.busy
             Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
             Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
         }
 
-        QQC2.Button {
+        PC3.Button {
             objectName: "firstRunContinue"
             highlighted: true
             text: keyStep.ctl.modelsReady ? i18n("Save and continue") : i18n("Check key")

@@ -31,10 +31,10 @@ MouseArea {
     // The room the grip takes in each corner of the popup (0 where it isn't):
     // whatever sits in that corner (the header's last button, the composer's
     // Send) keeps this much free, so the grip never covers a button.
-    readonly property real roomTopLeft: growsUp && growsLeft ? width : 0
-    readonly property real roomTopRight: growsUp && !growsLeft ? width : 0
-    readonly property real roomBottomLeft: !growsUp && growsLeft ? width : 0
-    readonly property real roomBottomRight: !growsUp && !growsLeft ? width : 0
+    readonly property real roomTopLeft: visible && growsUp && growsLeft ? width : 0
+    readonly property real roomTopRight: visible && growsUp && !growsLeft ? width : 0
+    readonly property real roomBottomLeft: visible && !growsUp && growsLeft ? width : 0
+    readonly property real roomBottomRight: visible && !growsUp && !growsLeft ? width : 0
 
     property point pressPoint: Qt.point(0, 0)
     property int startWidth: 0

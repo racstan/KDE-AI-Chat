@@ -199,7 +199,7 @@ QQC2.Popup {
         }
         RowLayout {
             Layout.fillWidth: true
-            QQC2.ComboBox {
+            PC3.ComboBox {
                 Accessible.name: i18n("Model for direct chats")
                 id: providerCombo
                 objectName: "projectProvider"

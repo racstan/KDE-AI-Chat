@@ -13,6 +13,7 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtCore
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PC3
 import "../Security.js" as Sec
 import "ImageExtract.js" as ImageExtract
 // i18n() is provided by Plasma at runtime.
@@ -144,7 +145,7 @@ ColumnLayout {
                         Accessible.name: tile.modelData.prompt ? i18n("Image: %1", tile.modelData.prompt) : i18n("Image")
                     }
 
-                    QQC2.Label {
+                    PC3.Label {
                         anchors.centerIn: parent
                         width: parent.width - Kirigami.Units.largeSpacing * 2
                         visible: picture.status === Image.Error
@@ -168,7 +169,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 0
 
-                    QQC2.ToolButton {
+                    PC3.ToolButton {
                         objectName: "enlargeButton"
                         icon.name: "zoom-in"
                         display: QQC2.AbstractButton.IconOnly
@@ -177,7 +178,7 @@ ColumnLayout {
                         QQC2.ToolTip.visible: hovered
                         QQC2.ToolTip.text: text
                     }
-                    QQC2.ToolButton {
+                    PC3.ToolButton {
                         objectName: "copyImageButton"
                         icon.name: "edit-copy"
                         display: QQC2.AbstractButton.IconOnly
@@ -186,7 +187,7 @@ ColumnLayout {
                         QQC2.ToolTip.visible: hovered
                         QQC2.ToolTip.text: text
                     }
-                    QQC2.ToolButton {
+                    PC3.ToolButton {
                         objectName: "downloadButton"
                         icon.name: "document-save"
                         display: QQC2.AbstractButton.IconOnly
@@ -195,7 +196,7 @@ ColumnLayout {
                         QQC2.ToolTip.visible: hovered
                         QQC2.ToolTip.text: text
                     }
-                    QQC2.ToolButton {
+                    PC3.ToolButton {
                         objectName: "regenerateImageButton"
                         visible: !!tile.modelData.service && !!tile.modelData.prompt
                         icon.name: "view-refresh"
@@ -215,7 +216,7 @@ ColumnLayout {
     Repeater {
         model: gallery.links
 
-        delegate: QQC2.Button {
+        delegate: PC3.Button {
             id: linkButton
             required property var modelData
             objectName: "imageLinkButton"
@@ -230,7 +231,7 @@ ColumnLayout {
         }
     }
 
-    QQC2.Label {
+    PC3.Label {
         textFormat: Text.PlainText
         objectName: "imageNote"
         Layout.fillWidth: true

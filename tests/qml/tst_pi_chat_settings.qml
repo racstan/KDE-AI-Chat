@@ -1,6 +1,7 @@
 // chat/PiChatSettings.qml: a Pi chat's provider, model and thinking level.
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Templates as T
 import QtTest
 import "../../org.kde.plasma.kdeaichat/contents/ui/chat" as Chat
 
@@ -41,7 +42,7 @@ Item {
             return found;
         }
         function combos() {
-            return collect(pi, function(item) { return item instanceof QQC2.ComboBox; }, []);
+            return collect(pi, function(item) { return item instanceof T.ComboBox; }, []);
         }
 
         function test_0_every_setting_is_explained() {

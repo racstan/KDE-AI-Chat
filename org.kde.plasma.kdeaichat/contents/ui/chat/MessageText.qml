@@ -4,7 +4,9 @@
 // Right-click opens Copy / Read aloud.
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Templates as T
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PC3
 import "../Security.js" as Sec
 import "ReadAloudAction.js" as ReadAloudAction
 // i18n() comes from Plasma (KLocalizedContext), which qmllint cannot see.
@@ -55,11 +57,11 @@ TextEdit {
     }
 
     // Right-click: Copy and Read aloud (the selection, or the whole message).
-    property QQC2.Menu openMenu: null
+    property T.Menu openMenu: null
     TapHandler {
         acceptedButtons: Qt.RightButton
         onTapped: function(eventPoint) {
-            var menu = contextMenu.createObject(block) as QQC2.Menu;
+            var menu = contextMenu.createObject(block) as T.Menu;
             block.openMenu = menu;
             menu.closed.connect(function() { block.openMenu = null; menu.destroy(); });
             menu.popup(block, eventPoint.position.x, eventPoint.position.y);
@@ -68,18 +70,18 @@ TextEdit {
 
     Component {
         id: contextMenu
-        QQC2.Menu {
+        PC3.Menu {
             id: textMenu
             objectName: "messageTextMenu"
             readonly property var voice: block.chat ? block.chat.voiceManagerRef : null
             readonly property bool readingThis: !!voice && voice.isPlaying && block.chat.playingMessageIndex === block.messageIndex
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 text: i18n("Copy")
                 icon.name: "edit-copy"
                 enabled: block.selectedText !== ""
                 onTriggered: block.copy()
             }
-            QQC2.MenuItem {
+            PC3.MenuItem {
                 objectName: "readAloudItem"
                 visible: !!block.chat && block.chat.voiceTtsEnabled === true
                 height: visible ? implicitHeight : 0
