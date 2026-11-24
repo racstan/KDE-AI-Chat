@@ -1,4 +1,5 @@
-// Direct mode: what happens when the model asks for tools. Shows each call as a
+// Direct mode: what happens when the model asks for tools (ask_user and the bridge tools of
+// chat/ToolBridge.qml, each after the user allows it on a permission card). Shows each call as a
 // tool card on the reply, runs it (ask_user shows a question card and waits for
 // the answer), keeps the calls with the reply so the chat can be sent again, and
 // asks chat/DirectRequest.qml for the next round with the results.
@@ -15,7 +16,10 @@ QtObject {
     property var chat: null
     property var request: null   // chat/DirectRequest.qml: sendRound(ctx), finishRequest(ctx)
 
-    // The question the model is waiting on: {questionId, bubbleId, callId, done(output)}.
+    property var bridge: null    // chat/ToolBridge.qml: tools, call(name, args, callback)
+
+    // What the model is waiting on: a question {kind: "question", questionId, bubbleId, callId, done(output)}
+    // or a permission {kind: "permission", permissionId, bubbleId, callId, call, done(output, isError)}.
     property var pending: null
 
     function hasPendingQuestion() {
@@ -86,7 +90,10 @@ QtObject {
 
     function _execute(ctx, call, bubbleId, done) {
         if (call.name !== DirectTools.ASK_USER) {
-            done("Unknown tool: " + call.name + ". Only ask_user is available.", true);
+            if (rounds._isBridgeTool(call.name))
+                rounds._useBridgeTool(ctx, call, bubbleId, done);
+            else
+                done("Unknown tool: " + call.name + ". Available: " + rounds._availableTools().join(", ") + ".", true);
             return;
         }
         var q = DirectTools.askUserQuestion(call.args);
@@ -97,7 +104,7 @@ QtObject {
         // The question is its own card below the reply; what the model writes after the answer starts a new reply.
         chat.resetProviderStreamingState();
         var questionId = "ask-" + Date.now() + "-" + call.id;
-        rounds.pending = {"questionId": questionId, "bubbleId": bubbleId, "callId": call.id, "model": ctx.model, "done": done};
+        rounds.pending = {"kind": "question", "questionId": questionId, "bubbleId": bubbleId, "callId": call.id, "model": ctx.model, "done": done};
         chat.applyBackendEvent({"type": "question_request", "id": questionId, "questions": [{
             "header": "", "question": q.question, "multiple": false, "custom": q.allowTyped,
             "options": q.options.map(function(label) { return {"label": label, "description": ""}; })}]},
@@ -108,7 +115,7 @@ QtObject {
     // An answer from the question card or the notification: one string, or one array of labels per question.
     function respondToQuestion(questionId, answerValue, isReject) {
         var p = rounds.pending;
-        if (!p || p.questionId !== questionId) {
+        if (!p || p.kind !== "question" || p.questionId !== questionId) {
             // Left over from an earlier run (the widget was restarted): nothing is waiting for it.
             rounds._finishQuestion(questionId, "dismissed", "");
             return;
@@ -121,14 +128,97 @@ QtObject {
         p.done(isReject ? i18n("The user closed the question without answering.") : text, false);
     }
 
-    // The request is stopped or the user wrote something else: the question is not answered.
+    // The request is stopped or the user wrote something else: the question or permission is not answered.
     function cancelPending() {
         var p = rounds.pending;
         if (!p)
             return;
         rounds.pending = null;
-        rounds._finishQuestion(p.questionId, "dismissed", "");
+        if (p.kind === "permission")
+            rounds._finishPermission(p.permissionId, "denied");
+        else
+            rounds._finishQuestion(p.questionId, "dismissed", "");
         rounds._setResult(p.bubbleId, p.callId, "The user did not answer.", false);
+    }
+
+    // --- Tools of the tool bridge (MCP servers, web_search, fetch_url) -----------
+
+    function _isBridgeTool(name) {
+        var list = rounds.bridge ? rounds.bridge.tools : [];
+        for (var i = 0; i < list.length; i++)
+            if (list[i].name === name)
+                return true;
+        return false;
+    }
+
+    // Names for the "Unknown tool" error.
+    function _availableTools() {
+        var names = chat.plasmoid.configuration.allowAskUser !== false ? [DirectTools.ASK_USER] : [];
+        var list = rounds.bridge ? rounds.bridge.tools : [];
+        for (var i = 0; i < list.length && names.length < 30; i++)
+            names.push(list[i].name);
+        return names;
+    }
+
+    function _alwaysAllowed() {
+        try {
+            var list = JSON.parse(String(chat.plasmoid.configuration.toolsAlwaysAllowed || "[]"));
+            return Array.isArray(list) ? list : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function _allowAlways(name) {
+        var list = rounds._alwaysAllowed();
+        if (list.indexOf(name) < 0)
+            chat.plasmoid.configuration.toolsAlwaysAllowed = JSON.stringify(list.concat([name]));
+    }
+
+    function _runTool(call, done) {
+        rounds.bridge.call(call.name, call.args, done);
+    }
+
+    // A tool the user allowed always runs at once; any other shows a permission card and waits.
+    function _useBridgeTool(ctx, call, bubbleId, done) {
+        if (rounds._alwaysAllowed().indexOf(call.name) >= 0) {
+            rounds._runTool(call, done);
+            return;
+        }
+        // The card is its own message below the reply, like a question.
+        chat.resetProviderStreamingState();
+        var described = DirectTools.describeCall(call.name, call.args);
+        var permissionId = "direct-" + Date.now() + "-" + call.id;
+        rounds.pending = {"kind": "permission", "permissionId": permissionId, "bubbleId": bubbleId, "callId": call.id, "call": call, "done": done};
+        // A short call is one line, so the notification can show it whole and offer Allow / Deny.
+        chat.applyBackendEvent({"type": "permission_request", "id": permissionId, "permission": described.tool, "patterns": [described.short || described.arguments]},
+                               ctx.model, {"harness": "direct", "name": ctx.model});
+    }
+
+    // An answer from the permission card or the notification. always: allow this tool from now on.
+    function respondToPermission(permissionId, approved, always) {
+        var p = rounds.pending;
+        if (!p || p.kind !== "permission" || p.permissionId !== permissionId) {
+            // Left over from an earlier run (the widget was restarted): nothing is waiting for it.
+            rounds._finishPermission(permissionId, "denied");
+            return;
+        }
+        rounds.pending = null;
+        rounds._finishPermission(permissionId, approved ? "allowed" : "denied");
+        if (!approved) {
+            p.done("The user rejected this tool call.", true);
+            return;
+        }
+        if (always === true)
+            rounds._allowAlways(p.call.name);
+        rounds._runTool(p.call, p.done);
+    }
+
+    function _finishPermission(permissionId, status) {
+        chat.updateMessageAt(chat.findRequestMessage("permission_request", "permissionId", permissionId), function(msg) {
+            msg.status = status;
+        });
+        chat.saveCurrentSessionState(true);
     }
 
     function _finishQuestion(questionId, status, text) {

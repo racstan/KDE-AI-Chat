@@ -404,6 +404,26 @@
     <entry name="allowAskUser" type="Bool">
       <default>true</default>
     </entry>
+    <!-- Direct mode tools: the user's MCP servers as JSON text in the common "mcpServers" format (chat/ToolBridge.qml). -->
+    <entry name="toolServers" type="String">
+      <default></default>
+    </entry>
+    <!-- Direct mode tools: web search provider: none, searxng, brave or tavily (the key is in KWallet, never here). -->
+    <entry name="webSearchProvider" type="String">
+      <default>none</default>
+    </entry>
+    <!-- Direct mode tools: address of the SearXNG instance used by web_search. -->
+    <entry name="searxngUrl" type="String">
+      <default></default>
+    </entry>
+    <!-- Direct mode tools: let the AI read web pages with fetch_url. -->
+    <entry name="webFetchEnabled" type="Bool">
+      <default>false</default>
+    </entry>
+    <!-- Direct mode tools: JSON array of tool names the user chose "Always allow" for (chat/DirectToolRounds.qml). -->
+    <entry name="toolsAlwaysAllowed" type="String">
+      <default>[]</default>
+    </entry>
     <!-- Ask before leaving an incognito chat that has messages (chat/Incognito.qml); "Don't ask again" turns it off. -->
     <entry name="incognitoAskBeforeLeaving" type="Bool">
       <default>true</default>

@@ -113,6 +113,8 @@ TestCase {
             { tag: "ConfigSchedules", url: uiDir + "ConfigSchedules.qml" },
             { tag: "ConfigMemory", url: uiDir + "ConfigMemory.qml" },
             { tag: "ConfigVoice", url: uiDir + "ConfigVoice.qml" },
+            { tag: "ConfigTools", url: uiDir + "ConfigTools.qml" },
+            { tag: "chat/ToolBridge", url: uiDir + "chat/ToolBridge.qml" },
             { tag: "ConfigAppearance", url: uiDir + "ConfigAppearance.qml" },
             { tag: "config/ModeChooser", url: uiDir + "config/ModeChooser.qml" },
             { tag: "config/RequestOptions", url: uiDir + "config/RequestOptions.qml" },

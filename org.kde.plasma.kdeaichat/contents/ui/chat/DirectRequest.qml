@@ -13,6 +13,9 @@ import "MessageContent.js" as MessageContent
 import "ImageExtract.js" as ImageExtract
 import "Personality.js" as Personality
 
+// i18n() is provided by Plasma at runtime.
+// qmllint disable unqualified
+
 QtObject {
     id: direct
 
@@ -20,7 +23,11 @@ QtObject {
     property var directVariantRef: null  // chat/DirectVariant.qml
     // Replaces XMLHttpRequest in tests.
     property var xhrFactory: null
-    readonly property var toolRounds: DirectToolRounds { chat: direct.chat; request: direct }
+    // Replaces XMLHttpRequest for the tool bridge in tests.
+    property var toolXhrFactory: null
+    // The tools of the user's MCP servers and the web tools (chat/ToolBridge.qml).
+    readonly property var toolBridge: ToolBridge { chat: direct.chat; xhrFactory: direct.toolXhrFactory }
+    readonly property var toolRounds: DirectToolRounds { chat: direct.chat; request: direct; bridge: direct.toolBridge }
 
     function getProviderConfig(provider, sessionId) {
         var providerId = provider || chat.getEffectiveProvider(sessionId || chat.currentSessionId);
@@ -167,9 +174,27 @@ QtObject {
         });
     }
 
+    // Waits for the bridge's tool list when tools are set up. A bridge that fails never blocks the chat:
+    // the request goes without its tools, and one notice names what failed.
     function sendDirectRequest(cfg, sessionId, generation, variantSend) {
+        if (!direct.toolBridge.isEnabled()) {
+            direct.sendWithTools(cfg, sessionId, generation, variantSend, []);
+            return;
+        }
+        direct.toolBridge.load(function(ok, fresh) {
+            if (!chat.requestIsCurrent(sessionId, generation))
+                return;
+            // Servers that failed to start are named once, when the list was loaded, not on every message.
+            if (!ok || (fresh && direct.toolBridge.errors.length > 0))
+                chat.applyBackendEvent({"type": "notice", "level": "warn", "message":
+                    i18n("Some tools are not available: %1", direct.toolBridge.errorSummary())}, cfg.model || "");
+            direct.sendWithTools(cfg, sessionId, generation, variantSend, ok ? direct.toolBridge.tools : []);
+        });
+    }
+
+    function sendWithTools(cfg, sessionId, generation, variantSend, bridgeTools) {
         var apiType = cfg.type === "anthropic" ? "anthropic" : "openai";
-        var tools = DirectTools.toolDefinitions(apiType, {"askUser": chat.plasmoid.configuration.allowAskUser !== false});
+        var tools = DirectTools.toolDefinitions(apiType, {"askUser": chat.plasmoid.configuration.allowAskUser !== false, "tools": bridgeTools});
         var withTools = tools.length > 0 && !DirectBackend.rejectsTools({"baseUrl": cfg.baseUrl, "model": cfg.model || ""});
         var parts = direct.buildDirectRequestParts(sessionId, apiType, withTools);
         chat.currentStreamUsage = ({});

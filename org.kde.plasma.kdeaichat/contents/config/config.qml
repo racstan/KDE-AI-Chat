@@ -16,6 +16,11 @@ ConfigModel {
         source: "ConfigChat.qml"
     }
     ConfigCategory {
+        name: i18n("Tools")
+        icon: "applications-utilities"
+        source: "ConfigTools.qml"
+    }
+    ConfigCategory {
         name: i18n("Personality")
         icon: "user-identity"
         source: "ConfigPersonality.qml"
